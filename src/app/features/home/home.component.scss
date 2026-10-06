@@ -1,0 +1,226 @@
+.hero {
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  background:
+    radial-gradient(1000px 520px at 78% 30%, rgba(253, 210, 14, 0.25), transparent 62%),
+    linear-gradient(150deg, var(--sfc-blue) 0%, var(--sfc-blue-900) 75%);
+  isolation: isolate;
+}
+.hero__rays {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: repeating-conic-gradient(from -4deg at 76% 42%, rgba(255, 255, 255, 0.055) 0 4deg, transparent 4deg 12deg);
+  mask-image: radial-gradient(circle at 76% 42%, #000 0 35%, transparent 70%);
+}
+.hero__inner {
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+  align-items: center;
+  gap: 2rem;
+  padding: clamp(3rem, 8vw, 6rem) 0 2rem;
+}
+.hero .eyebrow {
+  color: var(--sfc-yellow);
+}
+.hero__title {
+  font-size: clamp(2.9rem, 7.4vw, 5.6rem);
+  line-height: 0.95;
+  margin-bottom: 1.4rem;
+  span {
+    color: var(--sfc-yellow);
+  }
+}
+.hero__lead {
+  font-size: 1.15rem;
+  max-width: 44ch;
+  opacity: 0.92;
+}
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 1.8rem;
+}
+.hero__crest img {
+  width: min(420px, 100%);
+  margin-inline: auto;
+  filter: drop-shadow(0 30px 50px rgba(0, 0, 0, 0.4));
+  background: #fff;
+  border-radius: 50%;
+  padding: 8%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+.hero__stats {
+  list-style: none;
+  margin: 0;
+  padding: 1.6rem 0 2.2rem;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  li {
+    text-align: center;
+  }
+  strong {
+    display: block;
+    font: 800 clamp(2rem, 4.5vw, 3rem)/1 var(--font-display);
+    color: var(--sfc-yellow);
+  }
+  span {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    opacity: 0.8;
+  }
+}
+@media (max-width: 800px) {
+  .hero__inner {
+    grid-template-columns: 1fr;
+    padding-top: 2.2rem;
+  }
+  .hero__crest {
+    order: -1;
+    img {
+      width: 150px;
+      margin: 0;
+    }
+  }
+  .hero__stats {
+    grid-template-columns: repeat(2, 1fr);
+    row-gap: 1.3rem;
+  }
+}
+
+.news-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(3, 1fr);
+  .featured {
+    grid-column: 1 / -1;
+  }
+  @media (max-width: 960px) {
+    grid-template-columns: 1fr 1fr;
+  }
+  @media (max-width: 620px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sports__intro {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+.sports__more {
+  margin: 2rem 0 0;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.85);
+  a {
+    color: var(--sfc-yellow);
+    font-weight: 700;
+  }
+}
+
+.agenda {
+  align-items: center;
+}
+.agenda__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+  a {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius);
+    text-decoration: none;
+    color: inherit;
+    transition:
+      border-color 0.2s,
+      background 0.2s;
+    &:hover {
+      border-color: var(--sfc-blue);
+      background: var(--sfc-blue-50);
+    }
+    > sfc-icon {
+      margin-left: auto;
+      color: var(--sfc-blue);
+    }
+  }
+}
+.agenda__date {
+  flex: none;
+  width: 56px;
+  text-align: center;
+  strong {
+    display: block;
+    font: 800 1.9rem/1 var(--font-display);
+    color: var(--sfc-blue);
+  }
+  span {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+}
+.agenda__body {
+  display: grid;
+  gap: 0.2rem;
+  justify-items: start;
+  min-width: 0;
+}
+.agenda__title {
+  font-weight: 700;
+}
+.agenda__meta {
+  font-size: 0.82rem;
+  color: var(--color-muted);
+}
+
+.cta {
+  background: var(--sfc-blue);
+  color: #fff;
+  overflow: hidden;
+  .eyebrow {
+    color: var(--sfc-yellow);
+  }
+  h2 {
+    font-size: var(--fs-l);
+  }
+  p {
+    max-width: 56ch;
+    opacity: 0.92;
+  }
+}
+.cta__inner {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: clamp(1.5rem, 5vw, 4rem);
+  padding: clamp(3rem, 7vw, 5rem) 0;
+}
+.cta__mark {
+  width: clamp(120px, 20vw, 230px);
+}
+.cta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 1.4rem;
+}
+@media (max-width: 640px) {
+  .cta__inner {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sponsors {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  margin-bottom: 2rem;
+}

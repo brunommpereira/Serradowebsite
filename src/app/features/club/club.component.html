@@ -1,0 +1,208 @@
+<sfc-page-hero
+  eyebrow="Desde 29.04.1978"
+  title="O Serrado FC"
+  subtitle="Um clube de bairro que se tornou casa de várias modalidades. Esta é a nossa história, a nossa missão e a nossa gente."
+  [crumbs]="[{ label: 'Clube' }]"
+/>
+
+<nav class="subnav" aria-label="Secções da página">
+  <div class="container subnav__inner">
+    <a fragment="historia" routerLink="/clube">História</a>
+    <a fragment="missao" routerLink="/clube">Missão e Valores</a>
+    <a fragment="identidade" routerLink="/clube">Identidade</a>
+    <a fragment="orgaos-sociais" routerLink="/clube">Órgãos Sociais</a>
+    <a fragment="transparencia" routerLink="/clube">Transparência</a>
+    <a fragment="instalacoes" routerLink="/clube">Instalações</a>
+  </div>
+</nav>
+
+<!-- INTRODUÇÃO -->
+<section class="section">
+  <div class="container split intro">
+    <div>
+      <p class="eyebrow">O Serrado FC</p>
+      <h2>Uma história. Uma família. Várias modalidades.</h2>
+    </div>
+    <div class="prose">
+      <p>
+        O <strong>Serrado Futebol Clube</strong> foi fundado a <strong>29 de abril de 1978</strong> no Bairro do Serrado, na Caparica (Almada), pela
+        vontade de um grupo de moradores que queria dar aos jovens um lugar para jogar, aprender e pertencer.
+      </p>
+      <p>
+        Hoje somos um clube multidesportivo, com atletismo, futsal, rugby, formação e Escola de Desporto, sem nunca perder aquilo que nos define: a
+        comunidade.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- HISTÓRIA -->
+<section class="section section--soft" id="historia" aria-labelledby="h-historia">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">História</p>
+        <h2 id="h-historia">O nosso percurso</h2>
+      </div>
+      <p>De 1978 até hoje, os marcos que fizeram do Serrado FC o clube que é.</p>
+    </div>
+    <ol class="timeline">
+      @for (t of timeline; track t.title) {
+        <li>
+          <span class="timeline__dot" aria-hidden="true"></span>
+          @if (t.year) {
+            <span class="timeline__year">{{ t.year }}</span>
+          }
+          <h3>{{ t.title }}</h3>
+          <p>{{ t.text }}</p>
+        </li>
+      }
+    </ol>
+  </div>
+</section>
+
+<!-- MISSÃO / VISÃO / VALORES -->
+<section class="section" id="missao" aria-labelledby="h-missao">
+  <div class="container">
+    <div class="mv">
+      <div class="mv__card">
+        <p class="eyebrow">Missão</p>
+        <p class="mv__text">Promover a prática desportiva, a formação e a inclusão, unindo a comunidade da Caparica à volta do desporto.</p>
+      </div>
+      <div class="mv__card mv__card--accent">
+        <p class="eyebrow">Visão</p>
+        <p class="mv__text">Ser um clube multidesportivo de referência, moderno e transparente, onde cada pessoa encontra o seu lugar.</p>
+      </div>
+    </div>
+    <h2 id="h-missao" class="values__title">Os nossos valores</h2>
+    <ul class="values">
+      @for (v of values; track v.title) {
+        <li class="card">
+          <span class="values__icon"><sfc-icon [name]="v.icon" size="26" /></span>
+          <h3>{{ v.title }}</h3>
+          <p>{{ v.text }}</p>
+        </li>
+      }
+    </ul>
+  </div>
+</section>
+
+<!-- IDENTIDADE -->
+<section class="section section--soft" id="identidade" aria-labelledby="h-identidade">
+  <div class="container split">
+    <div>
+      <p class="eyebrow">Identidade</p>
+      <h2 id="h-identidade">O emblema</h2>
+      <p>
+        A bola ao centro, rodeada pelas cores do clube, os louros da vitória e a fita com o nome e a data de fundação: <strong>EST. 29.04.1978</strong>.
+      </p>
+      <ul class="palette" aria-label="Cores oficiais">
+        <li><span style="background: #19468e"></span>Azul Serrado<code>#19468E</code></li>
+        <li><span style="background: #fdd20e"></span>Amarelo<code>#FDD20E</code></li>
+        <li><span style="background: #217632"></span>Verde Louro<code>#217632</code></li>
+        <li><span style="background: #c9593d"></span>Bola<code>#C9593D</code></li>
+        <li><span style="background: #231f20"></span>Carvão<code>#231F20</code></li>
+      </ul>
+    </div>
+    <div class="logos">
+      <div class="logos__item"><img src="brand/logo.svg" alt="Emblema a cores" loading="lazy" /></div>
+      <div class="logos__item logos__item--blue"><img src="brand/logo-yellow.svg" alt="Emblema amarelo sobre azul" loading="lazy" /></div>
+      <div class="logos__item logos__item--dark"><img src="brand/logo-white.svg" alt="Emblema branco" loading="lazy" /></div>
+    </div>
+  </div>
+</section>
+
+<!-- ÓRGÃOS SOCIAIS -->
+<section class="section" id="orgaos-sociais" aria-labelledby="h-orgaos">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Governo do clube</p>
+        <h2 id="h-orgaos">Órgãos Sociais</h2>
+      </div>
+      <p>Mandato em curso. Os perfis completos (fotografia e biografia) serão publicados pela Direção.</p>
+    </div>
+    @for (b of boards; track b.name) {
+      <h3 class="board__title">{{ b.name }}</h3>
+      <ul class="board">
+        @for (m of b.members; track $index) {
+          <li class="person">
+            <span class="person__photo" aria-hidden="true"><sfc-icon name="user" size="34" /></span>
+            <span class="person__role">{{ m.role }}</span>
+            <span class="person__name">{{ m.name }}</span>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</section>
+
+<!-- TRANSPARÊNCIA -->
+<section class="section section--soft" id="transparencia" aria-labelledby="h-transp">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Transparência</p>
+        <h2 id="h-transp">Estatutos e documentos</h2>
+      </div>
+      <p>Estatutos, regulamentos, relatórios e contas, orçamentos, atas e comunicados.</p>
+    </div>
+    <div class="chips" role="group" aria-label="Filtrar documentos">
+      <button class="chip" type="button" [attr.aria-pressed]="docFilter() === null" (click)="docFilter.set(null)">Todos</button>
+      @for (c of docCategories; track c) {
+        <button class="chip" type="button" [attr.aria-pressed]="docFilter() === c" (click)="docFilter.set(c)">{{ c }}</button>
+      }
+    </div>
+    <ul class="docs">
+      @for (d of filteredDocs(); track d.title) {
+        <li>
+          <sfc-icon name="file" size="26" />
+          <span class="docs__info">
+            <strong>{{ d.title }}</strong>
+            <span class="caption">{{ d.category }} · {{ d.year }}</span>
+          </span>
+          @if (d.url) {
+            <a class="btn btn--outline btn--sm" [href]="d.url" target="_blank" rel="noopener"><sfc-icon name="download" />PDF</a>
+          } @else {
+            <span class="badge badge--neutral">Brevemente</span>
+          }
+        </li>
+      }
+    </ul>
+  </div>
+</section>
+
+<!-- INSTALAÇÕES -->
+<section class="section" id="instalacoes" aria-labelledby="h-inst">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Instalações</p>
+        <h2 id="h-inst">Onde tudo acontece</h2>
+      </div>
+      <a class="link-arrow" routerLink="/contactos">Como chegar</a>
+    </div>
+    <div class="grid grid-3">
+      @for (f of facilities; track f.name; let i = $index) {
+        <article class="facility">
+          <div class="facility__media media-ph" [attr.data-sport]="i === 0 ? 'rugby' : i === 2 ? 'formacao' : null">
+            <sfc-icon [name]="i === 0 ? 'rugby' : i === 1 ? 'ball' : 'home'" size="56" />
+          </div>
+          <h3>{{ f.name }}</h3>
+          <p class="muted">{{ f.text }}</p>
+        </article>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- CONTACTOS -->
+<section class="section section--blue">
+  <div class="container contact-cta">
+    <div>
+      <h2>Fala connosco</h2>
+      <p>{{ club.address }}, {{ club.postalCode }} {{ club.locality }} · {{ club.phone }} · {{ club.email }}</p>
+    </div>
+    <a class="btn btn--accent" routerLink="/contactos">Contactos e horários</a>
+  </div>
+</section>

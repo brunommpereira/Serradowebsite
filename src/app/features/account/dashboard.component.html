@@ -1,0 +1,209 @@
+@if (member(); as m) {
+  <div class="demo-bar">Modo demonstração · os dados apresentados são fictícios</div>
+  <div class="container area">
+    <aside class="side" aria-label="Menu da Área de Sócio">
+      <div class="side__who">
+        <span class="side__avatar" aria-hidden="true">{{ m.name.charAt(0) }}</span>
+        <span><strong>{{ m.name }}</strong><br /><span class="caption">Sócio n.º {{ m.memberNumber }}</span></span>
+      </div>
+      <nav>
+        @for (i of menu; track i.id) {
+          <button type="button" [class.active]="section() === i.id" [attr.aria-current]="section() === i.id ? 'page' : null" (click)="go(i.id)">
+            <sfc-icon [name]="i.icon" size="18" />{{ i.label }}
+          </button>
+        }
+        <button type="button" (click)="logout()"><sfc-icon name="logout" size="18" />Terminar sessão</button>
+      </nav>
+    </aside>
+
+    <section class="content" aria-live="polite">
+      @switch (section()) {
+        @case ('dashboard') {
+          <h1>Olá, {{ m.name.split(' ')[0] }}!</h1>
+          <div class="dash">
+            <div>
+              <sfc-member-card [number]="m.memberNumber" [name]="m.name" [category]="m.category" [since]="m.registrationDate.slice(0, 4)" [upToDate]="upToDate()" />
+              <ul class="status">
+                <li [class.ok]="m.status === 'Ativo'"><sfc-icon name="check" size="18" />Sócio {{ m.status.toLowerCase() }}</li>
+                <li [class.ok]="upToDate()"><sfc-icon [name]="upToDate() ? 'check' : 'warning'" size="18" />{{ upToDate() ? 'Quota em dia' : 'Quotas em atraso' }}</li>
+              </ul>
+            </div>
+            <div class="quota card">
+              <p class="eyebrow">Quota atual</p>
+              @if (current(); as q) {
+                <p class="quota__period">{{ q.period }}</p>
+                <p class="quota__amount">{{ q.amount | currency: 'EUR' }}</p>
+                <p>
+                  <span class="badge" [class]="'badge badge--' + statusClass(q.status)">{{ q.status }}</span>
+                  @if (q.status !== 'Pago') {
+                    <span class="caption">· vence a {{ q.dueDate | date: 'd MMM' }}</span>
+                  }
+                </p>
+                @if (q.status !== 'Pago') {
+                  <button class="btn btn--accent btn--block" type="button" (click)="pay(q)">Pagar quota</button>
+                }
+              }
+              @if (lastPaid(); as lp) {
+                <p class="caption">Último pagamento: {{ lp.period }} · {{ lp.paymentMethod }}</p>
+              }
+              <button class="btn btn--outline btn--block" type="button" (click)="go('quotas')">Ver pagamentos</button>
+            </div>
+          </div>
+
+          <div class="grid grid-2 dash__more">
+            <div class="card">
+              <h2 class="h-s">Próximos eventos</h2>
+              <ul class="mini">
+                @for (e of events; track e.id) {
+                  <li><a [routerLink]="['/eventos', e.slug]">{{ e.title }}</a><span class="caption">{{ e.date | date: 'd MMM' }}</span></li>
+                }
+              </ul>
+            </div>
+            <div class="card">
+              <h2 class="h-s">Notificações</h2>
+              <ul class="mini">
+                @for (n of notifications.slice(0, 3); track n.text) {
+                  <li><span>{{ n.text }}</span><span class="caption">{{ n.date | date: 'd MMM' }}</span></li>
+                }
+              </ul>
+            </div>
+          </div>
+        }
+
+        @case ('dados') {
+          <h1>Dados pessoais</h1>
+          <dl class="data card">
+            <div><dt>Nome</dt><dd>{{ m.name }}</dd></div>
+            <div><dt>N.º de sócio</dt><dd>{{ m.memberNumber }}</dd></div>
+            <div><dt>Categoria</dt><dd>{{ m.category }}</dd></div>
+            <div><dt>Sócio desde</dt><dd>{{ m.registrationDate | date: 'd MMMM y' }}</dd></div>
+            <div><dt>Email</dt><dd>{{ m.email }}</dd></div>
+            <div><dt>Telefone</dt><dd>{{ m.phone }}</dd></div>
+          </dl>
+          <p class="caption">Para alterar os teus dados contacta a secretaria. A edição online fica disponível na Fase 2 (PUT /api/members/me).</p>
+          <p><button class="btn btn--outline btn--sm" type="button"><sfc-icon name="download" />Exportar os meus dados (RGPD)</button></p>
+        }
+
+        @case ('quotas') {
+          <h1>Quotas e pagamentos</h1>
+          @if (paying(); as p) {
+            <div class="pay card">
+              <sfc-payment-step [amount]="p.amount" [description]="'Quota ' + p.period" (paid)="onPaid($event)" />
+              <button class="btn btn--outline btn--sm" type="button" (click)="paying.set(null)">Cancelar</button>
+            </div>
+          }
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th>Período</th><th class="num">Valor</th><th>Vencimento</th><th>Estado</th><th>Método</th><th></th></tr>
+              </thead>
+              <tbody>
+                @for (p of payments(); track p.id) {
+                  <tr>
+                    <td><strong>{{ p.period }}</strong></td>
+                    <td class="num">{{ p.amount | currency: 'EUR' }}</td>
+                    <td>{{ p.dueDate | date: 'dd/MM/y' }}</td>
+                    <td><span [class]="'badge badge--' + statusClass(p.status)">{{ p.status }}</span></td>
+                    <td>{{ p.paymentMethod ?? '—' }}</td>
+                    <td>
+                      @if (p.status !== 'Pago') {
+                        <button class="btn btn--accent btn--sm" type="button" (click)="pay(p)">Pagar</button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        @case ('recibos') {
+          <h1>Recibos</h1>
+          <ul class="docs">
+            @for (r of receipts(); track r.id) {
+              <li class="card">
+                <sfc-icon name="file" size="26" />
+                <span><strong>Recibo {{ r.receiptNumber }}</strong><br /><span class="caption">{{ r.period }} · {{ r.amount | currency: 'EUR' }} · {{ r.paymentDate | date: 'dd/MM/y' }}</span></span>
+                <button class="btn btn--outline btn--sm" type="button"><sfc-icon name="download" />PDF</button>
+              </li>
+            }
+          </ul>
+        }
+
+        @case ('cartao') {
+          <h1>Cartão digital</h1>
+          <div class="card-view">
+            <sfc-member-card [number]="m.memberNumber" [name]="m.name" [category]="m.category" [since]="m.registrationDate.slice(0, 4)" [upToDate]="upToDate()" />
+            <div>
+              <p>Apresenta o QR Code para:</p>
+              <ul class="checklist">
+                <li>Validar a tua condição de sócio</li>
+                <li>Entrar nos jogos e eventos</li>
+                <li>Obter descontos em parceiros e na loja</li>
+                <li>Registar presenças</li>
+              </ul>
+              <p class="caption">Dica: adiciona este site ao ecrã principal do telemóvel para teres o cartão sempre à mão.</p>
+            </div>
+          </div>
+        }
+
+        @case ('agregado') {
+          <h1>Agregado familiar</h1>
+          <ul class="family">
+            <li class="card titular">
+              <span class="badge badge--accent">Titular</span>
+              <strong>{{ m.name }}</strong>
+              <span class="caption">N.º {{ m.memberNumber }} · {{ m.status }}</span>
+            </li>
+            @for (d of m.dependents; track d.memberNumber) {
+              <li class="card">
+                <span class="badge">{{ d.relation }}</span>
+                <strong>{{ d.name }}</strong>
+                <span class="caption">N.º {{ d.memberNumber }} · {{ d.status }}</span>
+              </li>
+            }
+          </ul>
+          <button class="btn btn--outline" type="button"><sfc-icon name="users" />Adicionar dependente</button>
+        }
+
+        @case ('eventos') {
+          <h1>Eventos e inscrições</h1>
+          <p class="muted">Ainda não tens inscrições ativas. Eventos com inscrições abertas:</p>
+          <ul class="mini card">
+            @for (e of events; track e.id) {
+              <li><a [routerLink]="['/eventos', e.slug]">{{ e.title }}</a><span class="caption">{{ e.date | date: 'd MMM y' }}</span></li>
+            }
+          </ul>
+        }
+
+        @case ('documentos') {
+          <h1>Documentos</h1>
+          <ul class="docs">
+            @for (d of documents; track d.title) {
+              <li class="card"><sfc-icon name="file" size="26" /><span><strong>{{ d.title }}</strong><br /><span class="caption">{{ d.category }} · {{ d.year }}</span></span></li>
+            }
+          </ul>
+        }
+
+        @case ('notificacoes') {
+          <h1>Notificações</h1>
+          <ul class="docs">
+            @for (n of notifications; track n.text) {
+              <li class="card"><sfc-icon [name]="n.icon" size="22" /><span>{{ n.text }}<br /><span class="caption">{{ n.date | date: 'd MMMM y' }}</span></span></li>
+            }
+          </ul>
+        }
+
+        @case ('seguranca') {
+          <h1>Segurança</h1>
+          <div class="card stack">
+            <p><strong>Password</strong><br /><span class="muted">Altera a tua password regularmente.</span></p>
+            <button class="btn btn--outline btn--sm" type="button">Alterar password</button>
+            <p><strong>Sessões</strong><br /><span class="muted">Sessão ativa neste dispositivo.</span></p>
+            <button class="btn btn--outline btn--sm" type="button" (click)="logout()">Terminar sessão</button>
+          </div>
+        }
+      }
+    </section>
+  </div>
+}

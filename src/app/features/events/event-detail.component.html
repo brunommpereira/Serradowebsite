@@ -1,0 +1,161 @@
+@if (event(); as e) {
+  <sfc-page-hero
+    [eyebrow]="e.kind"
+    [title]="e.title"
+    [subtitle]="e.summary"
+    [sport]="e.sportSlug"
+    [crumbs]="[{ label: 'Eventos', link: '/eventos' }, { label: e.title }]"
+  />
+
+  <section class="section">
+    <div class="container layout">
+      <div>
+        <ul class="facts">
+          <li><sfc-icon name="calendar" /><span><strong>Data</strong>{{ e.date | date: "EEEE, d 'de' MMMM 'de' y" | cap }}</span></li>
+          <li><sfc-icon name="clock" /><span><strong>Hora</strong>{{ e.date | date: "HH'h'mm" }}@if (e.endTime) { – {{ e.endTime }}}</span></li>
+          <li><sfc-icon name="pin" /><span><strong>Local</strong>{{ e.location }}</span></li>
+          <li>
+            <sfc-icon name="euro" />
+            <span>
+              <strong>Preço</strong>
+              @if (e.price === 0) {
+                Gratuito
+              } @else {
+                {{ e.price | currency: 'EUR' }}@if (e.memberPrice !== undefined) { · Sócios {{ e.memberPrice | currency: 'EUR' }}}
+              }
+            </span>
+          </li>
+          <li><sfc-icon name="users" /><span><strong>Vagas disponíveis</strong>{{ spotsLeft() }} de {{ e.capacity }}</span></li>
+        </ul>
+        <div class="capacity" role="progressbar" [attr.aria-valuenow]="e.registered" aria-valuemin="0" [attr.aria-valuemax]="e.capacity" aria-label="Lotação">
+          <span [style.width.%]="(e.registered / e.capacity) * 100"></span>
+        </div>
+
+        <h2 class="desc-title">Sobre o evento</h2>
+        <div class="prose">
+          @for (p of e.description; track $index) {
+            <p>{{ p }}</p>
+          }
+        </div>
+      </div>
+
+      <aside id="inscricao" class="reg card" aria-labelledby="h-reg">
+        @switch (step()) {
+          @case ('form') {
+            <h2 id="h-reg" class="reg__title">Inscrever-me</h2>
+            @if (spotsLeft() === 0) {
+              <p class="alert alert--warning">Inscrições esgotadas.</p>
+            } @else {
+              <form class="form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+                <div class="field">
+                  <label for="ev-name">Nome completo <span class="req">*</span></label>
+                  <input id="ev-name" formControlName="name" autocomplete="name" />
+                  @if (invalid('name')) {
+                    <span class="error">Indica o teu nome.</span>
+                  }
+                </div>
+                <div class="form-row">
+                  <div class="field">
+                    <label for="ev-nif">NIF</label>
+                    <input id="ev-nif" formControlName="nif" inputmode="numeric" maxlength="9" />
+                    @if (invalid('nif')) {
+                      <span class="error">NIF inválido.</span>
+                    }
+                  </div>
+                  <div class="field">
+                    <label for="ev-birth">Data de nascimento <span class="req">*</span></label>
+                    <input id="ev-birth" type="date" formControlName="birthDate" />
+                    @if (invalid('birthDate')) {
+                      <span class="error">Obrigatório.</span>
+                    }
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="field">
+                    <label for="ev-email">Email <span class="req">*</span></label>
+                    <input id="ev-email" type="email" formControlName="email" autocomplete="email" />
+                    @if (invalid('email')) {
+                      <span class="error">Email inválido.</span>
+                    }
+                  </div>
+                  <div class="field">
+                    <label for="ev-phone">Telefone <span class="req">*</span></label>
+                    <input id="ev-phone" type="tel" formControlName="phone" autocomplete="tel" />
+                    @if (invalid('phone')) {
+                      <span class="error">Telefone inválido.</span>
+                    }
+                  </div>
+                </div>
+                <label class="check"><input type="checkbox" formControlName="isMember" /><span>Sou sócio do Serrado FC</span></label>
+                @if (isMember()) {
+                  <div class="field">
+                    <label for="ev-member">N.º de sócio</label>
+                    <input id="ev-member" formControlName="memberNumber" inputmode="numeric" />
+                  </div>
+                }
+                <div class="form-row">
+                  <div class="field">
+                    <label for="ev-sport">Modalidade</label>
+                    <select id="ev-sport" formControlName="sport">
+                      <option value="">Nenhuma / Não aplicável</option>
+                      @for (s of sports; track s.id) {
+                        <option [value]="s.slug">{{ s.name }}</option>
+                      }
+                    </select>
+                  </div>
+                  @if (e.askShirtSize) {
+                    <div class="field">
+                      <label for="ev-shirt">Tamanho de t-shirt <span class="req">*</span></label>
+                      <select id="ev-shirt" formControlName="shirtSize">
+                        <option value="">Escolher…</option>
+                        @for (s of ['6A', '10A', 'XS', 'S', 'M', 'L', 'XL', 'XXL']; track s) {
+                          <option [value]="s">{{ s }}</option>
+                        }
+                      </select>
+                      @if (invalid('shirtSize')) {
+                        <span class="error">Escolhe um tamanho.</span>
+                      }
+                    </div>
+                  }
+                </div>
+                <label class="check">
+                  <input type="checkbox" formControlName="consentData" />
+                  <span>Autorizo o tratamento dos meus dados para gestão da inscrição (<a routerLink="/privacidade">Política de Privacidade</a>). <span class="req">*</span></span>
+                </label>
+                @if (invalid('consentData')) {
+                  <span class="field"><span class="error">Consentimento obrigatório.</span></span>
+                }
+                <label class="check">
+                  <input type="checkbox" formControlName="consentImage" />
+                  <span>Autorizo a captação e divulgação de imagens no âmbito do evento.</span>
+                </label>
+                <div class="reg__total">
+                  <span>Total</span><strong>{{ price() === 0 ? 'Gratuito' : (price() | currency: 'EUR') }}</strong>
+                </div>
+                <button class="btn btn--primary btn--block" type="submit">{{ price() > 0 ? 'Continuar para pagamento' : 'Confirmar inscrição' }}</button>
+              </form>
+            }
+          }
+          @case ('payment') {
+            <h2 id="h-reg" class="reg__title">Pagamento</h2>
+            <sfc-payment-step [amount]="price()" [description]="e.title" (paid)="onPaid($event)" />
+          }
+          @case ('done') {
+            @if (registration(); as r) {
+              <div class="done">
+                <span class="done__icon"><sfc-icon name="check" size="30" /></span>
+                <h2 id="h-reg" class="reg__title">Inscrição confirmada!</h2>
+                <p>N.º de inscrição <strong>{{ r.number }}</strong>@if (r.method) { · Pago por {{ r.method }}}</p>
+                <sfc-qr-code class="done__qr" [data]="'SFC|EVENTO|' + e.id + '|' + r.number" label="QR Code de check-in" />
+                <p class="caption">Apresenta este QR Code no check-in. Enviámos a confirmação para o teu email.</p>
+                <a class="btn btn--outline btn--block" routerLink="/eventos">Ver outros eventos</a>
+              </div>
+            }
+          }
+        }
+      </aside>
+    </div>
+  </section>
+} @else {
+  <sfc-not-found />
+}

@@ -1,0 +1,176 @@
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.views {
+  display: flex;
+  gap: 0.4rem;
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+}
+.month {
+  font-size: 1.6rem;
+  margin: 2rem 0 1rem;
+  &::first-letter {
+    text-transform: uppercase;
+  }
+}
+.items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  background: #fff;
+  @media (max-width: 640px) {
+    flex-wrap: wrap;
+    .btn {
+      width: 100%;
+    }
+  }
+}
+.item__date {
+  flex: none;
+  width: 60px;
+  text-align: center;
+  border-right: 1px solid var(--color-line);
+  padding-right: 1rem;
+  strong {
+    display: block;
+    font: 800 2rem/1 var(--font-display);
+    color: var(--sfc-blue);
+  }
+  span {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+}
+.item__body {
+  flex: 1;
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.item__tags {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.item__title {
+  font: 700 1.25rem/1.15 var(--font-display);
+  text-transform: uppercase;
+}
+.item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.2rem;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+}
+.empty {
+  padding: 3rem 0;
+}
+
+.cal {
+  max-width: 760px;
+  margin-inline: auto;
+}
+.cal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.cal__title {
+  margin: 0;
+  font-size: 1.6rem;
+  &::first-letter {
+    text-transform: uppercase;
+  }
+}
+.cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.35rem;
+  margin-bottom: 1.5rem;
+}
+.cal__wd {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  padding: 0.3rem 0;
+}
+.cal__day {
+  aspect-ratio: 1;
+  border: 1px solid var(--color-line);
+  background: #fff;
+  border-radius: var(--radius-s);
+  display: grid;
+  align-content: space-between;
+  justify-items: start;
+  padding: 0.4rem;
+  font-weight: 600;
+  cursor: default;
+  color: #9aa3b5;
+  &.has {
+    color: var(--sfc-ink);
+    cursor: pointer;
+    border-color: #b9c6e0;
+    &:hover {
+      border-color: var(--sfc-blue);
+    }
+  }
+  &.sel {
+    background: var(--sfc-blue);
+    color: #fff;
+    border-color: var(--sfc-blue);
+  }
+}
+.cal__dots {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--sport-clube);
+    &[data-sport='futsal'] {
+      background: var(--sport-futsal);
+    }
+    &[data-sport='rugby'] {
+      background: var(--sport-rugby);
+    }
+    &[data-sport='atletismo'] {
+      background: var(--sport-atletismo);
+    }
+    &[data-sport='escola-de-desporto'] {
+      background: var(--sport-escola);
+    }
+  }
+}
+.sel .cal__dots i {
+  outline: 1.5px solid #fff;
+}

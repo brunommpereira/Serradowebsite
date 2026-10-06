@@ -1,0 +1,127 @@
+:host {
+  display: block;
+}
+.newsletter {
+  background: var(--sfc-yellow);
+  color: var(--color-on-accent);
+}
+.newsletter__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  padding: 1.8rem 0;
+  p {
+    margin: 0;
+  }
+}
+.newsletter__title {
+  font: 800 1.7rem/1.05 var(--font-display);
+  text-transform: uppercase;
+}
+.newsletter__form {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+  max-width: 480px;
+  min-width: min(100%, 300px);
+  input {
+    flex: 1;
+    min-width: 0;
+    border: 2px solid var(--sfc-ink);
+    border-radius: 999px;
+    padding: 0 1.1rem;
+    font: inherit;
+    min-height: 46px;
+  }
+  .btn--accent {
+    background: var(--sfc-blue-900);
+    color: #fff;
+    box-shadow: none;
+  }
+}
+
+.footer {
+  background: var(--sfc-blue-900);
+  color: rgba(255, 255, 255, 0.82);
+  padding: 3.5rem 0 1.5rem;
+  font-size: 0.93rem;
+  a {
+    color: inherit;
+    text-decoration: none;
+    &:hover {
+      color: var(--sfc-yellow);
+    }
+  }
+}
+.footer__grid {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(4, 1fr);
+  gap: 2rem;
+  nav,
+  address {
+    display: grid;
+    align-content: start;
+    gap: 0.5rem;
+    font-style: normal;
+  }
+  @media (max-width: 960px) {
+    grid-template-columns: repeat(2, 1fr);
+    .footer__brand {
+      grid-column: 1 / -1;
+    }
+  }
+}
+.footer__brand img {
+  width: 110px;
+  height: auto;
+  margin-bottom: 1rem;
+}
+.footer__title {
+  font: 800 1.05rem/1 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #fff;
+  margin-bottom: 0.4rem;
+}
+.footer__social {
+  display: flex;
+  gap: 0.6rem;
+  a {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+  }
+}
+.footer__more {
+  color: var(--sfc-yellow) !important;
+  font-weight: 600;
+}
+.footer__bottom {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 2rem;
+  margin-top: 3rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.82rem;
+  p {
+    margin: 0;
+  }
+}
+.footer__legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+}
+.newsletter__error {
+  width: 100%;
+  text-align: right;
+  font-weight: 700;
+  font-size: 0.85rem;
+}

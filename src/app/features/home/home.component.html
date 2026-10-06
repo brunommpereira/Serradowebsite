@@ -1,0 +1,154 @@
+<!-- HERO -->
+<section class="hero">
+  <div class="hero__rays" aria-hidden="true"></div>
+  <div class="container hero__inner">
+    <div class="hero__copy fade-up">
+      <p class="eyebrow">Serrado Futebol Clube · Desde 1978</p>
+      <h1 class="hero__title">
+        Uma história.<br />
+        Uma família.<br />
+        <span>Várias modalidades.</span>
+      </h1>
+      <p class="hero__lead">Atletismo, futsal, rugby e formação no coração da Caparica. Um clube feito por e para a comunidade.</p>
+      <div class="hero__actions">
+        <a class="btn btn--accent" routerLink="/socios">Torna-te Sócio</a>
+        <a class="btn btn--ghost-light" routerLink="/clube">Conhece o Clube</a>
+      </div>
+    </div>
+    <div class="hero__crest fade-up" aria-hidden="true">
+      <img src="brand/logo.svg" alt="" width="420" height="468" fetchpriority="high" />
+    </div>
+  </div>
+  <div class="container">
+    <ul class="hero__stats" aria-label="O clube em números">
+      <li><strong>1978</strong><span>Fundação</span></li>
+      <li><strong>{{ years }}</strong><span>Anos de história</span></li>
+      <li><strong>3</strong><span>Modalidades</span></li>
+      <li><strong>1</strong><span>Família</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- PRÓXIMOS JOGOS / EVENTOS -->
+<section class="section section--soft upcoming" aria-labelledby="h-upcoming">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Em breve</p>
+        <h2 id="h-upcoming">Próximos jogos e eventos</h2>
+      </div>
+      <a class="link-arrow" routerLink="/agenda">Ver agenda completa</a>
+    </div>
+    <div class="grid grid-4">
+      @for (m of matches; track m.id) {
+        <sfc-match-card [match]="m" />
+      }
+      @if (nextEvent) {
+        <sfc-event-card [event]="nextEvent" />
+      }
+    </div>
+  </div>
+</section>
+
+<!-- NOTÍCIAS -->
+<section class="section" aria-labelledby="h-news">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Atualidade</p>
+        <h2 id="h-news">Últimas notícias</h2>
+      </div>
+      <a class="link-arrow" routerLink="/noticias">Todas as notícias</a>
+    </div>
+    <div class="news-grid">
+      @for (n of news; track n.id; let first = $first) {
+        <sfc-news-card [article]="n" [featured]="first" [class.featured]="first" />
+      }
+    </div>
+  </div>
+</section>
+
+<!-- MODALIDADES -->
+<section class="section section--blue sports" aria-labelledby="h-sports">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Desporto</p>
+        <h2 id="h-sports">As nossas modalidades</h2>
+      </div>
+      <p class="sports__intro">Da Escola de Desporto à competição sénior, há lugar para todos no Serrado FC.</p>
+    </div>
+    <div class="grid grid-3">
+      @for (s of sports; track s.id) {
+        <sfc-sport-card [sport]="s" />
+      }
+    </div>
+    <p class="sports__more">
+      Também temos <a routerLink="/modalidades/formacao">Formação</a> e <a routerLink="/modalidades/escola-de-desporto">Escola de Desporto</a> para os mais novos.
+    </p>
+  </div>
+</section>
+
+<!-- AGENDA -->
+<section class="section" aria-labelledby="h-agenda">
+  <div class="container split agenda">
+    <div>
+      <p class="eyebrow">Calendário</p>
+      <h2 id="h-agenda">Agenda</h2>
+      <p class="muted">Jogos, competições, eventos e vida associativa. Filtra por modalidade na agenda completa.</p>
+      <a class="btn btn--outline" routerLink="/agenda"><sfc-icon name="calendar" />Abrir agenda</a>
+    </div>
+    <ol class="agenda__list">
+      @for (a of agenda; track a.id) {
+        <li>
+          <a [routerLink]="a.link.split('#')[0]" [fragment]="a.link.split('#')[1]">
+            <span class="agenda__date">
+              <strong>{{ a.date | date: 'dd' }}</strong>
+              <span>{{ a.date | date: 'MMM' }}</span>
+            </span>
+            <span class="agenda__body">
+              <span class="badge" [attr.data-sport]="a.sportSlug">{{ sportName(a.sportSlug) }}</span>
+              <span class="agenda__title">{{ a.title }}@if (a.opponent) { · vs {{ a.opponent }}}</span>
+              <span class="agenda__meta">{{ a.type }} · {{ a.date | date: "HH'h'mm" }} · {{ a.location }}</span>
+            </span>
+            <sfc-icon name="arrow" />
+          </a>
+        </li>
+      }
+    </ol>
+  </div>
+</section>
+
+<!-- CTA SÓCIO -->
+<section class="cta" aria-labelledby="h-cta">
+  <div class="container cta__inner">
+    <img src="brand/logo-yellow.svg" alt="" aria-hidden="true" class="cta__mark" />
+    <div>
+      <p class="eyebrow">Sócios</p>
+      <h2 id="h-cta">Faz parte da família Serrado</h2>
+      <p>Cartão digital, descontos, entrada nos jogos e voz ativa no clube. A tua quota apoia diretamente a formação dos nossos jovens.</p>
+      <div class="cta__actions">
+        <a class="btn btn--accent" routerLink="/socios/registo">Torna-te Sócio</a>
+        <a class="btn btn--ghost-light" routerLink="/socios" fragment="quotas">Ver quotas</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PARCEIROS -->
+<section class="section section--soft" aria-labelledby="h-partners">
+  <div class="container">
+    <div class="section-head section-head--center">
+      <div>
+        <p class="eyebrow">Parceiros</p>
+        <h2 id="h-partners">Quem nos apoia</h2>
+      </div>
+    </div>
+    <div class="grid sponsors">
+      @for (s of sponsors; track s.id) {
+        <sfc-sponsor-card [sponsor]="s" />
+      }
+    </div>
+    <p class="center"><a class="link-arrow" routerLink="/parceiros" fragment="torne-se-parceiro">Torne-se parceiro do Serrado FC</a></p>
+  </div>
+</section>

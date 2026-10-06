@@ -1,0 +1,121 @@
+.hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 1.6rem;
+}
+.glance {
+  display: grid;
+  gap: 1rem;
+}
+.glance__box {
+  border-radius: var(--radius-l);
+  padding: 1.5rem 1.6rem;
+  background: var(--sfc-yellow);
+  color: var(--color-on-accent);
+  p {
+    margin: 0;
+  }
+  a {
+    color: inherit;
+    font-weight: 700;
+  }
+  &--dark {
+    background: var(--sfc-blue-900);
+    color: #fff;
+    .glance__label {
+      color: var(--sfc-yellow);
+    }
+  }
+}
+.glance__label {
+  font: 700 0.75rem/1 var(--font-body);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: 0.6rem !important;
+}
+.glance__title {
+  font: 800 1.6rem/1.1 var(--font-display);
+  text-transform: uppercase;
+}
+.glance__meta {
+  margin-top: 0.4rem !important;
+  font-size: 0.9rem;
+  &::first-letter {
+    text-transform: uppercase;
+  }
+}
+.teams {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  h3 {
+    font-size: 1.35rem;
+    text-transform: uppercase;
+    margin: 0.7rem 0 0.2rem;
+  }
+  p {
+    margin: 0;
+  }
+}
+.coaches {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius);
+    padding: 1rem;
+  }
+}
+.coaches__photo {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-bg-soft);
+  color: #9aa3b5;
+  display: grid;
+  place-items: center;
+}
+.standings__title {
+  margin: 2.2rem 0 0.9rem;
+}
+.standings {
+  max-width: 640px;
+}
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.8rem;
+  > div {
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius);
+  }
+  @media (max-width: 700px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.contact {
+  list-style: none;
+  padding: 0;
+  margin: 1.4rem 0 0;
+  display: grid;
+  gap: 0.6rem;
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--sfc-blue);
+    font-weight: 600;
+  }
+}

@@ -1,0 +1,135 @@
+.reg {
+  max-width: 920px;
+  h2 {
+    font-size: 1.9rem;
+  }
+}
+.stepper {
+  list-style: none;
+  margin: 0 0 2.5rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 4px solid var(--color-line);
+    color: var(--color-muted);
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  li.current {
+    border-color: var(--sfc-blue);
+    color: var(--sfc-blue);
+  }
+  li.done {
+    border-color: var(--sfc-green);
+    color: var(--sfc-green);
+  }
+}
+.stepper__n {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--color-bg-soft);
+  font-weight: 800;
+  .current & {
+    background: var(--sfc-blue);
+    color: #fff;
+  }
+  .done & {
+    background: var(--sfc-green);
+    color: #fff;
+  }
+}
+@media (max-width: 600px) {
+  .stepper__label {
+    display: none;
+  }
+  .stepper li.current .stepper__label {
+    display: inline;
+  }
+}
+.cats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 0.8rem;
+  margin-bottom: 1.5rem;
+}
+.cat {
+  position: relative;
+  display: grid;
+  gap: 0.2rem;
+  padding: 1.2rem;
+  border: 2px solid var(--color-line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s;
+  input {
+    position: absolute;
+    opacity: 0;
+  }
+  &:hover {
+    border-color: #a9b8d6;
+  }
+  &.sel {
+    border-color: var(--sfc-blue);
+    background: var(--sfc-blue-50);
+  }
+  &:has(input:focus-visible) {
+    outline: 3px solid var(--sfc-yellow);
+    outline-offset: 2px;
+  }
+}
+.cat__name {
+  font: 800 1.5rem/1 var(--font-display);
+  text-transform: uppercase;
+}
+.cat__price {
+  font: 800 1.6rem var(--font-display);
+  color: var(--sfc-blue);
+  margin-top: 0.4rem;
+  small {
+    font: 600 0.85rem var(--font-body);
+  }
+}
+.period {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  justify-content: space-between;
+  margin-top: 1.6rem;
+}
+.pay-wrap {
+  max-width: 560px;
+  display: grid;
+  gap: 1rem;
+  justify-items: start;
+  sfc-payment-step {
+    width: 100%;
+  }
+}
+.done {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 2.5rem;
+  align-items: start;
+  .actions {
+    justify-content: flex-start;
+  }
+  @media (max-width: 800px) {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,712 @@
+/* =====================================================================
+   SERRADO FC — DESIGN SYSTEM
+   Cores retiradas do emblema oficial (2025.10.13_SERRADO_FC_FINAL).
+   ===================================================================== */
+:root {
+  /* Marca */
+  --sfc-blue: #19468e;
+  --sfc-blue-700: #133770;
+  --sfc-blue-900: #0b2350;
+  --sfc-blue-50: #eaf0fa;
+  --sfc-yellow: #fdd20e;
+  --sfc-yellow-600: #e5bb00;
+  --sfc-green: #217632;
+  --sfc-green-50: #e7f4ea;
+  --sfc-ball: #c9593d;
+  --sfc-ink: #231f20;
+
+  /* Semântica */
+  --color-primary: var(--sfc-blue);
+  --color-primary-strong: var(--sfc-blue-700);
+  --color-accent: var(--sfc-yellow);
+  --color-on-accent: #1d1600;
+  --color-secondary: var(--sfc-green);
+  --color-bg: #ffffff;
+  --color-bg-soft: #f4f6fa;
+  --color-surface: #ffffff;
+  --color-text: var(--sfc-ink);
+  --color-muted: #5a6172;
+  --color-line: #dfe3ec;
+  --color-success: #1e7a35;
+  --color-warning: #a76200;
+  --color-danger: #b42318;
+  --color-link: var(--sfc-blue);
+
+  /* Modalidades */
+  --sport-atletismo: #c9593d;
+  --sport-futsal: #19468e;
+  --sport-rugby: #217632;
+  --sport-formacao: #b98a00;
+  --sport-escola: #6a3fa0;
+  --sport-clube: #231f20;
+
+  /* Tipografia */
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --fs-xl: clamp(2.6rem, 6vw, 4.75rem);
+  --fs-l: clamp(2rem, 4vw, 3rem);
+  --fs-m: clamp(1.5rem, 2.6vw, 2rem);
+  --fs-s: 1.3rem;
+  --fs-body: 1rem;
+  --fs-caption: 0.82rem;
+
+  /* Forma */
+  --radius-s: 8px;
+  --radius: 14px;
+  --radius-l: 22px;
+  --shadow-s: 0 2px 8px rgba(11, 35, 80, 0.08);
+  --shadow: 0 14px 34px -14px rgba(11, 35, 80, 0.35);
+  --container: 1200px;
+  --header-h: 76px;
+  --topbar-h: 38px;
+  color-scheme: light;
+}
+
+/* ---------- Reset / base ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: calc(var(--header-h) + 16px);
+}
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+body {
+  margin: 0;
+  font: 400 var(--fs-body) / 1.65 var(--font-body);
+  color: var(--color-text);
+  background: var(--color-bg);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+img,
+svg {
+  max-width: 100%;
+  display: block;
+}
+a {
+  color: var(--color-link);
+}
+button {
+  font: inherit;
+}
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: 1.04;
+  margin: 0 0 0.5em;
+  letter-spacing: 0.005em;
+  text-wrap: balance;
+}
+.h-xl {
+  font-size: var(--fs-xl);
+  text-transform: uppercase;
+}
+h1,
+.h-l {
+  font-size: var(--fs-l);
+  text-transform: uppercase;
+}
+h2,
+.h-m {
+  font-size: var(--fs-m);
+  text-transform: uppercase;
+}
+h3,
+.h-s {
+  font-size: var(--fs-s);
+  font-weight: 700;
+}
+p {
+  margin: 0 0 1em;
+}
+.caption {
+  font-size: var(--fs-caption);
+  color: var(--color-muted);
+}
+:focus-visible {
+  outline: 3px solid var(--sfc-yellow);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px var(--sfc-blue-900);
+  border-radius: 4px;
+}
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -80px;
+  z-index: 200;
+  background: var(--sfc-yellow);
+  color: var(--color-on-accent);
+  padding: 0.6em 1em;
+  border-radius: var(--radius-s);
+  font-weight: 700;
+  &:focus {
+    top: 12px;
+  }
+}
+
+/* ---------- Layout ---------- */
+.container {
+  width: min(var(--container), 100% - 32px);
+  margin-inline: auto;
+}
+.section {
+  padding: clamp(3.5rem, 8vw, 6rem) 0;
+}
+.section--soft {
+  background: var(--color-bg-soft);
+}
+.section--blue {
+  background: var(--sfc-blue-900);
+  color: #fff;
+  .eyebrow {
+    color: var(--sfc-yellow);
+  }
+}
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 2.5rem;
+  margin-bottom: 2.2rem;
+  h2 {
+    margin: 0;
+  }
+  > p {
+    max-width: 48ch;
+    color: var(--color-muted);
+    margin: 0;
+  }
+  &--center {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font: 700 0.78rem/1 var(--font-body);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sfc-blue);
+  margin: 0 0 0.9rem;
+  &::before {
+    content: '';
+    width: 22px;
+    height: 3px;
+    background: var(--sfc-yellow);
+    border-radius: 2px;
+  }
+}
+.grid {
+  display: grid;
+  gap: 1.25rem;
+}
+.grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+}
+.grid-3 {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
+.grid-4 {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+}
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(2rem, 5vw, 4.5rem);
+  align-items: start;
+  @media (max-width: 860px) {
+    grid-template-columns: 1fr;
+  }
+}
+.stack > * + * {
+  margin-top: 1rem;
+}
+.center {
+  text-align: center;
+}
+.muted {
+  color: var(--color-muted);
+}
+.prose {
+  max-width: 68ch;
+  font-size: 1.06rem;
+}
+
+/* ---------- Sub-navegação de página ---------- */
+.subnav {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 20;
+  background: #fff;
+  border-bottom: 1px solid var(--color-line);
+  @media (max-width: 1080px) {
+    top: 66px;
+  }
+}
+.subnav__inner {
+  display: flex;
+  gap: 1.4rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  a {
+    flex: none;
+    padding: 0.95rem 0;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--color-text);
+    text-decoration: none;
+    border-bottom: 3px solid transparent;
+    &:hover {
+      color: var(--sfc-blue);
+      border-color: var(--sfc-yellow);
+    }
+  }
+}
+
+/* ---------- Botões ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55em;
+  min-height: 46px;
+  padding: 0.75em 1.5em;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  font: 700 0.95rem/1 var(--font-body);
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+  &:hover {
+    transform: translateY(-1px);
+  }
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+  }
+  svg {
+    width: 1.15em;
+    height: 1.15em;
+  }
+}
+.btn--primary {
+  background: var(--sfc-blue);
+  color: #fff;
+  &:hover {
+    background: var(--sfc-blue-700);
+  }
+}
+.btn--accent {
+  background: var(--sfc-yellow);
+  color: var(--color-on-accent);
+  box-shadow: 0 8px 22px -10px rgba(253, 210, 14, 0.9);
+  &:hover {
+    background: var(--sfc-yellow-600);
+  }
+}
+.btn--outline {
+  border-color: var(--sfc-blue);
+  color: var(--sfc-blue);
+  background: transparent;
+  &:hover {
+    background: var(--sfc-blue);
+    color: #fff;
+  }
+}
+.btn--ghost-light {
+  border-color: rgba(255, 255, 255, 0.75);
+  color: #fff;
+  background: transparent;
+  &:hover {
+    background: #fff;
+    color: var(--sfc-blue-900);
+  }
+}
+.btn--sm {
+  min-height: 38px;
+  padding: 0.55em 1.05em;
+  font-size: 0.87rem;
+}
+.btn--block {
+  width: 100%;
+}
+.link-arrow {
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--color-link);
+  &::after {
+    content: ' →';
+    transition: margin 0.2s;
+  }
+  &:hover::after {
+    margin-left: 4px;
+  }
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+/* ---------- Cards ---------- */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+  &--link:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow);
+    border-color: var(--sfc-blue);
+  }
+  h3 {
+    margin-bottom: 0.35rem;
+  }
+}
+
+/* ---------- Badges ---------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.28em 0.7em;
+  border-radius: 999px;
+  font: 700 0.72rem/1.2 var(--font-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--sfc-blue-50);
+  color: var(--sfc-blue);
+  white-space: nowrap;
+  &--accent {
+    background: var(--sfc-yellow);
+    color: var(--color-on-accent);
+  }
+  &--success {
+    background: #e3f4e7;
+    color: var(--color-success);
+  }
+  &--warning {
+    background: #fff1d6;
+    color: var(--color-warning);
+  }
+  &--danger {
+    background: #fde7e5;
+    color: var(--color-danger);
+  }
+  &--neutral {
+    background: #eceef3;
+    color: #444b5a;
+  }
+  &[data-sport='atletismo'] {
+    background: #fbe9e4;
+    color: #9a3a22;
+  }
+  &[data-sport='futsal'] {
+    background: var(--sfc-blue-50);
+    color: var(--sfc-blue);
+  }
+  &[data-sport='rugby'] {
+    background: var(--sfc-green-50);
+    color: var(--sfc-green);
+  }
+  &[data-sport='formacao'] {
+    background: #fdf3cf;
+    color: #7a5b00;
+  }
+  &[data-sport='escola-de-desporto'] {
+    background: #efe7f8;
+    color: var(--sport-escola);
+  }
+}
+
+/* ---------- Alertas ---------- */
+.alert {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  padding: 1rem 1.2rem;
+  border-radius: var(--radius-s);
+  border: 1px solid;
+  font-size: 0.95rem;
+  p:last-child {
+    margin: 0;
+  }
+  &--info {
+    background: var(--sfc-blue-50);
+    border-color: #c7d5ee;
+    color: var(--sfc-blue-900);
+  }
+  &--success {
+    background: #e9f6ec;
+    border-color: #bfe3c8;
+    color: #14532d;
+  }
+  &--warning {
+    background: #fff6e0;
+    border-color: #f5d68c;
+    color: #6b4300;
+  }
+}
+
+/* ---------- Tabs / filtros ---------- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.chip {
+  border: 1.5px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: 999px;
+  padding: 0.5em 1.05em;
+  font: 600 0.88rem/1 var(--font-body);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+  &:hover {
+    border-color: var(--sfc-blue);
+  }
+  &[aria-pressed='true'],
+  &.active {
+    background: var(--sfc-blue);
+    border-color: var(--sfc-blue);
+    color: #fff;
+  }
+}
+
+/* ---------- Formulários ---------- */
+.form {
+  display: grid;
+  gap: 1.1rem;
+}
+.form-row {
+  display: grid;
+  gap: 1.1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+}
+.field {
+  display: grid;
+  gap: 0.35rem;
+  label,
+  .label {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .req {
+    color: var(--color-danger);
+  }
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: var(--color-text);
+    background: #fff;
+    border: 1.5px solid #c9cfdb;
+    border-radius: var(--radius-s);
+    padding: 0.72em 0.9em;
+    width: 100%;
+    min-height: 46px;
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s;
+    &:focus {
+      outline: none;
+      border-color: var(--sfc-blue);
+      box-shadow: 0 0 0 3px rgba(25, 70, 142, 0.18);
+    }
+    &.ng-invalid.ng-touched {
+      border-color: var(--color-danger);
+    }
+  }
+  textarea {
+    min-height: 120px;
+    resize: vertical;
+  }
+  .hint {
+    font-size: 0.82rem;
+    color: var(--color-muted);
+  }
+  .error {
+    font-size: 0.82rem;
+    color: var(--color-danger);
+    font-weight: 600;
+  }
+}
+.check {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  font-size: 0.92rem;
+  input {
+    width: 20px;
+    height: 20px;
+    margin-top: 0.15rem;
+    accent-color: var(--sfc-blue);
+    flex: none;
+  }
+}
+fieldset {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  padding: 1.2rem 1.3rem 1.4rem;
+  margin: 0;
+  legend {
+    font: 800 1.15rem/1 var(--font-display);
+    text-transform: uppercase;
+    padding: 0 0.4rem;
+  }
+}
+
+/* ---------- Tabelas ---------- */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+table.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.94rem;
+  th,
+  td {
+    text-align: left;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--color-line);
+    white-space: nowrap;
+  }
+  th {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    background: var(--color-bg-soft);
+  }
+  tr:last-child td {
+    border-bottom: 0;
+  }
+  .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  tr.highlight td {
+    background: #fff9da;
+    font-weight: 700;
+  }
+}
+
+/* ---------- Checklist ---------- */
+.checklist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.55rem;
+  li {
+    position: relative;
+    padding-left: 1.85rem;
+  }
+  li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.3rem;
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 50%;
+    background: var(--sfc-green)
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5 10.5l3 3 7-7' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+      center / 72% no-repeat;
+  }
+}
+
+/* ---------- Placeholders de imagem (até haver fotografias reais) ---------- */
+.media-ph {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--ph-a, var(--sfc-blue)) 0%, var(--ph-b, var(--sfc-blue-900)) 100%);
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.92);
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-conic-gradient(from 0deg at 50% 120%, rgba(255, 255, 255, 0.07) 0 6deg, transparent 6deg 14deg);
+  }
+  > * {
+    position: relative;
+  }
+  &[data-sport='atletismo'] {
+    --ph-a: #d9694c;
+    --ph-b: #8a2f1b;
+  }
+  &[data-sport='rugby'] {
+    --ph-a: #2a8a3e;
+    --ph-b: #114d1f;
+  }
+  &[data-sport='formacao'] {
+    --ph-a: #e5bb00;
+    --ph-b: #8f6b00;
+  }
+  &[data-sport='escola-de-desporto'] {
+    --ph-a: #7d50b5;
+    --ph-b: #44236e;
+  }
+}
+
+/* ---------- Animação de entrada ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .fade-up {
+    animation: fade-up 0.6s ease both;
+  }
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

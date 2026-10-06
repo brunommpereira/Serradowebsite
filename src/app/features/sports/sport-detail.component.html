@@ -1,0 +1,310 @@
+@if (sport(); as s) {
+  <sfc-page-hero
+    [eyebrow]="'Modalidade · Época 2026/27'"
+    [title]="s.name"
+    [subtitle]="s.tagline"
+    [sport]="s.slug"
+    [crumbs]="[{ label: 'Modalidades', link: '/modalidades' }, { label: s.name }]"
+  >
+    <div class="hero-cta">
+      <a class="btn btn--accent" [routerLink]="[]" fragment="inscricoes">Inscrever-me</a>
+      <a class="btn btn--ghost-light" [routerLink]="[]" fragment="treinos">Horários de treino</a>
+    </div>
+  </sfc-page-hero>
+
+  <nav class="subnav" aria-label="Menu da modalidade">
+    <div class="container subnav__inner">
+      @for (t of tabs(); track t.id) {
+        <a [routerLink]="[]" [fragment]="t.id">{{ t.label }}</a>
+      }
+    </div>
+  </nav>
+
+  <!-- INÍCIO -->
+  <section class="section" id="inicio">
+    <div class="container split">
+      <div>
+        <p class="eyebrow">{{ s.name }}</p>
+        <h2>{{ s.tagline }}</h2>
+        <p class="prose">{{ s.description }}</p>
+        <ul class="checklist">
+          @for (h of s.highlights; track h) {
+            <li>{{ h }}</li>
+          }
+        </ul>
+      </div>
+      <div class="glance">
+        <div class="glance__box">
+          <p class="glance__label">Próximo evento</p>
+          @if (upcoming()[0]; as m) {
+            <p class="glance__title">{{ m.team }} · {{ m.homeAway === 'casa' ? 'vs' : '@' }} {{ m.opponent }}</p>
+            <p class="glance__meta">{{ m.date | date: "EEEE, d MMM · HH'h'mm" | cap }} · {{ m.venue }}</p>
+          } @else if (athletics().length) {
+            <p class="glance__title">Consulta a agenda</p>
+            <p class="glance__meta"><a routerLink="/agenda">Ver provas e eventos →</a></p>
+          } @else {
+            <p class="glance__title">A anunciar</p>
+            <p class="glance__meta"><a routerLink="/agenda">Ver agenda →</a></p>
+          }
+        </div>
+        <div class="glance__box glance__box--dark">
+          <p class="glance__label">Último resultado</p>
+          @if (lastResult(); as r) {
+            <p class="glance__title">
+              Serrado FC {{ r.homeAway === 'casa' ? r.scoreHome : r.scoreAway }} – {{ r.homeAway === 'casa' ? r.scoreAway : r.scoreHome }} {{ r.opponent }}
+            </p>
+            <p class="glance__meta">{{ r.team }} · {{ r.competition }} · {{ r.date | date: 'd MMM' }}</p>
+          } @else if (athletics()[0]; as a) {
+            <p class="glance__title">{{ a.event }}</p>
+            <p class="glance__meta">{{ a.highlights[0] }}</p>
+          } @else {
+            <p class="glance__title">—</p>
+          }
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EQUIPAS -->
+  <section class="section section--soft" id="equipas" aria-labelledby="h-equipas">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Época 2026/27</p>
+          <h2 id="h-equipas">Equipas e escalões</h2>
+        </div>
+        <p>Plantéis e fichas de atleta disponíveis na Fase 4 (gestão desportiva).</p>
+      </div>
+      <ul class="teams">
+        @for (t of teams(); track t.id) {
+          <li class="card">
+            @if (isUmbrella()) {
+              <span class="badge" [attr.data-sport]="t.sportSlug">{{ teamName(t.sportSlug) }}</span>
+            } @else {
+              <span class="badge badge--accent">{{ t.category }}</span>
+            }
+            <h3>{{ isUmbrella() ? t.name : 'Serrado FC ' + t.name }}</h3>
+            <p class="caption">Treinador: {{ t.coach }}</p>
+          </li>
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- TREINADORES -->
+  <section class="section" id="treinadores" aria-labelledby="h-treinadores">
+    <div class="container">
+      <p class="eyebrow">Equipa técnica</p>
+      <h2 id="h-treinadores">Treinadores</h2>
+      @if (coaches().length) {
+        <ul class="coaches">
+          @for (c of coaches(); track $index) {
+            <li>
+              <span class="coaches__photo" aria-hidden="true"><sfc-icon name="user" size="28" /></span>
+              <span><strong>{{ c.name }}</strong><br /><span class="caption">{{ c.role }}</span></span>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="muted">Equipa técnica transversal às modalidades. Contacta a coordenação: {{ s.contactEmail }}</p>
+      }
+    </div>
+  </section>
+
+  <!-- CALENDÁRIO -->
+  <section class="section section--soft" id="calendario" aria-labelledby="h-cal">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Calendário</p>
+          <h2 id="h-cal">Próximos jogos</h2>
+        </div>
+        <a class="link-arrow" routerLink="/agenda" [queryParams]="{ modalidade: s.slug }">Agenda completa</a>
+      </div>
+      @if (upcoming().length) {
+        <div class="grid grid-3">
+          @for (m of upcoming(); track m.id) {
+            <sfc-match-card [match]="m" />
+          }
+        </div>
+      } @else {
+        <p class="muted">Sem jogos agendados de momento. Consulta a <a routerLink="/agenda">agenda</a>.</p>
+      }
+    </div>
+  </section>
+
+  <!-- RESULTADOS / CLASSIFICAÇÕES -->
+  <section class="section" id="resultados" aria-labelledby="h-res">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Competição</p>
+          <h2 id="h-res">Resultados</h2>
+        </div>
+        <a class="link-arrow" routerLink="/resultados" [queryParams]="{ modalidade: s.slug }">Todos os resultados</a>
+      </div>
+
+      @if (results().length) {
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th scope="col">Data</th><th scope="col">Equipa</th><th scope="col">Jogo</th><th scope="col" class="num">Resultado</th><th scope="col">Competição</th></tr>
+            </thead>
+            <tbody>
+              @for (r of results(); track r.id) {
+                <tr>
+                  <td>{{ r.date | date: 'dd/MM/yy' }}</td>
+                  <td>{{ r.team }}</td>
+                  <td>{{ r.homeAway === 'casa' ? 'Serrado FC vs ' + r.opponent : r.opponent + ' vs Serrado FC' }}</td>
+                  <td class="num"><strong>{{ r.scoreHome }} – {{ r.scoreAway }}</strong></td>
+                  <td>{{ r.competition }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (athletics().length) {
+        <div class="grid grid-3">
+          @for (a of athletics(); track a.id) {
+            <article class="card">
+              <p class="caption">{{ a.date | date: 'd MMM y' }} · {{ a.location }}</p>
+              <h3>{{ a.event }}</h3>
+              <ul class="checklist">
+                @for (h of a.highlights; track h) {
+                  <li>{{ h }}</li>
+                }
+              </ul>
+            </article>
+          }
+        </div>
+      }
+
+      @for (st of standings(); track st.competition) {
+        <h3 class="standings__title">Classificação · {{ st.competition }}</h3>
+        <div class="table-wrap standings">
+          <table class="table">
+            <thead>
+              <tr><th scope="col" class="num">#</th><th scope="col">Equipa</th><th scope="col" class="num">J</th><th scope="col" class="num">Pts</th></tr>
+            </thead>
+            <tbody>
+              @for (row of st.rows; track row.pos) {
+                <tr [class.highlight]="row.team === 'Serrado FC'">
+                  <td class="num">{{ row.pos }}</td>
+                  <td>{{ row.team }}</td>
+                  <td class="num">{{ row.played }}</td>
+                  <td class="num">{{ row.points }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (!results().length && !athletics().length && !standings().length) {
+        <p class="muted">Os resultados da formação são publicados por equipa nas páginas de cada modalidade.</p>
+      }
+    </div>
+  </section>
+
+  <!-- RECORDES (atletismo) -->
+  @if (records().length) {
+    <section class="section section--soft" id="recordes" aria-labelledby="h-rec">
+      <div class="container">
+        <p class="eyebrow">Atletismo</p>
+        <h2 id="h-rec">Recordes do clube</h2>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th scope="col">Prova</th><th scope="col">Atleta</th><th scope="col">Marca</th><th scope="col">Ano</th></tr>
+            </thead>
+            <tbody>
+              @for (r of records(); track r.discipline) {
+                <tr><td><strong>{{ r.discipline }}</strong></td><td>{{ r.athlete }}</td><td>{{ r.mark }}</td><td>{{ r.year }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- TREINOS -->
+  <section class="section" id="treinos" aria-labelledby="h-treinos">
+    <div class="container">
+      <p class="eyebrow">Treinos</p>
+      <h2 id="h-treinos">Horários de treino</h2>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr><th scope="col">Escalão / Grupo</th><th scope="col">Dias</th><th scope="col">Horário</th><th scope="col">Local</th></tr>
+          </thead>
+          <tbody>
+            @for (t of trainings(); track t.team) {
+              <tr><td><strong>{{ t.team }}</strong></td><td>{{ t.days }}</td><td>{{ t.time }}</td><td>{{ t.location }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- NOTÍCIAS -->
+  <section class="section section--soft" id="noticias" aria-labelledby="h-noticias">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Atualidade</p>
+          <h2 id="h-noticias">Notícias de {{ s.name }}</h2>
+        </div>
+        <a class="link-arrow" routerLink="/noticias">Todas as notícias</a>
+      </div>
+      @if (news().length) {
+        <div class="grid grid-3">
+          @for (n of news(); track n.id) {
+            <sfc-news-card [article]="n" />
+          }
+        </div>
+      } @else {
+        <p class="muted">Ainda não há notícias desta modalidade.</p>
+      }
+    </div>
+  </section>
+
+  <!-- GALERIA -->
+  <section class="section" id="galeria" aria-labelledby="h-galeria">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Multimédia</p>
+          <h2 id="h-galeria">Galeria</h2>
+        </div>
+        <a class="link-arrow" routerLink="/multimedia">Ver galeria completa</a>
+      </div>
+      <div class="gallery">
+        @for (i of [1, 2, 3, 4]; track i) {
+          <div class="media-ph" [attr.data-sport]="s.slug"><sfc-icon name="image" size="32" /></div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- INSCRIÇÕES -->
+  <section class="section section--soft" id="inscricoes" aria-labelledby="h-insc">
+    <div class="container split">
+      <div>
+        <p class="eyebrow">Inscrições</p>
+        <h2 id="h-insc">Vem jogar connosco</h2>
+        <p>Preenche o pedido de inscrição e a coordenação de {{ s.name }} entra em contacto para marcar um treino de experiência.</p>
+        <ul class="contact">
+          <li><sfc-icon name="mail" /><a [href]="'mailto:' + s.contactEmail">{{ s.contactEmail }}</a></li>
+          <li><sfc-icon name="pin" />{{ trainings()[0]?.location ?? 'Sede do Serrado FC' }}</li>
+        </ul>
+      </div>
+      <sfc-inscription-form [sport]="s" />
+    </div>
+  </section>
+} @else {
+  <sfc-not-found />
+}
