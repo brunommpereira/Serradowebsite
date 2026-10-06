@@ -16,7 +16,18 @@ npm run build        # gera dist/serrado-fc/browser + 404.html + sitemap.xml
 
 O resultado de `npm run build` é um site estático que pode ser alojado em qualquer serviço: Azure Static Web Apps, GitHub Pages, Netlify, etc.
 
-- Para o GitHub Pages deste repositório usa-se `npm run build:gh-pages`, que define o base href `/Serradowebsite/`.
+### Publicação no GitHub Pages
+
+O workflow `.github/workflows/deploy-pages.yml` publica o site em **https://brunommpereira.github.io/Serradowebsite/** a cada push para o `main`. Também pode ser lançado manualmente em *Actions → Deploy GitHub Pages → Run workflow*. O workflow corre os testes, faz o build com o base href `/Serradowebsite/`, gera o `404.html` e o `sitemap.xml` e publica.
+
+**Configuração única:** em *Settings → Pages → Build and deployment → Source*, escolher **GitHub Actions**.
+
+Quando o domínio `serradofc.pt` estiver pronto, há três passos:
+1. Configurá-lo em *Settings → Pages → Custom domain*.
+2. Mudar o base href para `/`.
+3. Mudar o `SITE_URL` no workflow.
+
+- Para testar localmente o build do GitHub Pages usa-se `npm run build:gh-pages`, que define o base href `/Serradowebsite/`.
 - O `404.html` serve de fallback para as rotas que só existem no browser (`/area-socio`).
 
 ## Estrutura (secção 55)
