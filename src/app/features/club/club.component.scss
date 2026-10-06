@@ -1,0 +1,264 @@
+.intro h2 {
+  font-size: var(--fs-l);
+}
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1rem;
+  position: relative;
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 9px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--sfc-blue), var(--sfc-yellow));
+    border-radius: 3px;
+  }
+  li {
+    position: relative;
+    padding-top: 2rem;
+  }
+  h3 {
+    font-size: 1.15rem;
+  }
+  p {
+    font-size: 0.88rem;
+    color: var(--color-muted);
+  }
+  @media (max-width: 1000px) {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding-left: 2rem;
+    &::before {
+      left: 8px;
+      right: auto;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      height: auto;
+      background: linear-gradient(180deg, var(--sfc-blue), var(--sfc-yellow));
+    }
+    li {
+      padding: 0 0 1.4rem;
+    }
+    .timeline__dot {
+      left: -2rem;
+      top: 2px;
+    }
+  }
+}
+.timeline__dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: #fff;
+  border: 5px solid var(--sfc-blue);
+}
+.timeline__year {
+  display: inline-block;
+  font: 800 1.9rem/1 var(--font-display);
+  color: var(--sfc-blue);
+  margin-bottom: 0.3rem;
+}
+
+.mv {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 3.5rem;
+  @media (max-width: 760px) {
+    grid-template-columns: 1fr;
+  }
+}
+.mv__card {
+  background: var(--sfc-blue);
+  color: #fff;
+  border-radius: var(--radius-l);
+  padding: clamp(1.6rem, 4vw, 2.6rem);
+  .eyebrow {
+    color: var(--sfc-yellow);
+  }
+  &--accent {
+    background: var(--sfc-yellow);
+    color: var(--color-on-accent);
+    .eyebrow {
+      color: var(--sfc-blue-900);
+    }
+  }
+}
+.mv__text {
+  font: 700 clamp(1.4rem, 2.6vw, 1.9rem)/1.2 var(--font-display);
+  margin: 0;
+}
+.values__title {
+  margin-bottom: 1.4rem;
+}
+.values {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  p {
+    color: var(--color-muted);
+    margin: 0;
+    font-size: 0.94rem;
+  }
+}
+.values__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background: var(--sfc-blue-50);
+  color: var(--sfc-blue);
+  margin-bottom: 0.8rem;
+}
+
+.palette {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-weight: 600;
+  }
+  span {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  code {
+    margin-left: auto;
+    color: var(--color-muted);
+    font-size: 0.85rem;
+  }
+}
+.logos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.logos__item {
+  background: #fff;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  padding: 1.6rem;
+  display: grid;
+  place-items: center;
+  &:first-child {
+    grid-column: 1 / -1;
+    img {
+      max-width: 240px;
+    }
+  }
+  img {
+    max-width: 150px;
+  }
+  &--blue {
+    background: var(--sfc-blue);
+  }
+  &--dark {
+    background: var(--sfc-ink);
+  }
+}
+
+.board__title {
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  margin: 2rem 0 1rem;
+}
+.board {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr));
+}
+.person {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  padding: 1.3rem;
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 0.3rem;
+}
+.person__photo {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: var(--color-bg-soft);
+  color: #9aa3b5;
+  display: grid;
+  place-items: center;
+  margin-bottom: 0.5rem;
+}
+.person__role {
+  font: 800 1.15rem/1 var(--font-display);
+  text-transform: uppercase;
+  color: var(--sfc-blue);
+}
+.person__name {
+  color: var(--color-muted);
+  font-size: 0.92rem;
+}
+
+.docs {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+  li {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #fff;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius);
+    padding: 0.9rem 1.1rem;
+    > sfc-icon {
+      color: var(--sfc-blue);
+    }
+  }
+}
+.docs__info {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.facility__media {
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+}
+.contact-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  p {
+    margin: 0;
+    opacity: 0.85;
+  }
+}

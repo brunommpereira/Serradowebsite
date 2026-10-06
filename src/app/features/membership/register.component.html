@@ -1,0 +1,224 @@
+<sfc-page-hero
+  eyebrow="Sócios"
+  title="Registo de Sócio"
+  subtitle="Em poucos minutos fazes parte da família Serrado."
+  [crumbs]="[{ label: 'Sócios', link: '/socios' }, { label: 'Registo' }]"
+/>
+
+<section class="section">
+  <div class="container reg">
+    <ol class="stepper" aria-label="Passos do registo">
+      @for (l of stepLabels; track l; let i = $index) {
+        <li [class.done]="step() > i + 1" [class.current]="step() === i + 1" [attr.aria-current]="step() === i + 1 ? 'step' : null">
+          <span class="stepper__n">
+            @if (step() > i + 1) {
+              <sfc-icon name="check" size="16" />
+            } @else {
+              {{ i + 1 }}
+            }
+          </span>
+          <span class="stepper__label">{{ l }}</span>
+        </li>
+      }
+    </ol>
+
+    @switch (step()) {
+      @case (1) {
+        <h2>Escolhe a categoria</h2>
+        <div class="cats" role="radiogroup" aria-label="Categoria de sócio">
+          @for (c of categories; track c.id) {
+            <label class="cat" [class.sel]="category() === c.id">
+              <input type="radio" name="cat" [value]="c.id" [checked]="category() === c.id" (change)="category.set(c.id)" />
+              <span class="cat__name">{{ c.name }}</span>
+              <span class="caption">{{ c.ageRule }}</span>
+              <span class="cat__price">{{ c.monthly | currency: 'EUR' }}<small>/mês</small></span>
+            </label>
+          }
+        </div>
+        <fieldset class="period">
+          <legend>Periodicidade</legend>
+          <label class="check"><input type="radio" name="period" [checked]="period() === 'monthly'" (change)="period.set('monthly')" />Mensal · {{ selected().monthly | currency: 'EUR' }}</label>
+          <label class="check"><input type="radio" name="period" [checked]="period() === 'yearly'" (change)="period.set('yearly')" />Anual · {{ selected().yearly | currency: 'EUR' }}</label>
+        </fieldset>
+        @if (category() === 'familiar') {
+          <p class="alert alert--info">Na quota Familiar, os dependentes (filhos e outros membros do agregado) são adicionados depois, na Área de Sócio → Agregado Familiar.</p>
+        }
+        <div class="actions">
+          <a class="btn btn--outline" routerLink="/socios">Cancelar</a>
+          <button class="btn btn--primary" type="button" (click)="next()">Continuar</button>
+        </div>
+      }
+
+      @case (2) {
+        <h2>Os teus dados</h2>
+        <form class="form" [formGroup]="form" (ngSubmit)="next()" novalidate>
+          <fieldset>
+            <legend>Identificação</legend>
+            <div class="form">
+              <div class="field">
+                <label for="r-name">Nome completo <span class="req">*</span></label>
+                <input id="r-name" formControlName="name" autocomplete="name" />
+                @if (invalid('name')) {
+                  <span class="error">Indica o nome completo.</span>
+                }
+              </div>
+              <div class="form-row">
+                <div class="field">
+                  <label for="r-birth">Data de nascimento <span class="req">*</span></label>
+                  <input id="r-birth" type="date" formControlName="birthDate" autocomplete="bday" />
+                  @if (invalid('birthDate')) {
+                    <span class="error">Obrigatório.</span>
+                  }
+                </div>
+                <div class="field">
+                  <label for="r-nif">NIF <span class="req">*</span></label>
+                  <input id="r-nif" formControlName="nif" inputmode="numeric" maxlength="9" />
+                  @if (invalid('nif')) {
+                    <span class="error">Indica um NIF português válido.</span>
+                  }
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="field">
+                  <label for="r-doctype">Documento de identificação <span class="req">*</span></label>
+                  <select id="r-doctype" formControlName="docType">
+                    <option>Cartão de Cidadão</option>
+                    <option>Passaporte</option>
+                    <option>Título de Residência</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="r-docnum">N.º do documento <span class="req">*</span></label>
+                  <input id="r-docnum" formControlName="docNumber" autocomplete="off" />
+                  @if (invalid('docNumber')) {
+                    <span class="error">Obrigatório.</span>
+                  }
+                </div>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Contactos e morada</legend>
+            <div class="form">
+              <div class="form-row">
+                <div class="field">
+                  <label for="r-email">Email <span class="req">*</span></label>
+                  <input id="r-email" type="email" formControlName="email" autocomplete="email" />
+                  @if (invalid('email')) {
+                    <span class="error">Email inválido.</span>
+                  }
+                </div>
+                <div class="field">
+                  <label for="r-phone">Telefone <span class="req">*</span></label>
+                  <input id="r-phone" type="tel" formControlName="phone" autocomplete="tel" />
+                  @if (invalid('phone')) {
+                    <span class="error">Telefone inválido.</span>
+                  }
+                </div>
+              </div>
+              <div class="field">
+                <label for="r-address">Morada <span class="req">*</span></label>
+                <input id="r-address" formControlName="address" autocomplete="street-address" />
+                @if (invalid('address')) {
+                  <span class="error">Obrigatório.</span>
+                }
+              </div>
+              <div class="form-row">
+                <div class="field">
+                  <label for="r-cp">Código postal <span class="req">*</span></label>
+                  <input id="r-cp" formControlName="postalCode" placeholder="0000-000" autocomplete="postal-code" />
+                  @if (invalid('postalCode')) {
+                    <span class="error">Formato 0000-000.</span>
+                  }
+                </div>
+                <div class="field">
+                  <label for="r-loc">Localidade <span class="req">*</span></label>
+                  <input id="r-loc" formControlName="locality" autocomplete="address-level2" />
+                  @if (invalid('locality')) {
+                    <span class="error">Obrigatório.</span>
+                  }
+                </div>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Conta da Área de Sócio</legend>
+            <div class="field">
+              <label for="r-pass">Password <span class="req">*</span></label>
+              <input id="r-pass" type="password" formControlName="password" autocomplete="new-password" />
+              <span class="hint">Mínimo 8 caracteres. Vais entrar com o teu n.º de sócio e esta password.</span>
+              @if (invalid('password')) {
+                <span class="error">A password deve ter pelo menos 8 caracteres.</span>
+              }
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Consentimentos RGPD</legend>
+            <div class="form">
+              <label class="check">
+                <input type="checkbox" formControlName="consentData" />
+                <span>Autorizo o tratamento dos meus dados pessoais para gestão da minha condição de sócio, nos termos da <a routerLink="/privacidade">Política de Privacidade</a>. <span class="req">*</span></span>
+              </label>
+              @if (invalid('consentData')) {
+                <span class="field"><span class="error">Consentimento obrigatório.</span></span>
+              }
+              <label class="check">
+                <input type="checkbox" formControlName="consentStatutes" />
+                <span>Li e aceito os Estatutos e o Regulamento de Quotas do Serrado FC. <span class="req">*</span></span>
+              </label>
+              @if (invalid('consentStatutes')) {
+                <span class="field"><span class="error">É necessário aceitar os Estatutos.</span></span>
+              }
+              <label class="check">
+                <input type="checkbox" formControlName="consentComms" />
+                <span>Quero receber a newsletter e comunicações do clube por email (opcional).</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <div class="actions">
+            <button class="btn btn--outline" type="button" (click)="back()">Voltar</button>
+            <button class="btn btn--primary" type="submit">Criar registo</button>
+          </div>
+        </form>
+      }
+
+      @case (3) {
+        <h2>Pagamento da primeira quota</h2>
+        <div class="pay-wrap">
+          <sfc-payment-step
+            [amount]="amount()"
+            [description]="'Quota ' + selected().name + (period() === 'monthly' ? ' (mensal)' : ' (anual)')"
+            (paid)="onPaid($event)"
+          />
+          <button class="btn btn--outline" type="button" (click)="back()">Voltar</button>
+        </div>
+      }
+
+      @case (4) {
+        @if (result(); as r) {
+          <div class="done">
+            <div>
+              <p class="alert alert--success"><span><strong>Bem-vindo à família Serrado!</strong> O teu registo está ativo.</span></p>
+              <h2>O teu n.º de sócio é {{ r.number }}</h2>
+              <ul class="checklist">
+                <li>Pagamento confirmado por {{ r.method }} · {{ amount() | currency: 'EUR' }}</li>
+                <li>Recibo {{ r.receipt }} emitido e enviado para {{ form.controls.email.value }}</li>
+                <li>Cartão digital disponível na Área de Sócio</li>
+              </ul>
+              <div class="actions">
+                <a class="btn btn--primary" routerLink="/area-socio/entrar">Entrar na Área de Sócio</a>
+                <a class="btn btn--outline" routerLink="/">Voltar ao início</a>
+              </div>
+              <p class="caption">Demonstração: o registo não foi guardado. Para explorar a Área de Sócio usa a conta de demonstração indicada na página de entrada.</p>
+            </div>
+            <sfc-member-card [number]="r.number" [name]="form.controls.name.value" [category]="selected().name" [since]="'' + year" />
+          </div>
+        }
+      }
+    }
+  </div>
+</section>

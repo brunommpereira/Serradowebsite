@@ -1,0 +1,128 @@
+<sfc-page-hero
+  eyebrow="Sócios"
+  title="Faz parte da família Serrado"
+  subtitle="Ser sócio é apoiar a formação de centenas de jovens, ter voz no clube e viver o Serrado FC de perto."
+  [crumbs]="[{ label: 'Sócios' }]"
+>
+  <div class="hero-cta">
+    <a class="btn btn--accent" routerLink="/socios/registo">Torna-te Sócio</a>
+    <a class="btn btn--ghost-light" routerLink="/area-socio"><sfc-icon name="user" />Já sou sócio</a>
+  </div>
+</sfc-page-hero>
+
+<!-- PORQUÊ / BENEFÍCIOS -->
+<section class="section" id="beneficios" aria-labelledby="h-ben">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Porque ser sócio?</p>
+        <h2 id="h-ben">Benefícios</h2>
+      </div>
+      <p>Mais do que um cartão: é pertencer a uma família com quase meio século de história.</p>
+    </div>
+    <ul class="benefits">
+      @for (b of benefits; track b.title; let i = $index) {
+        <li class="card">
+          <span class="benefits__icon"><sfc-icon [name]="benefitIcons[i]" size="24" /></span>
+          <h3>{{ b.title }}</h3>
+          <p>{{ b.text }}</p>
+        </li>
+      }
+    </ul>
+  </div>
+</section>
+
+<!-- CATEGORIAS E QUOTAS -->
+<section class="section section--soft" id="quotas" aria-labelledby="h-quotas">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Categorias</p>
+        <h2 id="h-quotas">Quotas</h2>
+      </div>
+      <p>Paga mensalmente ou poupa com a anuidade. Valores de demonstração, configuráveis pela Direção no backoffice.</p>
+    </div>
+    <div class="plans">
+      @for (c of categories; track c.id) {
+        <article class="plan" [class.plan--featured]="c.id === 'familiar'">
+          @if (c.id === 'familiar') {
+            <span class="badge badge--accent plan__badge">Melhor valor</span>
+          }
+          <h3>{{ c.name }}</h3>
+          <p class="caption">{{ c.ageRule }}</p>
+          <p class="plan__price">
+            <strong>{{ c.monthly | currency: 'EUR' }}</strong><span>/mês</span>
+          </p>
+          <p class="plan__year">ou {{ c.yearly | currency: 'EUR' }}/ano</p>
+          <p class="plan__desc">{{ c.description }}</p>
+          <a class="btn btn--block" [class.btn--accent]="c.id === 'familiar'" [class.btn--outline]="c.id !== 'familiar'" routerLink="/socios/registo" [queryParams]="{ categoria: c.id }">
+            Escolher {{ c.name }}
+          </a>
+        </article>
+      }
+    </div>
+
+    <div class="table-wrap quota-table">
+      <table class="table">
+        <caption class="visually-hidden">Tabela de quotas</caption>
+        <thead>
+          <tr><th scope="col">Categoria</th><th scope="col">Idade</th><th scope="col" class="num">Mensalidade</th><th scope="col" class="num">Anuidade</th></tr>
+        </thead>
+        <tbody>
+          @for (c of categories; track c.id) {
+            <tr><td><strong>{{ c.name }}</strong></td><td>{{ c.ageRule }}</td><td class="num">{{ c.monthly | currency: 'EUR' }}</td><td class="num">{{ c.yearly | currency: 'EUR' }}</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- COMO SER SÓCIO -->
+<section class="section" aria-labelledby="h-como">
+  <div class="container">
+    <div class="section-head section-head--center">
+      <div>
+        <p class="eyebrow">Simples e rápido</p>
+        <h2 id="h-como">Como ser sócio</h2>
+      </div>
+    </div>
+    <ol class="steps">
+      @for (s of steps; track s.title; let i = $index) {
+        <li>
+          <span class="steps__n">{{ i + 1 }}</span>
+          <h3>{{ s.title }}</h3>
+          <p>{{ s.text }}</p>
+        </li>
+      }
+    </ol>
+    <p class="center"><a class="btn btn--accent" routerLink="/socios/registo">Começar o registo</a></p>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section section--soft" id="faq" aria-labelledby="h-faq">
+  <div class="container faq-wrap">
+    <div>
+      <p class="eyebrow">Dúvidas</p>
+      <h2 id="h-faq">Perguntas frequentes</h2>
+      <p class="muted">Não encontras a resposta? <a routerLink="/contactos">Fala connosco</a>.</p>
+    </div>
+    <div class="faq">
+      @for (f of faq; track f.q) {
+        <details>
+          <summary>{{ f.q }}</summary>
+          <p>{{ f.a }}</p>
+        </details>
+      }
+    </div>
+  </div>
+</section>
+
+<section class="section section--blue">
+  <div class="container final">
+    <img src="brand/logo-yellow.svg" alt="" aria-hidden="true" />
+    <h2>Uma história. Uma família. A tua também.</h2>
+    <a class="btn btn--accent" routerLink="/socios/registo">Torna-te Sócio</a>
+  </div>
+</section>

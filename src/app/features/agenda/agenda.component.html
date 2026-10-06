@@ -1,0 +1,102 @@
+<sfc-page-hero eyebrow="Calendário" title="Agenda" subtitle="Jogos, competições, eventos e vida associativa." [crumbs]="[{ label: 'Agenda' }]" />
+
+<section class="section">
+  <div class="container">
+    <div class="toolbar">
+      <div class="chips" role="group" aria-label="Filtrar por modalidade">
+        @for (f of filters; track f.id) {
+          <button class="chip" type="button" [attr.aria-pressed]="filter() === f.id" (click)="filter.set(f.id)">{{ f.label }}</button>
+        }
+      </div>
+      <div class="views" role="group" aria-label="Vista">
+        <button type="button" class="chip" [attr.aria-pressed]="view() === 'lista'" (click)="view.set('lista')">Lista</button>
+        <button type="button" class="chip" [attr.aria-pressed]="view() === 'calendario'" (click)="view.set('calendario')">
+          <sfc-icon name="calendar" size="16" /> Calendário
+        </button>
+      </div>
+    </div>
+
+    @if (view() === 'lista') {
+      @for (g of byMonth(); track g.month) {
+        <h2 class="month">{{ g.month | date: 'MMMM y' }}</h2>
+        <ul class="items">
+          @for (i of g.items; track i.id) {
+            <li class="item">
+              <span class="item__date">
+                <strong>{{ i.date | date: 'dd' }}</strong>
+                <span>{{ i.date | date: 'EEE' }}</span>
+              </span>
+              <span class="item__body">
+                <span class="item__tags">
+                  <span class="badge" [attr.data-sport]="i.sportSlug">{{ sportName(i.sportSlug) }}</span>
+                  <span class="badge badge--neutral">{{ i.type }}</span>
+                </span>
+                <span class="item__title">{{ i.title }}</span>
+                <span class="item__meta">
+                  <span><sfc-icon name="clock" size="15" />{{ i.date | date: "HH'h'mm" }}</span>
+                  <span><sfc-icon name="pin" size="15" />{{ i.location }}</span>
+                  @if (i.opponent) {
+                    <span>Adversário: <strong>{{ i.opponent }}</strong></span>
+                  }
+                </span>
+              </span>
+              <a class="btn btn--outline btn--sm" [routerLink]="linkPath(i.link)" [fragment]="linkFragment(i.link)">Ver detalhes</a>
+            </li>
+          }
+        </ul>
+      } @empty {
+        <p class="muted center empty">Não há atividades agendadas para este filtro.</p>
+      }
+    } @else {
+      <div class="cal">
+        <div class="cal__head">
+          <button class="chip" type="button" (click)="shiftMonth(-1)" aria-label="Mês anterior">‹</button>
+          <h2 class="cal__title" aria-live="polite">{{ calendar().label | date: 'MMMM y' }}</h2>
+          <button class="chip" type="button" (click)="shiftMonth(1)" aria-label="Mês seguinte">›</button>
+        </div>
+        <div class="cal__grid" role="grid">
+          @for (w of weekdays; track w) {
+            <span class="cal__wd" role="columnheader">{{ w }}</span>
+          }
+          @for (x of calendar().offset; track $index) {
+            <span></span>
+          }
+          @for (c of calendar().cells; track c.iso) {
+            <button
+              type="button"
+              class="cal__day"
+              [class.has]="c.items.length"
+              [class.sel]="selectedDay() === c.iso"
+              [disabled]="!c.items.length"
+              (click)="selectedDay.set(c.iso)"
+              [attr.aria-label]="c.day + (c.items.length ? ', ' + c.items.length + ' atividade(s)' : '')"
+            >
+              <span>{{ c.day }}</span>
+              <span class="cal__dots">
+                @for (i of c.items; track i.id) {
+                  <i [attr.data-sport]="i.sportSlug ?? 'clube'"></i>
+                }
+              </span>
+            </button>
+          }
+        </div>
+        @if (selectedDay()) {
+          <ul class="items cal__list">
+            @for (i of dayItems(); track i.id) {
+              <li class="item">
+                <span class="item__body">
+                  <span class="item__tags"><span class="badge" [attr.data-sport]="i.sportSlug">{{ sportName(i.sportSlug) }}</span></span>
+                  <span class="item__title">{{ i.title }}</span>
+                  <span class="item__meta"><span>{{ i.date | date: "HH'h'mm" }} · {{ i.location }}</span></span>
+                </span>
+                <a class="btn btn--outline btn--sm" [routerLink]="linkPath(i.link)" [fragment]="linkFragment(i.link)">Ver detalhes</a>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="caption center">Seleciona um dia assinalado para ver as atividades.</p>
+        }
+      </div>
+    }
+  </div>
+</section>

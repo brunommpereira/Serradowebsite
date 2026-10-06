@@ -1,0 +1,154 @@
+<div class="topbar">
+  <div class="container topbar__inner">
+    @if (nextMatch(); as m) {
+      <a class="topbar__match" [routerLink]="['/modalidades', m.sportSlug]">
+        <span class="topbar__label">Próximo jogo</span>
+        <span>
+          {{ sportName(m.sportSlug) }} · {{ m.homeAway === 'casa' ? 'Serrado FC vs ' + m.opponent : m.opponent + ' vs Serrado FC' }}
+          · {{ m.date | date: "d MMM, HH'h'mm" }}
+        </span>
+      </a>
+    } @else {
+      <span class="topbar__match">{{ club.tagline }}</span>
+    }
+    <div class="topbar__right">
+      <a [href]="'tel:' + club.phone.replace(' ', '')"><sfc-icon name="phone" size="15" />{{ club.phone }}</a>
+      <a [href]="'mailto:' + club.email"><sfc-icon name="mail" size="15" />{{ club.email }}</a>
+      <span class="topbar__social">
+        <a [href]="club.social.facebook" target="_blank" rel="noopener" aria-label="Facebook"><sfc-icon name="facebook" size="17" /></a>
+        <a [href]="club.social.instagram" target="_blank" rel="noopener" aria-label="Instagram"><sfc-icon name="instagram" size="17" /></a>
+        <a [href]="club.social.youtube" target="_blank" rel="noopener" aria-label="YouTube"><sfc-icon name="youtube" size="17" /></a>
+      </span>
+    </div>
+  </div>
+</div>
+
+<header class="header" [class.header--open]="mobileOpen()">
+  <div class="container header__inner">
+    <button
+      class="icon-btn header__burger"
+      type="button"
+      (click)="toggleMobile()"
+      [attr.aria-expanded]="mobileOpen()"
+      aria-controls="mobile-nav"
+      [attr.aria-label]="mobileOpen() ? 'Fechar menu' : 'Abrir menu'"
+    >
+      <sfc-icon [name]="mobileOpen() ? 'close' : 'menu'" size="26" />
+    </button>
+
+    <a routerLink="/" class="brand" aria-label="Serrado FC — página inicial">
+      <img src="brand/logo.svg" alt="" width="58" height="65" />
+      <span class="brand__text"><strong>Serrado</strong> FC</span>
+    </a>
+
+    <nav class="nav" aria-label="Navegação principal">
+      <ul class="nav__list">
+        @for (item of nav; track item.label) {
+          <li
+            class="nav__item"
+            (mouseenter)="item.groups && openMenu.set(item.label)"
+            (mouseleave)="openMenu.set(null)"
+            (focusout)="onFocusOut($event, item.label)"
+          >
+            @if (item.groups) {
+              <button
+                type="button"
+                class="nav__link"
+                [class.is-open]="openMenu() === item.label"
+                [attr.aria-expanded]="openMenu() === item.label"
+                [attr.aria-controls]="'mega-' + $index"
+                (click)="toggleMenu(item.label)"
+              >
+                {{ item.label }} <sfc-icon name="chevron" size="15" />
+              </button>
+              <div class="mega" [id]="'mega-' + $index" [class.mega--open]="openMenu() === item.label">
+                <div class="container mega__inner">
+                  @for (g of item.groups; track g.title) {
+                    <div class="mega__col">
+                      <p class="mega__title">{{ g.title }}</p>
+                      <ul>
+                        @for (l of g.links; track l.label) {
+                          <li>
+                            <a [routerLink]="l.link" [fragment]="l.fragment" [queryParams]="l.queryParams">{{ l.label }}</a>
+                          </li>
+                        }
+                      </ul>
+                    </div>
+                  }
+                  @if (item.promo; as p) {
+                    <div class="mega__promo">
+                      <p class="mega__promo-title">{{ p.title }}</p>
+                      <p>{{ p.text }}</p>
+                      <a class="btn btn--accent btn--sm" [routerLink]="p.link">{{ p.cta }}</a>
+                    </div>
+                  }
+                </div>
+              </div>
+            } @else {
+              <a class="nav__link" [routerLink]="item.link" routerLinkActive="is-active">{{ item.label }}</a>
+            }
+          </li>
+        }
+      </ul>
+    </nav>
+
+    <div class="header__actions">
+      <button class="icon-btn" type="button" (click)="toggleSearch()" [attr.aria-expanded]="searchOpen()" aria-controls="site-search" aria-label="Pesquisar">
+        <sfc-icon [name]="searchOpen() ? 'close' : 'search'" size="22" />
+      </button>
+      <a class="btn btn--primary btn--sm header__account" routerLink="/area-socio">
+        <sfc-icon name="user" size="18" />
+        <span>{{ auth.isLoggedIn() ? 'Minha Área' : 'Área de Sócio' }}</span>
+      </a>
+      <a class="icon-btn header__account-mobile" routerLink="/area-socio" aria-label="Área de Sócio">
+        <sfc-icon name="user" size="24" />
+      </a>
+    </div>
+  </div>
+
+  <div class="search" id="site-search" [class.search--open]="searchOpen()">
+    <form class="container search__form" role="search" (ngSubmit)="submitSearch()">
+      <label for="q" class="visually-hidden">Pesquisar no Serrado FC</label>
+      <sfc-icon name="search" size="22" />
+      <input #searchInput id="q" name="q" type="search" placeholder="Pesquisar no Serrado FC…" [(ngModel)]="query" autocomplete="off" />
+      <button class="btn btn--primary btn--sm" type="submit">Pesquisar</button>
+    </form>
+  </div>
+
+  <nav class="mobile-nav" id="mobile-nav" [class.mobile-nav--open]="mobileOpen()" aria-label="Menu móvel">
+    <ul>
+      <li><a routerLink="/">Início</a></li>
+      @for (item of nav; track item.label) {
+        <li>
+          @if (item.groups) {
+            <button
+              type="button"
+              class="mobile-nav__toggle"
+              [attr.aria-expanded]="mobileGroup() === item.label"
+              (click)="mobileGroup.set(mobileGroup() === item.label ? null : item.label)"
+            >
+              {{ item.label }} <sfc-icon name="chevron" size="20" />
+            </button>
+            @if (mobileGroup() === item.label) {
+              <ul class="mobile-nav__sub">
+                @for (g of item.groups; track g.title) {
+                  @for (l of g.links; track l.label) {
+                    <li><a [routerLink]="l.link" [fragment]="l.fragment" [queryParams]="l.queryParams">{{ l.label }}</a></li>
+                  }
+                }
+              </ul>
+            }
+          } @else {
+            <a [routerLink]="item.link">{{ item.label }}</a>
+          }
+        </li>
+      }
+      <li><a routerLink="/parceiros">Parceiros</a></li>
+      <li><a routerLink="/contactos">Contactos</a></li>
+    </ul>
+    <div class="mobile-nav__cta">
+      <a class="btn btn--accent btn--block" routerLink="/socios/registo">Torna-te Sócio</a>
+      <a class="btn btn--ghost-light btn--block" routerLink="/area-socio">Área de Sócio</a>
+    </div>
+  </nav>
+</header>
