@@ -482,6 +482,18 @@ export const DEMO_MEMBER: Member = {
   ],
 };
 
+/** Conta de demonstração de uma atleta adulta (perfil «Atleta» na Área de Atletas). */
+export const DEMO_ATHLETE_MEMBER: Member = {
+  memberNumber: '00731',
+  name: 'Rita Exemplo',
+  email: 'atleta@exemplo.pt',
+  phone: '+351 910 000 001',
+  category: 'Efetivo',
+  status: 'Ativo',
+  registrationDate: '2023-09-12',
+  dependents: [],
+};
+
 export const DEMO_PAYMENTS: MembershipPayment[] = [
   { id: 6, period: 'Novembro 2026', amount: 20, dueDate: '2026-11-08', status: 'Pendente' },
   { id: 5, period: 'Outubro 2026', amount: 20, dueDate: '2026-10-08', paymentDate: '2026-10-02', status: 'Pago', paymentMethod: 'MB WAY', receiptNumber: 'R2026/0412' },

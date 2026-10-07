@@ -1,0 +1,252 @@
+:host {
+  display: block;
+}
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 0.8rem 1.5rem;
+  margin-bottom: 1.2rem;
+}
+.title {
+  margin: 0;
+  font-size: clamp(1.6rem, 3.5vw, 2.1rem);
+}
+.lead {
+  margin: 0.3rem 0 0;
+  color: var(--color-muted);
+  max-width: 62ch;
+}
+.seasons {
+  margin-bottom: 1rem;
+}
+
+/* KPIs */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.6rem;
+}
+.kpi {
+  display: grid;
+  align-content: start;
+  gap: 0.3rem;
+  padding: 1.1rem 1.2rem;
+  background: #fff;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+.kpi--hero {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--sfc-blue-900), var(--sfc-blue));
+  .kpi__label,
+  .kpi__hint {
+    color: rgba(255, 255, 255, 0.82);
+  }
+}
+.kpi__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.kpi__value {
+  font: 800 2.4rem/1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+.kpi__hint {
+  font-size: 0.82rem;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+
+/* Evolução por prova */
+.evo {
+  margin-bottom: 1.8rem;
+  .caption {
+    margin: 0.2rem 0 1rem;
+  }
+}
+.evo__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 1rem;
+}
+.race {
+  padding: 1.1rem 1.2rem;
+}
+.race__name {
+  margin: 0 0 0.6rem;
+  font: 800 1.15rem/1.15 var(--font-display);
+  text-transform: uppercase;
+  color: var(--sfc-blue-900);
+}
+.race__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ed {
+  display: grid;
+  grid-template-columns: 3.2rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.2rem 0.8rem;
+  padding: 0.6rem 0;
+  & + & {
+    border-top: 1px solid var(--color-line);
+  }
+}
+.ed__season {
+  font: 800 1rem var(--font-display);
+  color: var(--color-muted);
+}
+.ed__main {
+  display: grid;
+  min-width: 0;
+}
+.ed__time {
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+.ed__note {
+  grid-column: 3;
+  justify-self: end;
+  font-size: 0.72rem;
+  color: var(--color-muted);
+}
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.25em 0.6em;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  background: var(--color-bg-soft);
+  color: var(--color-text);
+  // seta para cima = tempo subiu (mais lento); para baixo = tempo desceu (mais rápido)
+  sfc-icon {
+    transform: rotate(-90deg);
+  }
+  &--faster {
+    background: #e3f4e7;
+    color: var(--color-success);
+    sfc-icon {
+      transform: rotate(90deg);
+    }
+  }
+  &--slower {
+    background: #fde7e5;
+    color: var(--color-danger);
+  }
+}
+
+/* Tabela */
+.res-title {
+  margin-bottom: 0.8rem;
+}
+.card--flush {
+  position: relative;
+  padding: 0;
+}
+.results td {
+  font-variant-numeric: tabular-nums;
+}
+.c-date {
+  white-space: nowrap;
+}
+.podium {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2.2em;
+  padding: 0.15em 0.4em;
+  border-radius: 999px;
+  font-weight: 800;
+  background: #fff3c4;
+  color: #6b4e00;
+  &[data-place='1'] {
+    background: var(--sfc-yellow);
+    color: var(--color-on-accent);
+  }
+}
+.source {
+  margin: 0.7rem 0 0;
+}
+
+@media (max-width: 900px) {
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .results {
+    &,
+    tbody {
+      display: block;
+    }
+    thead {
+      display: none;
+    }
+    tbody tr {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas:
+        'race time'
+        'meta place'
+        'pace pts';
+      gap: 0.15rem 0.8rem;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--color-line);
+    }
+    td {
+      display: block;
+      padding: 0;
+      border: 0;
+      min-width: 0;
+      text-align: left;
+    }
+    .c-race {
+      grid-area: race;
+      font-weight: 700;
+    }
+    .c-time {
+      grid-area: time;
+      font-weight: 700;
+      text-align: right;
+    }
+    .c-date {
+      grid-area: meta;
+      font-size: 0.82rem;
+      color: var(--color-muted);
+    }
+    .c-place {
+      grid-area: place;
+      text-align: right;
+    }
+    .c-pace {
+      grid-area: pace;
+      font-size: 0.82rem;
+      color: var(--color-muted);
+    }
+    .c-cat,
+    .c-dist {
+      display: none;
+    }
+    .c-pts {
+      grid-area: pts;
+      font-size: 0.82rem;
+      color: var(--color-muted);
+      text-align: right;
+      &::after {
+        content: ' pts';
+      }
+    }
+  }
+}

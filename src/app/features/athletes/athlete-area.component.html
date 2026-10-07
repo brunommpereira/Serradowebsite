@@ -3,8 +3,8 @@
 <header class="hero">
   <div class="container hero__inner">
     <div>
-      <p class="hero__eyebrow">Encarregado de Educação</p>
-      <h1 class="hero__title">Os meus educandos</h1>
+      <p class="hero__eyebrow">{{ role() === 'atleta' ? 'Atleta' : 'Encarregado de Educação' }}</p>
+      <h1 class="hero__title">{{ role() === 'atleta' ? 'O meu perfil' : 'Os meus educandos' }}</h1>
       @if (member(); as m) {
         <p class="hero__who">Sessão iniciada como <strong>{{ m.name }}</strong> · Sócio n.º {{ m.memberNumber }}</p>
       }
@@ -13,13 +13,13 @@
   </div>
 
   <div class="container">
-    @if (area.athletes().length) {
-      <div class="picker" role="group" aria-label="Escolher educando">
+    @if (area.athletes().length > 1 || role() === 'encarregado') {
+      <div class="picker" role="group" aria-label="Escolher atleta">
         @for (a of area.athletes(); track a.id) {
           <button type="button" class="picker__chip" [attr.aria-pressed]="a.id === athleteId()" (click)="selectAthlete(a.id)">
             <span class="picker__avatar" aria-hidden="true">{{ a.name.charAt(0) }}</span>
             <span class="picker__text">
-              <strong>{{ a.name }}</strong>
+              <strong>{{ a.name }}{{ area.isSelf(a.id) ? ' (eu)' : '' }}</strong>
               <span>{{ sportName(a.sportSlug) }} · {{ a.level }}</span>
             </span>
           </button>
@@ -32,7 +32,7 @@
 <nav class="tabs-bar" aria-label="Secções da Área de Atletas">
   <div class="container">
     <div class="tabs" role="tablist" aria-label="Secções">
-      @for (t of tabs; track t.id; let i = $index) {
+      @for (t of tabs(); track t.id; let i = $index) {
         <button
           #tabBtn
           type="button"
@@ -63,7 +63,10 @@
       <div class="panel__head">
         <div>
           <h2 class="panel__title">Agenda e presenças</h2>
-          <p class="panel__lead">Confirma se {{ a?.name?.split(' ')?.[0] }} vai a cada treino ou jogo. A equipa técnica vê as respostas em tempo real.</p>
+          <p class="panel__lead">
+            {{ a && area.isSelf(a.id) ? 'Confirma se vais a cada treino ou prova.' : 'Confirma se ' + (a?.name?.split(' ')?.[0] ?? '') + ' vai a cada treino ou jogo.' }}
+            A equipa técnica vê as respostas em tempo real.
+          </p>
         </div>
       </div>
       @if (a) {
@@ -171,6 +174,15 @@
       }
     }
 
+    <!-- ================= COMPETIÇÕES ================= -->
+    @case ('competicoes') {
+      @if (a) {
+        <sfc-competitions-tab [athlete]="a" />
+      } @else {
+        <ng-container [ngTemplateOutlet]="noAthlete" />
+      }
+    }
+
     <!-- ================= HISTÓRICO ================= -->
     @case ('historico') {
       <div class="panel__head">
@@ -204,7 +216,7 @@
 
     <!-- ================= OS MEUS ATLETAS ================= -->
     @case ('atletas') {
-      <sfc-athletes-tab [athleteId]="athleteId()" (selected)="selectAthlete($event)" />
+      <sfc-athletes-tab [athleteId]="athleteId()" [profile]="role()" (selected)="selectAthlete($event)" />
     }
 
     <!-- ================= RECIBOS ================= -->

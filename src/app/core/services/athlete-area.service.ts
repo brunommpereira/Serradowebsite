@@ -3,10 +3,12 @@ import { isPlatformBrowser } from '@angular/common';
 import {
   Athlete,
   CLUB_DOWNLOADS,
+  CompetitionResult,
   DEMO_ASSESSMENTS,
   DEMO_ATHLETES,
   DEMO_METRICS,
   DEMO_RECEIPTS,
+  DEMO_RESULTS,
   DEMO_SESSIONS,
   newAthleteDocuments,
   Rsvp,
@@ -14,8 +16,9 @@ import {
 } from '../data/athletes-data';
 import { SportSlug } from '../models';
 import { nowIso } from './content.service';
+import { MemberAuthService } from './member-auth.service';
 
-const STORAGE_KEY = 'sfc.athletes.v1';
+const STORAGE_KEY = 'sfc.athletes.v2';
 export const MAX_CO_GUARDIANS = 2;
 
 interface PersistedState {
@@ -33,10 +36,32 @@ interface PersistedState {
 @Injectable({ providedIn: 'root' })
 export class AthleteAreaService {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly auth = inject(MemberAuthService);
   private readonly state = signal<PersistedState>(this.restore());
+  private readonly memberNumber = computed(() => this.auth.member()?.memberNumber ?? '');
 
-  readonly athletes = computed(() => this.state().athletes);
+  /** Atletas que a conta pode ver: os seus educandos e/ou o próprio registo de atleta. */
+  readonly athletes = computed(() => {
+    const m = this.memberNumber();
+    return this.state().athletes.filter((a) => a.guardians.includes(m) || a.selfMember === m);
+  });
+
+  /**
+   * Perfil da conta: «encarregado» quando tem educandos (pode ser também atleta);
+   * «atleta» quando só tem o seu próprio registo. GET /api/me/profile
+   */
+  readonly role = computed<'encarregado' | 'atleta'>(() => {
+    const m = this.memberNumber();
+    const list = this.athletes();
+    return list.length && list.every((a) => a.selfMember === m) ? 'atleta' : 'encarregado';
+  });
+
   readonly downloads = CLUB_DOWNLOADS;
+
+  /** O atleta é o próprio titular da conta? */
+  isSelf(athleteId: string) {
+    return this.athletes().some((a) => a.id === athleteId && a.selfMember === this.memberNumber());
+  }
 
   /** GET /api/athletes/{id}/sessions?from=hoje */
   upcoming(athleteId: string): Session[] {
@@ -83,6 +108,39 @@ export class AthleteAreaService {
     return DEMO_ASSESSMENTS[athleteId] ?? [];
   }
 
+  /** Resultados no Troféu Almada em Atletismo, do mais recente para o mais antigo. GET /api/athletes/{id}/results */
+  results(athleteId: string): CompetitionResult[] {
+    return DEMO_RESULTS.filter((r) => r.athleteId === athleteId).sort((a, b) => b.date.localeCompare(a.date));
+  }
+
+  /**
+   * Evolução por prova entre épocas (só provas disputadas em 2+ épocas).
+   * O tempo só é comparável com a mesma distância; caso contrário compara-se o ritmo.
+   */
+  raceEvolution(athleteId: string): RaceEvolution[] {
+    const byRace = new Map<string, CompetitionResult[]>();
+    for (const r of this.results(athleteId)) byRace.set(r.raceBase, [...(byRace.get(r.raceBase) ?? []), r]);
+    const out: RaceEvolution[] = [];
+    for (const [race, list] of byRace) {
+      if (new Set(list.map((r) => r.season)).size < 2) continue;
+      const editions = [...list].sort((a, b) => a.date.localeCompare(b.date));
+      out.push({
+        race,
+        editions: editions.map((r, i) => {
+          const prev = editions[i - 1];
+          const seconds = timeToSeconds(r.time);
+          const pace = paceSecPerKm(seconds, r.distanceM);
+          if (!prev) return { result: r, seconds, pace, sameDistance: null, categoryChanged: false, delta: null };
+          const sameDistance = prev.distanceM === r.distanceM;
+          const prevPace = paceSecPerKm(timeToSeconds(prev.time), prev.distanceM);
+          const delta = sameDistance ? seconds - timeToSeconds(prev.time) : pace !== null && prevPace !== null ? pace - prevPace : null;
+          return { result: r, seconds, pace, sameDistance, categoryChanged: prev.category !== r.category, delta };
+        }),
+      });
+    }
+    return out.sort((a, b) => b.editions.length - a.editions.length || a.race.localeCompare(b.race));
+  }
+
   /** GET /api/guardians/me/receipts */
   receipts(athleteId: string) {
     return DEMO_RECEIPTS.filter((r) => r.athleteId === athleteId).sort((a, b) => b.date.localeCompare(a.date));
@@ -117,6 +175,7 @@ export class AthleteAreaService {
       id: `atl-${Date.now()}`,
       ...data,
       coGuardians: [],
+      guardians: [this.memberNumber()],
       documents: newAthleteDocuments(),
     };
     this.update((st) => ({ ...st, athletes: [...st.athletes, athlete] }));
@@ -167,6 +226,40 @@ export class AthleteAreaService {
 
 function initialState(): PersistedState {
   return { athletes: structuredClone(DEMO_ATHLETES), sessions: structuredClone(DEMO_SESSIONS) };
+}
+
+export interface RaceEvolution {
+  race: string;
+  editions: {
+    result: CompetitionResult;
+    seconds: number;
+    /** segundos por km */
+    pace: number | null;
+    /** null na primeira edição */
+    sameDistance: boolean | null;
+    /** Mudou de escalão (nos jovens a distância aumenta e o ritmo não é diretamente comparável) */
+    categoryChanged: boolean;
+    /** vs edição anterior: segundos (mesma distância) ou s/km (distância diferente); negativo = mais rápido */
+    delta: number | null;
+  }[];
+}
+
+/** «38:15.02» ou «1:02:03.4» → segundos */
+export function timeToSeconds(time: string): number {
+  return time.split(':').reduce((acc, part) => acc * 60 + Number(part.replace(',', '.')), 0);
+}
+
+export function paceSecPerKm(seconds: number, distanceM: number | null): number | null {
+  return distanceM ? seconds / (distanceM / 1000) : null;
+}
+
+/** 225.4 → «3:45» */
+export function formatClock(seconds: number): string {
+  const s = Math.round(seconds);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const r = String(s % 60).padStart(2, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${r}` : `${m}:${r}`;
 }
 
 /** Idade em anos completos numa data de referência. */

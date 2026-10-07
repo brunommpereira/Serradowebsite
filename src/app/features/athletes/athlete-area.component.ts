@@ -12,12 +12,14 @@ import { DialogComponent } from '../../shared/dialog.component';
 import { SessionCardComponent } from './session-card.component';
 import { ComparisonChartComponent } from './comparison-chart.component';
 import { AthletesTabComponent } from './athletes-tab.component';
+import { CompetitionsTabComponent } from './competitions-tab.component';
 
-export type TabId = 'agenda' | 'evolucao' | 'historico' | 'atletas' | 'recibos' | 'clube';
+export type TabId = 'agenda' | 'evolucao' | 'competicoes' | 'historico' | 'atletas' | 'recibos' | 'clube';
 
 const TABS: { id: TabId; label: string; icon: string }[] = [
   { id: 'agenda', label: 'Agenda e Presenças', icon: 'calendar' },
   { id: 'evolucao', label: 'Evolução e Métricas', icon: 'trophy' },
+  { id: 'competicoes', label: 'Competições', icon: 'run' },
   { id: 'historico', label: 'Histórico', icon: 'clock' },
   { id: 'atletas', label: 'Os Meus Atletas', icon: 'users' },
   { id: 'recibos', label: 'Os Meus Recibos', icon: 'euro' },
@@ -40,6 +42,7 @@ const SEASON_START = '2026-09-01';
     SessionCardComponent,
     ComparisonChartComponent,
     AthletesTabComponent,
+    CompetitionsTabComponent,
   ],
   templateUrl: './athlete-area.component.html',
   styleUrl: './athlete-area.component.scss',
@@ -56,7 +59,11 @@ export class AthleteAreaComponent {
   private readonly router = inject(Router);
 
   protected readonly member = this.auth.member;
-  protected readonly tabs = TABS;
+  protected readonly role = this.area.role;
+  /** No perfil «Atleta» o separador de gestão de educandos passa a «Os Meus Dados». */
+  protected readonly tabs = computed(() =>
+    TABS.map((t) => (t.id === 'atletas' && this.role() === 'atleta' ? { ...t, label: 'Os Meus Dados', icon: 'user' } : t)),
+  );
   protected readonly tab = linkedSignal<TabId>(() => (TABS.some((t) => t.id === this.separador()) ? (this.separador() as TabId) : 'agenda'));
   protected readonly athleteId = linkedSignal<string>(() => {
     const list = this.area.athletes();
@@ -95,7 +102,7 @@ export class AthleteAreaComponent {
   private readonly tabButtons = viewChildren<ElementRef<HTMLButtonElement>>('tabBtn');
 
   constructor() {
-    inject(SeoService).set({ title: 'Área de Atletas', description: 'Área reservada dos encarregados de educação do Serrado FC.', path: '/area-atletas' });
+    inject(SeoService).set({ title: 'Área de Atletas', description: 'Área reservada dos atletas e encarregados de educação do Serrado FC.', path: '/area-atletas' });
   }
 
   selectAthlete(id: string) {

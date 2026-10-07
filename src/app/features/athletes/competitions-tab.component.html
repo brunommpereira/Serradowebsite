@@ -1,0 +1,134 @@
+@let a = athlete();
+<div class="head">
+  <div>
+    <h2 class="title">Competições</h2>
+    <p class="lead">Resultados oficiais de {{ a.name.split(' ')[0] }} no Troféu Almada em Atletismo «Mário Pinto Claro».</p>
+  </div>
+  @if (all().length) {
+    <button type="button" class="btn btn--outline btn--sm" (click)="exportCsv()"><sfc-icon name="download" size="18" />Exportar CSV</button>
+  }
+</div>
+
+@if (!all().length) {
+  <div class="empty-state">
+    <sfc-icon name="run" size="32" />
+    <p>Sem resultados em provas do Troféu de Almada{{ a.sportSlug !== 'atletismo' ? ' — o troféu é uma competição de atletismo' : '' }}.</p>
+    <a routerLink="/modalidades/atletismo" class="link-arrow">Conhecer o atletismo do Serrado</a>
+  </div>
+} @else {
+  <div class="chips seasons" role="group" aria-label="Época">
+    @for (s of seasons(); track s) {
+      <button type="button" class="chip" [attr.aria-pressed]="season() === s" (click)="season.set(s)">Época {{ short(s) }}</button>
+    }
+    <button type="button" class="chip" [attr.aria-pressed]="season() === ''" (click)="season.set('')">Todas</button>
+  </div>
+
+  @let k = kpis();
+  <div class="kpis">
+    <div class="kpi kpi--hero">
+      <span class="kpi__label">Provas disputadas</span>
+      <span class="kpi__value">{{ k.races }}</span>
+      <span class="kpi__hint">{{ season() ? 'na época ' + short(season()) : 'em ' + seasons().length + ' épocas' }}</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi__label">Pódios no escalão</span>
+      <span class="kpi__value">{{ k.podiums }}</span>
+      <span class="kpi__hint">1.º a 3.º lugar</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi__label">Melhor classificação</span>
+      <span class="kpi__value">{{ k.best ? k.best.place + '.º' : '—' }}</span>
+      <span class="kpi__hint">{{ k.best ? k.best.race : '' }}</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi__label">Pontos no troféu</span>
+      <span class="kpi__value">{{ k.points }}</span>
+      <span class="kpi__hint">soma das provas {{ season() ? 'de ' + short(season()) : 'de todas as épocas' }}</span>
+    </div>
+  </div>
+
+  @if (evolution().length) {
+    <section class="evo" aria-labelledby="evo-title">
+      <h3 id="evo-title" class="h-s">Evolução por prova</h3>
+      <p class="caption">
+        Tempo comparado com a edição anterior quando a distância é a mesma; se a organização mudou a distância, compara-se o ritmo por km.
+      </p>
+      <div class="evo__grid">
+        @for (race of evolution(); track race.race) {
+          <article class="race card">
+            <h4 class="race__name">{{ race.race }}</h4>
+            <ol class="race__list">
+              @for (e of race.editions; track e.result.id) {
+                <li class="ed">
+                  <span class="ed__season">{{ short(e.result.season) }}</span>
+                  <span class="ed__main">
+                    <strong class="ed__time">{{ e.result.time }}</strong>
+                    <span class="caption">{{ km(e.result.distanceM) }} · {{ e.pace !== null ? clock(e.pace) + '/km' : '—' }} · {{ e.result.category }}{{ e.result.place ? ' · ' + e.result.place + '.º' : '' }}</span>
+                  </span>
+                  @if (e.delta !== null) {
+                    <span
+                      class="delta"
+                      [class.delta--faster]="e.delta < 0"
+                      [class.delta--slower]="e.delta > 0"
+                      [attr.aria-label]="(e.delta < 0 ? 'Mais rápido ' : 'Mais lento ') + signedClock(e.delta) + (e.sameDistance ? ' no tempo' : ' por km')"
+                    >
+                      <sfc-icon name="arrow" size="14" />{{ signedClock(e.delta) }}{{ e.sameDistance ? '' : '/km' }}
+                    </span>
+                    @if (!e.sameDistance) {
+                      <span class="ed__note">{{ e.categoryChanged ? 'subiu de escalão' : 'distância diferente' }}</span>
+                    }
+                  }
+                </li>
+              }
+            </ol>
+          </article>
+        }
+      </div>
+    </section>
+  }
+
+  <section aria-labelledby="res-title">
+    <h3 id="res-title" class="h-s res-title">Resultados {{ season() ? 'da época ' + short(season()) : '' }}</h3>
+    <div class="table-wrap card card--flush">
+      <table class="table results">
+        <caption class="visually-hidden">Resultados de {{ a.name }}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Data</th>
+            <th scope="col">Prova</th>
+            <th scope="col">Escalão</th>
+            <th scope="col" class="num">Class.</th>
+            <th scope="col" class="num">Tempo</th>
+            <th scope="col" class="num">Distância</th>
+            <th scope="col" class="num">Ritmo</th>
+            <th scope="col" class="num">Pontos</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of results(); track r.id) {
+            <tr>
+              <td class="c-date">{{ r.date | date: 'dd/MM/y' }}</td>
+              <td class="c-race">{{ r.race }}</td>
+              <td class="c-cat">{{ r.category }}</td>
+              <td class="num c-place">
+                @if (r.place && r.place <= 3) {
+                  <span class="podium" [attr.data-place]="r.place">{{ r.place }}.º</span>
+                } @else {
+                  {{ r.place ? r.place + '.º' : '—' }}
+                }
+              </td>
+              <td class="num c-time">{{ r.time }}</td>
+              <td class="num c-dist">{{ km(r.distanceM) }}</td>
+              <td class="num c-pace">{{ pace(r.time, r.distanceM) }}</td>
+              <td class="num c-pts">{{ r.trophyPoints ?? '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="caption source">
+      Fonte: <a href="https://tatletismo-almada.pt/" target="_blank" rel="noopener">tatletismo-almada.pt</a> · distâncias segundo o regulamento de
+      cada prova (nos Benjamins a distância real pode diferir).
+    </p>
+  </section>
+}

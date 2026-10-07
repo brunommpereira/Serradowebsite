@@ -45,3 +45,8 @@ Thumbs.db
 
 # Python (scripts das skills)
 __pycache__/
+
+# Dados pessoais (exportações da base de dados e resultados) — nunca no repositório
+tools/trofeu-almada/out/
+tools/trofeu-almada/node_modules/
+*.xlsx
