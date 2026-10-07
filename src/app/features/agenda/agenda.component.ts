@@ -69,6 +69,8 @@ export class AgendaComponent {
   });
 
   protected readonly sportName = (slug?: string) => (slug ? this.content.sport(slug)?.name : 'Clube');
+  /** Modalidade do filtro atual com site próprio (ex.: rugby → Almada Rugby) */
+  protected readonly externalSport = computed(() => this.content.sport(this.filter())?.external);
 
   constructor() {
     inject(SeoService).set({

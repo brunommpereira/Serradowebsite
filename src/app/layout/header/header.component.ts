@@ -44,7 +44,13 @@ export class HeaderComponent {
       .subscribe(() => this.closeAll());
   }
 
-  toggleMenu(label: string) {
+  toggleMenu(label: string, event: MouseEvent) {
+    // Com rato, o hover já abriu o menu: o clique não o deve fechar.
+    // Com teclado (Enter/Espaço, event.detail === 0) o botão alterna.
+    if (event.detail > 0) {
+      this.openMenu.set(label);
+      return;
+    }
     this.openMenu.update((cur) => (cur === label ? null : label));
   }
 

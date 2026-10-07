@@ -95,17 +95,14 @@ export const SPORTS: Sport[] = [
     name: 'Rugby',
     tagline: 'Força, respeito e espírito de equipa.',
     description:
-      'Um desporto de contacto onde o respeito vem primeiro. O rugby do Serrado FC está aberto a rapazes e raparigas, da formação aos seniores.',
-    highlights: ['Formação mista', 'Equipa sénior', 'Valores: respeito, disciplina, solidariedade'],
+      'O rugby do Serrado FC tem casa própria: o núcleo Almada Rugby. Equipas, treinos, calendário, resultados e inscrições estão no site do núcleo.',
+    highlights: ['Equipas e escalões', 'Treinos e calendário', 'Resultados e inscrições'],
     icon: 'rugby',
     active: true,
     featured: true,
-    trainings: [
-      { team: 'Formação (Sub-8 a Sub-14)', days: 'Sábado', time: '10h00 – 12h00', location: 'Centro de Treinos do Serrado' },
-      { team: 'Sub-16 e Sub-18', days: 'Terça e Quinta', time: '19h00 – 20h30', location: 'Centro de Treinos do Serrado' },
-      { team: 'Seniores', days: 'Terça e Quinta', time: '20h30 – 22h00', location: 'Centro de Treinos do Serrado' },
-    ],
+    trainings: [],
     contactEmail: 'rugby@serradofc.pt',
+    external: { url: 'https://almadarugby.pt/', name: 'Almada Rugby' },
   },
   {
     id: 4,
@@ -145,10 +142,6 @@ export const TEAMS: Team[] = [
   { id: 5, sportSlug: 'futsal', season: '2026/27', name: 'Sub-11', category: 'Benjamins', coach: 'A designar' },
   { id: 6, sportSlug: 'futsal', season: '2026/27', name: 'Sub-9', category: 'Traquinas', coach: 'A designar' },
   { id: 7, sportSlug: 'futsal', season: '2026/27', name: 'Sub-7', category: 'Petizes', coach: 'A designar' },
-  { id: 8, sportSlug: 'rugby', season: '2026/27', name: 'Seniores', category: 'Sénior', coach: 'A designar' },
-  { id: 9, sportSlug: 'rugby', season: '2026/27', name: 'Sub-18', category: 'Formação', coach: 'A designar' },
-  { id: 10, sportSlug: 'rugby', season: '2026/27', name: 'Sub-16', category: 'Formação', coach: 'A designar' },
-  { id: 11, sportSlug: 'rugby', season: '2026/27', name: 'Sub-8 a Sub-14', category: 'Escola de Rugby', coach: 'A designar' },
   { id: 12, sportSlug: 'atletismo', season: '2026/27', name: 'Formação', category: 'Sub-12 a Sub-18', coach: 'A designar' },
   { id: 13, sportSlug: 'atletismo', season: '2026/27', name: 'Seniores', category: 'Sénior', coach: 'A designar' },
   { id: 14, sportSlug: 'atletismo', season: '2026/27', name: 'Veteranos', category: 'Masters', coach: 'A designar' },
@@ -157,26 +150,19 @@ export const TEAMS: Team[] = [
 export const COACHES: Coach[] = [
   { name: 'A designar', role: 'Coordenador técnico', sportSlug: 'futsal' },
   { name: 'A designar', role: 'Treinador principal — Seniores', sportSlug: 'futsal' },
-  { name: 'A designar', role: 'Coordenador técnico', sportSlug: 'rugby' },
-  { name: 'A designar', role: 'Treinador — Formação', sportSlug: 'rugby' },
   { name: 'A designar', role: 'Treinador principal', sportSlug: 'atletismo' },
 ];
 
 export const MATCHES: Match[] = [
   // Próximos
   { id: 1, sportSlug: 'futsal', team: 'Seniores', opponent: 'GD Exemplo', date: '2026-10-15T21:00', venue: 'Pavilhão do Serrado', homeAway: 'casa', competition: 'Campeonato Distrital', season: '2026/27', status: 'agendado' },
-  { id: 2, sportSlug: 'rugby', team: 'Seniores', opponent: 'RC Demonstração', date: '2026-10-18T15:00', venue: 'Centro de Treinos do Serrado', homeAway: 'casa', competition: 'Campeonato Regional', season: '2026/27', status: 'agendado' },
   { id: 3, sportSlug: 'futsal', team: 'Sub-13', opponent: 'CD Amostra', date: '2026-10-17T10:30', venue: 'Pavilhão Municipal', homeAway: 'fora', competition: 'Distrital Sub-13', season: '2026/27', status: 'agendado' },
   { id: 4, sportSlug: 'futsal', team: 'Seniores', opponent: 'AD Modelo', date: '2026-10-25T18:00', venue: 'Pavilhão Municipal', homeAway: 'fora', competition: 'Campeonato Distrital', season: '2026/27', status: 'agendado' },
-  { id: 5, sportSlug: 'rugby', team: 'Sub-16', opponent: 'CR Exemplo', date: '2026-10-24T11:00', venue: 'Centro de Treinos do Serrado', homeAway: 'casa', competition: 'Regional Sub-16', season: '2026/27', status: 'agendado' },
   // Terminados
   { id: 10, sportSlug: 'futsal', team: 'Seniores', opponent: 'Adversário', date: '2026-10-04T21:00', venue: 'Pavilhão do Serrado', homeAway: 'casa', scoreHome: 4, scoreAway: 2, competition: 'Campeonato Distrital', season: '2026/27', status: 'terminado' },
-  { id: 11, sportSlug: 'rugby', team: 'Seniores', opponent: 'Adversário', date: '2026-10-04T15:00', venue: 'Centro de Treinos do Serrado', homeAway: 'casa', scoreHome: 32, scoreAway: 18, competition: 'Campeonato Regional', season: '2026/27', status: 'terminado' },
   { id: 12, sportSlug: 'futsal', team: 'Sub-15', opponent: 'CD Amostra', date: '2026-10-03T11:00', venue: 'Pavilhão Municipal', homeAway: 'fora', scoreHome: 3, scoreAway: 3, competition: 'Distrital Sub-15', season: '2026/27', status: 'terminado' },
   { id: 13, sportSlug: 'futsal', team: 'Seniores', opponent: 'GD Modelo', date: '2026-09-27T18:00', venue: 'Pavilhão Municipal', homeAway: 'fora', scoreHome: 1, scoreAway: 2, competition: 'Campeonato Distrital', season: '2026/27', status: 'terminado' },
-  { id: 14, sportSlug: 'rugby', team: 'Seniores', opponent: 'RC Amostra', date: '2026-09-27T15:00', venue: 'Campo do Adversário', homeAway: 'fora', scoreHome: 12, scoreAway: 24, competition: 'Campeonato Regional', season: '2026/27', status: 'terminado' },
   { id: 15, sportSlug: 'futsal', team: 'Seniores', opponent: 'AD Exemplo', date: '2026-05-10T18:00', venue: 'Pavilhão do Serrado', homeAway: 'casa', scoreHome: 5, scoreAway: 1, competition: 'Campeonato Distrital', season: '2025/26', status: 'terminado' },
-  { id: 16, sportSlug: 'rugby', team: 'Seniores', opponent: 'RC Modelo', date: '2026-05-03T15:00', venue: 'Centro de Treinos do Serrado', homeAway: 'casa', scoreHome: 27, scoreAway: 20, competition: 'Campeonato Regional', season: '2025/26', status: 'terminado' },
 ];
 
 export const ATHLETICS_RESULTS: AthleticsResult[] = [
@@ -206,16 +192,6 @@ export const STANDINGS: Standing[] = [
       { pos: 5, team: 'GD Modelo', played: 4, points: 3 },
     ],
   },
-  {
-    sportSlug: 'rugby',
-    competition: 'Campeonato Regional — Seniores',
-    rows: [
-      { pos: 1, team: 'RC Amostra', played: 3, points: 13 },
-      { pos: 2, team: 'Serrado FC', played: 3, points: 10 },
-      { pos: 3, team: 'RC Demonstração', played: 3, points: 6 },
-      { pos: 4, team: 'RC Modelo', played: 3, points: 2 },
-    ],
-  },
 ];
 
 export const NEWS: NewsArticle[] = [
@@ -235,13 +211,13 @@ export const NEWS: NewsArticle[] = [
   },
   {
     id: 2,
-    slug: 'vitoria-rugby-jornada-inaugural',
-    title: 'Rugby: vitória por 32-18 na jornada em casa',
+    slug: 'rugby-almada-rugby',
+    title: 'Rugby: acompanha o núcleo em almadarugby.pt',
     category: 'Rugby',
-    summary: 'Exibição sólida da equipa sénior perante os adeptos no Centro de Treinos do Serrado.',
+    summary: 'Equipas, treinos, calendário, resultados e inscrições do rugby estão reunidos no site do núcleo Almada Rugby.',
     content: [
-      'A equipa sénior de rugby venceu por 32-18, numa partida marcada pela intensidade e pelo apoio das bancadas.',
-      'O próximo jogo em casa está marcado para 18 de outubro. Contamos com todos!',
+      'O rugby do Serrado FC tem casa própria: o núcleo Almada Rugby.',
+      'Toda a informação da modalidade (equipas, treinos, calendário, resultados e inscrições) está em almadarugby.pt.',
     ],
     author: 'Comunicação Serrado FC',
     publicationDate: '2026-10-04',

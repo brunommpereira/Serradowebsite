@@ -233,12 +233,22 @@ export class EventCardComponent {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @let s = sport();
-    <a class="sport media-ph" [attr.data-sport]="s.slug" [routerLink]="['/modalidades', s.slug]">
-      <span class="sport__icon"><sfc-icon [name]="s.icon" size="40" /></span>
-      <span class="sport__name">{{ s.name }}</span>
-      <span class="sport__tag">{{ s.tagline }}</span>
-      <span class="sport__cta">Conhecer <sfc-icon name="arrow" size="18" /></span>
-    </a>
+    @if (s.external; as ext) {
+      <a class="sport media-ph" [attr.data-sport]="s.slug" [href]="ext.url" target="_blank" rel="noopener">
+        <span class="sport__icon"><sfc-icon [name]="s.icon" size="40" /></span>
+        <span class="sport__name">{{ s.name }}</span>
+        <span class="sport__tag">{{ s.tagline }}</span>
+        <span class="sport__cta">Visitar {{ ext.name }} <sfc-icon name="external" size="18" /></span>
+        <span class="visually-hidden">(abre o site {{ ext.url }} numa nova janela)</span>
+      </a>
+    } @else {
+      <a class="sport media-ph" [attr.data-sport]="s.slug" [routerLink]="['/modalidades', s.slug]">
+        <span class="sport__icon"><sfc-icon [name]="s.icon" size="40" /></span>
+        <span class="sport__name">{{ s.name }}</span>
+        <span class="sport__tag">{{ s.tagline }}</span>
+        <span class="sport__cta">Conhecer <sfc-icon name="arrow" size="18" /></span>
+      </a>
+    }
   `,
   styles: `
     :host { display: block; }

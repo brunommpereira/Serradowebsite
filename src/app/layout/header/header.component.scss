@@ -199,6 +199,11 @@
       color: var(--sfc-blue);
       text-decoration: underline;
     }
+    &.ext {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
   }
 }
 .mega__title {
