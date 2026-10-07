@@ -16,7 +16,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 export class QrCodeComponent {
   readonly data = input.required<string>();
   readonly label = input('QR Code');
-  readonly color = input('#0b2350');
+  readonly color = input('#00264f');
 
   private readonly sanitizer = inject(DomSanitizer);
   protected readonly svg = signal<SafeHtml>('');
