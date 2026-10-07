@@ -29,7 +29,8 @@ import { QrCodeComponent } from './qr-code.component';
     </div>
   `,
   styles: `
-    :host { display: block; }
+    /* Tamanho de cartão real: nunca maior que 440px, nem mais largo que o ecrã */
+    :host { display: block; width: 100%; max-width: 440px; }
     .mcard {
       position: relative;
       overflow: hidden;
