@@ -113,7 +113,10 @@ export interface NewsArticle {
   title: string;
   category: NewsCategory;
   summary: string;
-  content: string[];
+  /** Texto em HTML (editor visual do CMS) */
+  bodyHtml: string;
+  /** Imagem de capa (biblioteca de imagens do CMS) */
+  coverUrl?: string | null;
   author: string;
   publicationDate: string;
 }
@@ -127,7 +130,9 @@ export interface ClubEvent {
   kind: EventKind;
   sportSlug?: SportSlug;
   summary: string;
-  description: string[];
+  /** Texto em HTML (editor visual do CMS) */
+  bodyHtml: string;
+  coverUrl?: string | null;
   date: string;
   endTime?: string;
   location: string;

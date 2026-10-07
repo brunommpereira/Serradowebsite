@@ -1,15 +1,11 @@
 import type { FastifyInstance } from 'fastify';
+import { toHtml } from '../../../shared/html.ts';
 
 /**
  * Conteúdo público (site). O middleware adapta o formato do CMS ao modelo que
  * o front já usa (NewsArticle, ClubEvent, Sponsor) e guarda em cache 60 s.
  */
 type Row = Record<string, unknown>;
-const paragraphs = (body: unknown) =>
-  String(body ?? '')
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean);
 
 export const toNews = (n: Row) => ({
   id: n['id'],
@@ -17,7 +13,7 @@ export const toNews = (n: Row) => ({
   title: n['title'],
   category: n['category'],
   summary: n['summary'],
-  content: paragraphs(n['body']),
+  bodyHtml: toHtml(n['body']),
   author: n['author'],
   coverUrl: n['coverUrl'] ?? null,
   publicationDate: String(n['publishedAt'] ?? n['updatedAt'] ?? '').slice(0, 10),
@@ -30,7 +26,8 @@ export const toEvent = (e: Row) => ({
   kind: e['kind'],
   sportSlug: e['sportSlug'] ?? undefined,
   summary: e['summary'],
-  description: paragraphs(e['body']),
+  bodyHtml: toHtml(e['body']),
+  coverUrl: e['coverUrl'] ?? null,
   date: e['startsAt'],
   endTime: e['endTime'] ?? undefined,
   location: e['location'],
@@ -79,13 +76,29 @@ export async function contentRoutes(app: FastifyInstance) {
 
   app.get('/content/pages', { schema: { tags, summary: 'Páginas institucionais publicadas' } }, async (_req, reply) => {
     reply.header('cache-control', 'public, max-age=60');
-    return (await list('pages')).map((p) => ({ slug: p['slug'], title: p['title'], summary: p['summary'], paragraphs: paragraphs(p['body']), updatedAt: p['updatedAt'] }));
+    return (await list('pages')).map((p) => ({ slug: p['slug'], title: p['title'], summary: p['summary'], bodyHtml: toHtml(p['body']), updatedAt: p['updatedAt'] }));
   });
 
   app.get('/content/pages/:slug', { schema: { tags, summary: 'Página institucional', params: slugParams } }, async (req) => {
     const p = await bySlug('pages', (req.params as { slug: string }).slug);
-    return { slug: p['slug'], title: p['title'], summary: p['summary'], paragraphs: paragraphs(p['body']), updatedAt: p['updatedAt'] };
+    return { slug: p['slug'], title: p['title'], summary: p['summary'], bodyHtml: toHtml(p['body']), updatedAt: p['updatedAt'] };
   });
+
+  // Imagens da biblioteca do CMS: o endereço tem uma chave aleatória e nunca muda, por isso a cache é longa
+  app.get(
+    '/media/:file',
+    { schema: { tags, summary: 'Imagem do CMS', params: { type: 'object', properties: { file: { type: 'string', pattern: '^[0-9a-f-]{36}(\\.[a-z]{3,4})?$' } } } } },
+    async (req, reply) => {
+      const key = (req.params as { file: string }).file.slice(0, 36);
+      const img = await app.backend.call<{ mime: string; data: string }>('GET', `/media/${key}`);
+      return reply
+        .type(img.mime)
+        .header('cache-control', 'public, max-age=31536000, immutable')
+        .header('x-content-type-options', 'nosniff')
+        .header('content-security-policy', "default-src 'none'")
+        .send(Buffer.from(img.data, 'base64'));
+    },
+  );
 
   app.get('/content/partners', { schema: { tags, summary: 'Parceiros e patrocinadores' } }, async () => (await list('partners')).map(toPartner));
 }

@@ -35,6 +35,13 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./pages/cms-editor.page').then((m) => m.CmsEditorPage),
       },
       {
+        path: 'imagens',
+        title: 'Imagens',
+        canActivate: [staffGuard],
+        data: { roles: ['editor'] },
+        loadComponent: () => import('./pages/media.page').then((m) => m.MediaPage),
+      },
+      {
         path: 'atletas',
         canActivate: [staffGuard],
         data: { roles: ['secretaria', 'treinador'] },

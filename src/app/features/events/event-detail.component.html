@@ -32,11 +32,10 @@
         </div>
 
         <h2 class="desc-title">Sobre o evento</h2>
-        <div class="prose">
-          @for (p of e.description; track $index) {
-            <p>{{ p }}</p>
-          }
-        </div>
+        @if (e.coverUrl) {
+          <img class="cover" [src]="e.coverUrl" alt="" />
+        }
+        <div class="prose rich" [innerHTML]="e.bodyHtml"></div>
       </div>
 
       <aside id="inscricao" class="reg card" aria-labelledby="h-reg">

@@ -142,7 +142,7 @@ alias dc='docker compose -f /opt/serrado/deploy/docker-compose.prod.yml --env-fi
 dc exec -T db pg_restore -U serrado -d serrado --clean --if-exists < /var/backups/serrado/serrado-AAAAMMDD-HHMM.dump
 ```
 
-As cópias diárias ficam **dentro** da VPS, guardadas durante 14 dias. Ativa também os backups da Hostinger (snapshots), que ficam fora da VPS. De vez em quando descarrega uma cópia para o computador do clube:
+As cópias incluem as imagens do CMS, que estão na base de dados. As cópias diárias ficam **dentro** da VPS, guardadas durante 14 dias. Ativa também os backups da Hostinger (snapshots), que ficam fora da VPS. De vez em quando descarrega uma cópia para o computador do clube:
 
 ```bash
 scp root@82.25.1.2:/var/backups/serrado/serrado-*.dump .

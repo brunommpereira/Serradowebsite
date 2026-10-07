@@ -253,6 +253,25 @@ p {
   max-width: 68ch;
   font-size: 1.06rem;
 }
+/* Texto rico vindo do CMS (editor visual) */
+.rich {
+  h2, h3 { text-transform: none; margin: 1.8rem 0 0.6rem; }
+  h2 { font-size: 1.6rem; }
+  h3 { font-size: 1.25rem; }
+  ul, ol { padding-left: 1.4rem; margin: 0 0 1rem; }
+  li { margin: 0.25rem 0; }
+  li p { margin: 0; }
+  blockquote {
+    margin: 1.4rem 0;
+    padding: 0.4rem 0 0.4rem 1.1rem;
+    border-left: 4px solid var(--sfc-blue);
+    color: var(--color-muted);
+    font-style: italic;
+  }
+  a { color: var(--sfc-blue); text-decoration: underline; text-underline-offset: 2px; }
+  img { display: block; max-width: 100%; height: auto; margin: 1.4rem 0; border-radius: var(--radius); }
+  hr { border: 0; border-top: 1px solid var(--color-line); margin: 2rem 0; }
+}
 
 /* ---------- Sub-navegação de página ---------- */
 .subnav {
@@ -741,6 +760,27 @@ table.table {
 }
 
 /* ---------- Backoffice (/admin) ---------- */
+.linkish {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-height: 36px;
+  border: 0;
+  background: none;
+  color: var(--color-link);
+  font: 600 0.9rem var(--font-body);
+  text-decoration: underline;
+  cursor: pointer;
+  &--danger {
+    color: var(--color-danger);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
 .adm-head {
   display: flex;
   flex-wrap: wrap;

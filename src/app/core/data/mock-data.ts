@@ -214,7 +214,9 @@ export const STANDINGS: Standing[] = [
   },
 ];
 
-export const NEWS: NewsArticle[] = [
+/** Notícias de demonstração (texto simples, em parágrafos): o CmsStore converte-as em conteúdos do CMS. */
+export type NewsSeed = Omit<NewsArticle, 'bodyHtml' | 'coverUrl'> & { content: string[] };
+export const NEWS: NewsSeed[] = [
   {
     id: 1,
     slug: 'nova-epoca-futsal',
@@ -311,7 +313,8 @@ export const NEWS: NewsArticle[] = [
   },
 ];
 
-export const EVENTS: ClubEvent[] = [
+export type EventSeed = Omit<ClubEvent, 'bodyHtml' | 'coverUrl'> & { description: string[] };
+export const EVENTS: EventSeed[] = [
   {
     id: 1,
     slug: 'caminhada-solidaria',

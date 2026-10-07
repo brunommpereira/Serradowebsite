@@ -18,10 +18,14 @@ import {
   IdentityRequest,
   ImportRow,
   ImportSummary,
+  MediaItem,
+  MediaUsage,
+  PreparedImage,
 } from './admin-source';
 
 const AUDIT_KEY = 'sfc.audit.v1';
 const ROLES_KEY = 'sfc.roles.v1';
+const MEDIA_KEY = 'sfc.media.v1';
 const SENSITIVE = ['idNumber', 'idExpiry', 'taxNumber', 'address', 'postalCode'];
 
 /**
@@ -31,6 +35,8 @@ const SENSITIVE = ['idNumber', 'idExpiry', 'taxNumber', 'address', 'postalCode']
 @Injectable()
 export class DemoAdminSource extends AdminSource {
   readonly mode = 'demo' as const;
+  // No browser há pouco espaço (localStorage): imagens mais pequenas
+  override readonly mediaMaxSize = 1280;
   private readonly auth = inject(AuthService);
   private readonly area = inject(AthleteAreaService);
   private readonly cms = inject(CmsStore);
@@ -248,6 +254,69 @@ export class DemoAdminSource extends AdminSource {
     this.guard('editor', 'secretaria', 'treinador');
     const all = this.read<AuditEntry[]>(AUDIT_KEY, []);
     return this.auth.hasRole() ? all : all.filter((l) => l.actor === this.actor);
+  }
+
+  // ---------------------------------------------------------------- imagens (guardadas no browser)
+  async mediaList(q?: string) {
+    this.guard('editor');
+    const term = (q ?? '').toLowerCase();
+    return this.read<MediaItem[]>(MEDIA_KEY, []).filter((m) => !term || m.name.toLowerCase().includes(term) || m.alt.toLowerCase().includes(term));
+  }
+
+  async mediaUpload(img: PreparedImage) {
+    this.guard('editor');
+    const all = this.read<MediaItem[]>(MEDIA_KEY, []);
+    const item: MediaItem = {
+      id: Math.max(0, ...all.map((m) => m.id)) + 1,
+      key: crypto.randomUUID(),
+      name: img.name,
+      mime: img.mime,
+      sizeBytes: Math.round((img.base64.length * 3) / 4),
+      width: img.width,
+      height: img.height,
+      alt: img.alt.trim(),
+      createdAt: new Date().toISOString(),
+      uploadedByName: this.actor,
+      url: `data:${img.mime};base64,${img.base64}`,
+    };
+    try {
+      localStorage.setItem(MEDIA_KEY, JSON.stringify([item, ...all]));
+    } catch {
+      throw new Error('Sem espaço no browser para mais imagens (modo demonstração). Apaga algumas ou usa o site com servidor.');
+    }
+    this.log('cms.media.upload', 'Imagens', null, { nome: item.name });
+    return item;
+  }
+
+  async mediaUpdate(id: number, alt: string) {
+    this.guard('editor');
+    const all = this.read<MediaItem[]>(MEDIA_KEY, []);
+    const item = all.find((m) => m.id === id);
+    if (!item) throw new Error('Imagem não encontrada');
+    item.alt = alt.trim();
+    this.write(MEDIA_KEY, all);
+    return item;
+  }
+
+  async mediaUsage(id: number): Promise<MediaUsage[]> {
+    this.guard('editor');
+    const item = this.read<MediaItem[]>(MEDIA_KEY, []).find((m) => m.id === id);
+    if (!item) return [];
+    return (['news', 'events', 'pages'] as CmsType[]).flatMap((type) =>
+      this.cms
+        .entries(type)
+        .filter((e) => String(e['body'] ?? '').includes(item.url) || e['coverUrl'] === item.url)
+        .map((e) => ({ type, id: e.id, title: String(e['title']) })),
+    );
+  }
+
+  async mediaDelete(id: number) {
+    const used = await this.mediaUsage(id);
+    if (used.length) throw new Error(`A imagem está a ser usada em: ${used.map((u) => u.title).join(', ')}`);
+    const all = this.read<MediaItem[]>(MEDIA_KEY, []);
+    const item = all.find((m) => m.id === id);
+    this.write(MEDIA_KEY, all.filter((m) => m.id !== id));
+    this.log('cms.media.delete', 'Imagens', null, { nome: item?.name });
   }
 
   // ---------------------------------------------------------------- utilitários

@@ -24,6 +24,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
       { label: 'Eventos', link: '/admin/conteudos/events', icon: 'calendar', roles: ['editor'] },
       { label: 'Páginas', link: '/admin/conteudos/pages', icon: 'home', roles: ['editor'] },
       { label: 'Parceiros', link: '/admin/conteudos/partners', icon: 'heart', roles: ['editor'] },
+      { label: 'Imagens', link: '/admin/imagens', icon: 'image', roles: ['editor'] },
     ],
   },
   {

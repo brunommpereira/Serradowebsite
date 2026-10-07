@@ -23,7 +23,7 @@ export interface CmsRevision {
   title: string;
 }
 
-export type CmsFieldKind = 'text' | 'textarea' | 'markdown' | 'select' | 'number' | 'checkbox' | 'datetime' | 'time' | 'url';
+export type CmsFieldKind = 'text' | 'textarea' | 'richtext' | 'image' | 'select' | 'number' | 'checkbox' | 'datetime' | 'time' | 'url';
 
 export interface CmsField {
   key: string;
@@ -55,7 +55,8 @@ export const PARTNER_CATEGORIES = ['Patrocinador Principal', 'Patrocinador', 'Pa
 export const SPORT_SLUGS = ['atletismo', 'futsal', 'rugby', 'formacao', 'escola-de-desporto'] as const;
 
 const SLUG: CmsField = { key: 'slug', label: 'Endereço (slug)', kind: 'text', required: true, max: 120, hint: 'Letras minúsculas, números e hífenes. Gerado a partir do título.' };
-const BODY: CmsField = { key: 'body', label: 'Texto', kind: 'markdown', wide: true, hint: 'Separa os parágrafos com uma linha em branco.' };
+const BODY: CmsField = { key: 'body', label: 'Texto', kind: 'richtext', wide: true };
+const COVER: CmsField = { key: 'coverUrl', label: 'Imagem de capa', kind: 'image', wide: true, hint: 'Aparece no topo e nas listas. Idealmente horizontal (16:9).' };
 
 export const CMS_TYPES: Record<CmsType, CmsTypeDef> = {
   news: {
@@ -70,8 +71,8 @@ export const CMS_TYPES: Record<CmsType, CmsTypeDef> = {
       SLUG,
       { key: 'category', label: 'Categoria', kind: 'select', required: true, options: NEWS_CATEGORIES },
       { key: 'summary', label: 'Resumo', kind: 'textarea', max: 400, wide: true, hint: 'Aparece nas listas e nas partilhas.' },
+      COVER,
       BODY,
-      { key: 'coverUrl', label: 'Imagem de capa (URL)', kind: 'url', max: 500 },
       { key: 'author', label: 'Autor', kind: 'text', max: 120 },
     ],
   },
@@ -91,6 +92,7 @@ export const CMS_TYPES: Record<CmsType, CmsTypeDef> = {
       { key: 'location', label: 'Local', kind: 'text', required: true, max: 200 },
       { key: 'sportSlug', label: 'Modalidade', kind: 'select', options: SPORT_SLUGS },
       { key: 'summary', label: 'Resumo', kind: 'textarea', max: 400, wide: true },
+      COVER,
       BODY,
       { key: 'capacity', label: 'Lotação', kind: 'number' },
       { key: 'price', label: 'Preço (€)', kind: 'number' },
@@ -140,14 +142,6 @@ export function slugify(s: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 120);
-}
-
-/** Texto do CMS → parágrafos (linha em branco separa parágrafos). */
-export function paragraphs(body: unknown): string[] {
-  return String(body ?? '')
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean);
 }
 
 /** Valores por omissão de um conteúdo novo. */

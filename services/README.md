@@ -20,7 +20,7 @@ npm run db:migrate          # aplica db/migrations/*.sql (cada uma numa transaç
 npm run db:seed             # dados de demonstração (APAGA o conteúdo!)
 npm run backend             # http://localhost:4100/internal/docs
 npm run middleware          # http://localhost:4000/api/docs
-npm test                    # 39 testes de integração com PostgreSQL real
+npm test                    # 48 testes de integração com PostgreSQL real
 npm run typecheck
 npm run openapi             # regenera backend/openapi.json e middleware/openapi.json
 ```

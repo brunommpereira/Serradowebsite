@@ -444,11 +444,12 @@
                   },
                   "body": {
                     "type": "string",
-                    "maxLength": 50000
+                    "maxLength": 200000
                   },
                   "coverUrl": {
                     "type": "string",
                     "maxLength": 500,
+                    "pattern": "^((https://|/api/v1/media/)[^\\s\"<>]+)?$",
                     "nullable": true
                   },
                   "author": {
@@ -537,11 +538,12 @@
                   },
                   "body": {
                     "type": "string",
-                    "maxLength": 50000
+                    "maxLength": 200000
                   },
                   "coverUrl": {
                     "type": "string",
                     "maxLength": 500,
+                    "pattern": "^((https://|/api/v1/media/)[^\\s\"<>]+)?$",
                     "nullable": true
                   },
                   "author": {
@@ -858,7 +860,13 @@
                   },
                   "body": {
                     "type": "string",
-                    "maxLength": 50000
+                    "maxLength": 200000
+                  },
+                  "coverUrl": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "pattern": "^((https://|/api/v1/media/)[^\\s\"<>]+)?$",
+                    "nullable": true
                   },
                   "startsAt": {
                     "type": "string",
@@ -984,7 +992,13 @@
                   },
                   "body": {
                     "type": "string",
-                    "maxLength": 50000
+                    "maxLength": 200000
+                  },
+                  "coverUrl": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "pattern": "^((https://|/api/v1/media/)[^\\s\"<>]+)?$",
+                    "nullable": true
                   },
                   "startsAt": {
                     "type": "string",
@@ -1303,7 +1317,7 @@
                   },
                   "body": {
                     "type": "string",
-                    "maxLength": 50000
+                    "maxLength": 200000
                   }
                 },
                 "additionalProperties": false
@@ -1372,7 +1386,7 @@
                   },
                   "body": {
                     "type": "string",
-                    "maxLength": 50000
+                    "maxLength": 200000
                   }
                 },
                 "additionalProperties": false
@@ -1941,6 +1955,207 @@
             },
             "in": "path",
             "name": "rev",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/internal/v1/cms/media": {
+      "get": {
+        "summary": "Lista as imagens (sem o conteúdo)",
+        "tags": [
+          "Imagens"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "in": "query",
+            "name": "q",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 200
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      },
+      "post": {
+        "summary": "Carrega uma imagem (conteúdo em base64)",
+        "tags": [
+          "Imagens"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "data"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "data": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 7100000
+                  },
+                  "alt": {
+                    "type": "string",
+                    "maxLength": 300
+                  },
+                  "width": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/internal/v1/cms/media/{id}": {
+      "patch": {
+        "summary": "Altera o texto alternativo",
+        "tags": [
+          "Imagens"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "alt"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "alt": {
+                    "type": "string",
+                    "maxLength": 300
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Apaga (recusa se estiver a ser usada)",
+        "tags": [
+          "Imagens"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/internal/v1/cms/media/{id}/usage": {
+      "get": {
+        "summary": "Conteúdos que usam a imagem",
+        "tags": [
+          "Imagens"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/internal/v1/media/{key}": {
+      "get": {
+        "summary": "Conteúdo de uma imagem (base64)",
+        "tags": [
+          "Imagens"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            },
+            "in": "path",
+            "name": "key",
             "required": true
           }
         ],

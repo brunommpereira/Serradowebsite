@@ -15,7 +15,12 @@ import {
   IdentityRequest,
   ImportRow,
   ImportSummary,
+  MediaItem,
+  MediaUsage,
+  PreparedImage,
 } from './admin-source';
+
+const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
 
 /** Backoffice ligado ao middleware (/api/v1/admin/…). */
 @Injectable()
@@ -52,6 +57,27 @@ export class HttpAdminSource extends AdminSource {
   }
   async cmsRestore(type: CmsType, id: number, revision: number) {
     return this.refresh(await this.api.post<CmsEntry>(`/admin/cms/${type}/${id}/revisions/${revision}/restore`));
+  }
+
+  async mediaList(q?: string) {
+    return (await this.api.get<Omit<MediaItem, 'url'>[]>('/admin/media', { q })).map((m) => this.withUrl(m));
+  }
+  async mediaUpload(img: PreparedImage) {
+    const m = await this.api.post<Omit<MediaItem, 'url'>>('/admin/media', { name: img.name, data: img.base64, alt: img.alt, width: img.width, height: img.height });
+    return this.withUrl(m);
+  }
+  async mediaUpdate(id: number, alt: string) {
+    return this.withUrl(await this.api.patch<Omit<MediaItem, 'url'>>(`/admin/media/${id}`, { alt }));
+  }
+  mediaUsage(id: number) {
+    return this.api.get<MediaUsage[]>(`/admin/media/${id}/usage`);
+  }
+  async mediaDelete(id: number) {
+    await this.api.delete(`/admin/media/${id}`);
+  }
+  /** Endereço público: /api/v1/media/<chave>.<ext> (relativo ao endereço da API) */
+  private withUrl(m: Omit<MediaItem, 'url'>): MediaItem {
+    return { ...m, url: `${this.api.baseUrl}/media/${m.key}.${EXT[m.mime] ?? 'img'}` };
   }
 
   athletes(filter: { q?: string; sport?: string; pending?: string }) {

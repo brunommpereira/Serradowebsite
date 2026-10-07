@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { tx, type Client } from '../../../shared/db.ts';
 import { audit, camel, hasRole, HttpError, notFound, requireRole, snake } from '../core.ts';
+import { sanitizeBody } from '../../../shared/html.ts';
 
 /**
  * CMS — conteúdos editados no backoffice.
@@ -11,7 +12,9 @@ import { audit, camel, hasRole, HttpError, notFound, requireRole, snake } from '
 type Field = { type: 'string' | 'integer' | 'number' | 'boolean'; nullable?: boolean; required?: boolean; maxLength?: number; enum?: string[]; pattern?: string; minimum?: number };
 
 const SLUG = { type: 'string', required: true, maxLength: 120, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$' } as const;
-const TEXT = { type: 'string', maxLength: 50000 } as const;
+const TEXT = { type: 'string', maxLength: 200000 } as const;
+// Imagem de capa: da biblioteca de imagens (/api/v1/media/…) ou um endereço https
+const COVER = { type: 'string', nullable: true, maxLength: 500, pattern: '^((https://|/api/v1/media/)[^\\s"<>]+)?$' } as const;
 
 export const CMS_TYPES = {
   news: {
@@ -25,7 +28,7 @@ export const CMS_TYPES = {
       category: { type: 'string', required: true, enum: ['Clube', 'Atletismo', 'Futsal', 'Rugby', 'Formação', 'Comunidade', 'Eventos', 'Parceiros', 'Comunicados'] },
       summary: { type: 'string', maxLength: 400 },
       body: TEXT,
-      coverUrl: { type: 'string', nullable: true, maxLength: 500 },
+      coverUrl: COVER,
       author: { type: 'string', maxLength: 120 },
     },
   },
@@ -41,6 +44,7 @@ export const CMS_TYPES = {
       sportSlug: { type: 'string', nullable: true, enum: ['atletismo', 'futsal', 'rugby', 'formacao', 'escola-de-desporto'] },
       summary: { type: 'string', maxLength: 400 },
       body: TEXT,
+      coverUrl: COVER,
       startsAt: { type: 'string', required: true, pattern: '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$' },
       endTime: { type: 'string', nullable: true, pattern: '^\\d{2}:\\d{2}$' },
       location: { type: 'string', required: true, maxLength: 200 },
@@ -173,7 +177,7 @@ export async function cmsRoutes(app: FastifyInstance) {
 
     app.post(base, { schema: { tags, summary: 'Cria um rascunho', body } }, async (req, reply) => {
       requireRole(req, 'editor');
-      const data = req.body as Record<string, unknown>;
+      const data = clean(req.body as Record<string, unknown>);
       const keys = columns.filter((k) => k in data);
       const entry = await tx(app.pool, async (c) => {
         const { rows } = await c.query(
@@ -191,7 +195,7 @@ export async function cmsRoutes(app: FastifyInstance) {
     app.put(`${base}/:id`, { schema: { tags, summary: 'Atualiza (cria revisão)', params: idParams, body } }, async (req) => {
       requireRole(req, 'editor');
       const id = (req.params as { id: number }).id;
-      const data = req.body as Record<string, unknown>;
+      const data = clean(req.body as Record<string, unknown>);
       return tx(app.pool, async (c) => {
         // Campos omitidos voltam ao valor por omissão (PUT = substituição completa dos campos editáveis)
         const sets = columns.map((k, i) => `${snake(k)} = $${i + 1}`);
@@ -279,6 +283,11 @@ export async function cmsRoutes(app: FastifyInstance) {
   app.all('/cms/:type', { schema: { hide: true } }, async () => {
     throw new HttpError(404, 'unknown_type', `Tipo de conteúdo desconhecido. Tipos: ${Object.keys(CMS_TYPES).join(', ')}`);
   });
+}
+
+/** O HTML do editor é limpo antes de ser gravado (sem scripts, estilos nem atributos de eventos). */
+function clean(data: Record<string, unknown>) {
+  return typeof data['body'] === 'string' ? { ...data, body: sanitizeBody(data['body']) } : data;
 }
 
 function defaultFor(f: Field) {

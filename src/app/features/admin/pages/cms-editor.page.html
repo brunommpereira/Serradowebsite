@@ -65,6 +65,22 @@
                   @case ('time') {
                     <input [id]="fieldId(f)" [name]="f.key" type="time" [(ngModel)]="model[f.key]" />
                   }
+                  @case ('image') {
+                    <div class="cover" [id]="fieldId(f)" tabindex="-1">
+                      @if (model[f.key]) {
+                        <img class="cover__img" [src]="model[f.key]" alt="Pré-visualização da imagem de capa" />
+                      } @else {
+                        <div class="cover__empty"><sfc-icon name="image" size="28" /><span>Sem imagem</span></div>
+                      }
+                      <div class="cover__actions">
+                        <button type="button" class="btn btn--outline btn--sm" (click)="coverPicker.show()">{{ model[f.key] ? 'Trocar imagem' : 'Escolher imagem' }}</button>
+                        @if (model[f.key]) {
+                          <button type="button" class="linkish linkish--danger" (click)="model[f.key] = null">Remover</button>
+                        }
+                      </div>
+                    </div>
+                    <sfc-media-picker #coverPicker (picked)="model[f.key] = $event.url" />
+                  }
                   @case ('url') {
                     <input [id]="fieldId(f)" [name]="f.key" type="url" placeholder="https://" [attr.maxlength]="f.max" [(ngModel)]="model[f.key]" [attr.aria-invalid]="!!e[f.key]" />
                   }
@@ -89,7 +105,7 @@
               }
             }
           </div>
-          @if (f.key === 'summary' && bodyField(); as b) {
+          @if (f.key === bodyAfter() && bodyField(); as b) {
             <div class="field wide body">
               <div class="body__head">
                 <label [for]="fieldId(b)">{{ b.label }}</label>
@@ -99,17 +115,19 @@
                 </div>
               </div>
               @if (preview()) {
-                <div class="body__preview prose" aria-live="polite">
-                  @for (p of bodyParagraphs(); track $index) {
-                    <p>{{ p }}</p>
-                  } @empty {
+                <div class="body__preview prose rich" aria-live="polite">
+                  @if (bodyHtml()) {
+                    <div [innerHTML]="bodyHtml()"></div>
+                  } @else {
                     <p class="caption">Sem texto.</p>
                   }
                 </div>
               } @else {
-                <textarea [id]="fieldId(b)" name="body" rows="12" [(ngModel)]="model['body']"></textarea>
+                <sfc-rich-text-editor [inputId]="fieldId(b)" [label]="b.label" [value]="bodyHtml()" (valueChange)="model['body'] = $event" />
               }
-              <span class="hint">{{ b.hint }}</span>
+              @if (e[b.key]) {
+                <span class="error">{{ e[b.key] }}</span>
+              }
             </div>
           }
         }

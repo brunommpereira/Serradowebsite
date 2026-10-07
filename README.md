@@ -82,7 +82,7 @@ O `ContentService` é o único ponto de acesso aos dados. Ao lado de cada métod
 | Conta | Password | Papel |
 |---|---|---|
 | `admin@serradofc.pt` | `admin2026` | admin (tudo) |
-| `editor@serradofc.pt` | `editor2026` | editor: notícias, eventos, páginas, parceiros |
+| `editor@serradofc.pt` | `editor2026` | editor: notícias, eventos, páginas, parceiros e imagens (editor visual) |
 | `secretaria@serradofc.pt` | `secretaria2026` | secretaria: atletas, validações, resultados |
 | `treinador@serradofc.pt` | `treinador2026` | treinador: consulta de atletas (sem dados sensíveis) |
 

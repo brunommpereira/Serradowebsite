@@ -24,6 +24,32 @@ export async function adminRoutes(app: FastifyInstance) {
     return { user: { name: s.name, roles: s.roles }, stats, activity, attention: { requests: requests.slice(0, 5), documents: documents.slice(0, 5) } };
   });
 
+  // ---------------------------------------------------------------- Imagens (biblioteca do CMS)
+  const mediaTags = ['Backoffice · Imagens'];
+  const mediaParams = { type: 'object', properties: { id: { type: 'integer', minimum: 1 } } } as const;
+  const mediaId = (req: FastifyRequest) => (req.params as { id: number }).id;
+  app.get('/media', { schema: { tags: mediaTags, summary: 'Lista as imagens', querystring: { type: 'object', properties: { q: { type: 'string', maxLength: 100 } } } } }, async (req) => {
+    const s = await app.staff(req, 'editor');
+    return app.backend.call('GET', '/cms/media', { actor: s, query: req.query as Record<string, unknown> });
+  });
+  app.post('/media', { bodyLimit: 8 * 1024 * 1024, schema: { tags: mediaTags, summary: 'Carrega uma imagem (base64; o browser reduz e converte antes)', body: { type: 'object' } } }, async (req, reply) => {
+    const s = await app.staff(req, 'editor');
+    return reply.status(201).send(await app.backend.call('POST', '/cms/media', { actor: s, body: req.body }));
+  });
+  app.patch('/media/:id', { schema: { tags: mediaTags, summary: 'Altera o texto alternativo', params: mediaParams, body: { type: 'object' } } }, async (req) => {
+    const s = await app.staff(req, 'editor');
+    return app.backend.call('PATCH', `/cms/media/${mediaId(req)}`, { actor: s, body: req.body });
+  });
+  app.get('/media/:id/usage', { schema: { tags: mediaTags, summary: 'Onde a imagem é usada', params: mediaParams } }, async (req) => {
+    const s = await app.staff(req, 'editor');
+    return app.backend.call('GET', `/cms/media/${mediaId(req)}/usage`, { actor: s });
+  });
+  app.delete('/media/:id', { schema: { tags: mediaTags, summary: 'Apaga (recusa se estiver a ser usada)', params: mediaParams } }, async (req, reply) => {
+    const s = await app.staff(req, 'editor');
+    await app.backend.call('DELETE', `/cms/media/${mediaId(req)}`, { actor: s });
+    return reply.status(204).send();
+  });
+
   // ---------------------------------------------------------------- CMS
   const cmsTags = ['Backoffice · CMS'];
   app.get('/cms/:type', { schema: { tags: cmsTags, summary: 'Lista (todos os estados)', params: typeParams, querystring: { type: 'object', properties: { status: { type: 'string' }, q: { type: 'string' }, limit: { type: 'integer' }, offset: { type: 'integer' } } } } }, async (req) => {

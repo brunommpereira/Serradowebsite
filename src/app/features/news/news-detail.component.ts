@@ -26,14 +26,16 @@ import { NotFoundComponent } from '../not-found/not-found.component';
           </p>
         </header>
         <div class="container">
-          <div class="art__cover media-ph"><img src="brand/logo-white.svg" alt="" /></div>
+          @if (a.coverUrl) {
+            <img class="art__cover art__cover--img" [src]="a.coverUrl" alt="" />
+          } @else {
+            <div class="art__cover media-ph"><img src="brand/logo-white.svg" alt="" /></div>
+          }
         </div>
         <div class="container art__layout">
           <div class="prose art__body">
             <p class="art__lead">{{ a.summary }}</p>
-            @for (p of a.content; track $index) {
-              <p>{{ p }}</p>
-            }
+            <div class="rich" [innerHTML]="a.bodyHtml"></div>
           </div>
           <aside class="art__share" aria-label="Partilhar">
             <p class="caption">Partilhar</p>
@@ -68,6 +70,7 @@ import { NotFoundComponent } from '../not-found/not-found.component';
     h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); margin: 0.8rem 0 0.6rem; text-transform: none; }
     .art__meta { color: var(--color-muted); font-size: 0.92rem; }
     .art__cover { aspect-ratio: 21 / 9; border-radius: var(--radius-l); img { width: 120px; } }
+    .art__cover--img { display: block; width: 100%; object-fit: cover; }
     .art__layout { display: grid; grid-template-columns: 1fr auto; gap: 3rem; padding: 2.5rem 0 4rem; max-width: 860px; }
     .art__lead { font-size: 1.25rem; font-weight: 600; }
     .art__share {

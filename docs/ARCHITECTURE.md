@@ -42,6 +42,17 @@ Tabelas principais (ver `services/db/migrations`):
 - **Competições:** `races`, `results` (Troféu de Almada).
 - **CMS:** `cms_news`, `cms_events`, `cms_pages`, `cms_partners`, `cms_revisions` (histórico de versões de cada conteúdo).
 
+## Texto rico e imagens
+
+- **Editor visual (Tiptap):** produz HTML simples, com parágrafos, títulos, negrito, itálico, sublinhado, listas, citações, ligações e imagens.
+- **Limpeza do HTML:** o backend limpa o HTML com uma lista de etiquetas permitidas (`services/shared/html.ts`) antes de o gravar. No site, o Angular volta a filtrá-lo.
+- **Conteúdos antigos:** os textos simples, com parágrafos separados por linha em branco, continuam a funcionar.
+- **Imagens:**
+  - o browser reduz cada imagem (1920 px) e converte-a para WebP, o que apaga os dados EXIF e GPS;
+  - o backend confirma o tipo real pelos primeiros bytes (JPEG, PNG, WebP ou GIF, até 5 MB);
+  - as imagens ficam na tabela `cms_media` e entram nas cópias de segurança;
+  - uma imagem em uso não pode ser apagada.
+
 ## APIs
 
 - **Middleware (pública):** `services/middleware/openapi.json`, com documentação interativa em `/api/docs`.
@@ -54,6 +65,8 @@ Tabelas principais (ver `services/db/migrations`):
 | Área de Atletas | `GET /me/athletes`, `GET\|PATCH /athletes/{id}`, `POST /athletes/{id}/confirm`, `POST /athletes/{id}/change-requests`, `GET /athletes/{id}/results` | `GET /athletes?accessibleBy=`, `GET\|PATCH /athletes/{id}`, `POST /athletes/{id}/confirm`, `POST /athletes/{id}/change-requests`, `GET /athletes/{id}/results` |
 | Área de Sócio | `GET /me/member`, `GET /me/quotas` | `GET /members/{number}`, `GET /members/{number}/quotas` |
 | Backoffice: CMS | `GET\|POST /admin/cms/{tipo}`, `GET\|PUT\|DELETE /admin/cms/{tipo}/{id}`, `POST …/publish`, `POST …/unpublish`, `GET …/revisions`, `POST …/revisions/{rev}/restore` | as mesmas, em `/cms/…` |
+| Backoffice: imagens | `GET\|POST /admin/media`, `PATCH\|DELETE /admin/media/{id}`, `GET /admin/media/{id}/usage` | as mesmas, em `/cms/media…` |
+| Imagens públicas | `GET /media/{chave}.{ext}` (cache de 1 ano, endereço aleatório) | `GET /media/{chave}` |
 | Backoffice: atletas | `GET /admin/athletes`, `GET /admin/change-requests`, `POST /admin/change-requests/{id}/approve\|reject`, `POST /admin/documents/{id}/approve\|reject` | as mesmas, sem o prefixo `/admin` |
 | Backoffice: resultados | `POST /admin/results/import` | `POST /results/import` |
 | Backoffice: gestão | `GET /admin/dashboard` (agregado), `GET /admin/users`, `PUT /admin/users/{id}/roles`, `GET /admin/audit` | `GET /stats`, `GET /users`, `PUT /users/{id}/roles`, `GET /audit` |
