@@ -33,7 +33,16 @@ export interface Sport {
    * Modalidade com site próprio (ex.: núcleo de rugby). Quando definido,
    * os links do site apontam para este endereço externo.
    */
-  external?: { url: string; name: string };
+  external?: {
+    url: string;
+    name: string;
+    /** Atalhos para páginas do site externo */
+    links?: { label: string; url: string }[];
+    /** Rede social do núcleo */
+    instagram?: string;
+  };
+  /** Escalões com descrição curta (usado quando a modalidade tem site próprio) */
+  levels?: { name: string; text: string }[];
 }
 
 export interface Training {
