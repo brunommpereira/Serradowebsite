@@ -119,3 +119,15 @@
     font-weight: 600;
   }
 }
+.external {
+  align-items: center;
+  h2 {
+    font-size: var(--fs-l);
+  }
+  .btn {
+    margin-top: 0.5rem;
+  }
+}
+.external__card .glance__label {
+  color: var(--sfc-blue);
+}

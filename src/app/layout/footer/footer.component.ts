@@ -55,7 +55,9 @@ import { ContentService } from '../../core/services/content.service';
           <p class="footer__title">Desporto</p>
           <a routerLink="/modalidades/atletismo">Atletismo</a>
           <a routerLink="/modalidades/futsal">Futsal</a>
-          <a routerLink="/modalidades/rugby">Rugby</a>
+          <a href="https://almadarugby.pt/" target="_blank" rel="noopener" class="footer__ext">
+            Rugby <sfc-icon name="external" size="14" /><span class="visually-hidden">(Almada Rugby, abre numa nova janela)</span>
+          </a>
           <a routerLink="/agenda">Agenda</a>
           <a routerLink="/resultados">Resultados</a>
           <a routerLink="/multimedia">Multimédia</a>

@@ -57,7 +57,7 @@
                 [class.is-open]="openMenu() === item.label"
                 [attr.aria-expanded]="openMenu() === item.label"
                 [attr.aria-controls]="'mega-' + $index"
-                (click)="toggleMenu(item.label)"
+                (click)="toggleMenu(item.label, $event)"
               >
                 {{ item.label }} <sfc-icon name="chevron" size="15" />
               </button>
@@ -69,7 +69,13 @@
                       <ul>
                         @for (l of g.links; track l.label) {
                           <li>
-                            <a [routerLink]="l.link" [fragment]="l.fragment" [queryParams]="l.queryParams">{{ l.label }}</a>
+                            @if (l.href) {
+                              <a [href]="l.href" target="_blank" rel="noopener" class="ext">
+                                {{ l.label }} <sfc-icon name="external" size="14" /><span class="visually-hidden">(abre numa nova janela)</span>
+                              </a>
+                            } @else {
+                              <a [routerLink]="l.link" [fragment]="l.fragment" [queryParams]="l.queryParams">{{ l.label }}</a>
+                            }
                           </li>
                         }
                       </ul>
@@ -133,7 +139,15 @@
               <ul class="mobile-nav__sub">
                 @for (g of item.groups; track g.title) {
                   @for (l of g.links; track l.label) {
-                    <li><a [routerLink]="l.link" [fragment]="l.fragment" [queryParams]="l.queryParams">{{ l.label }}</a></li>
+                    <li>
+                      @if (l.href) {
+                        <a [href]="l.href" target="_blank" rel="noopener">
+                          {{ l.label }} <sfc-icon name="external" size="16" /><span class="visually-hidden">(abre numa nova janela)</span>
+                        </a>
+                      } @else {
+                        <a [routerLink]="l.link" [fragment]="l.fragment" [queryParams]="l.queryParams">{{ l.label }}</a>
+                      }
+                    </li>
                   }
                 }
               </ul>

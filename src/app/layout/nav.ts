@@ -1,6 +1,8 @@
 export interface NavLink {
   label: string;
   link: string;
+  /** Link externo (abre noutra janela), ex.: site do núcleo de rugby */
+  href?: string;
   fragment?: string;
   queryParams?: Record<string, string>;
 }
@@ -62,7 +64,7 @@ export const MAIN_NAV: NavItem[] = [
         links: [
           { label: 'Atletismo', link: '/modalidades/atletismo' },
           { label: 'Futsal', link: '/modalidades/futsal' },
-          { label: 'Rugby', link: '/modalidades/rugby' },
+          { label: 'Rugby', link: '/modalidades/rugby', href: 'https://almadarugby.pt/' },
         ],
       },
       {

@@ -5,11 +5,12 @@ import { ContentService } from '../../core/services/content.service';
 import { SeoService } from '../../core/services/seo.service';
 import { PageHeroComponent } from '../../shared/page-hero.component';
 import { matchOutcome } from '../../shared/cards';
+import { IconComponent } from '../../shared/icon.component';
 
 /** Página agregadora de resultados e classificações (secção 21). */
 @Component({
   selector: 'sfc-results',
-  imports: [DatePipe, FormsModule, PageHeroComponent],
+  imports: [DatePipe, FormsModule, PageHeroComponent, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <sfc-page-hero eyebrow="Competições" title="Resultados" subtitle="Resultados, classificações e épocas anteriores." [crumbs]="[{ label: 'Resultados' }]" />
@@ -53,6 +54,16 @@ import { matchOutcome } from '../../shared/cards';
           </div>
         </form>
 
+        @if (externalSport(); as ext) {
+          <p class="alert alert--info external-note">
+            <sfc-icon name="info" />
+            <span>
+              Os resultados e classificações desta modalidade estão no site do núcleo:
+              <a [href]="ext.url" target="_blank" rel="noopener">{{ ext.name }}<span class="visually-hidden"> (abre numa nova janela)</span></a>.
+            </span>
+          </p>
+        }
+
         @for (group of grouped(); track group.slug) {
           <h2 class="sport-title"><span class="badge" [attr.data-sport]="group.slug">{{ group.name }}</span></h2>
           <ul class="results">
@@ -83,7 +94,7 @@ import { matchOutcome } from '../../shared/cards';
           </ul>
         }
 
-        @if (!grouped().length && !showAthletics()) {
+        @if (!grouped().length && !showAthletics() && !externalSport()) {
           <p class="muted center">Sem resultados para os filtros selecionados.</p>
         }
 
@@ -122,6 +133,7 @@ import { matchOutcome } from '../../shared/cards';
     .results__line--text { display: block; font: 500 0.92rem/1.4 var(--font-body); text-transform: none; }
     .score { background: var(--sfc-blue-900); color: #fff; padding: 0.3rem 0.6rem; border-radius: 6px; white-space: nowrap; &[data-outcome='V'] { background: var(--color-success); } &[data-outcome='D'] { background: var(--color-danger); } &[data-outcome='E'] { background: #5a6172; } }
     .standings-title { margin-top: 3rem; }
+    .external-note { margin-bottom: 1.5rem; }
     @media (max-width: 720px) { .results li { grid-template-columns: 1fr; gap: 0.3rem; } .results__line span:first-child { text-align: left; } }
   `,
 })
@@ -158,6 +170,8 @@ export class ResultsComponent {
   );
   protected readonly standings = computed(() => (this.season() === this.seasons[0] ? this.content.standings().filter((s) => !this.sport() || s.sportSlug === this.sport()) : []));
   protected readonly outcome = matchOutcome;
+  /** Modalidade selecionada com site próprio (ex.: rugby → Almada Rugby) */
+  protected readonly externalSport = computed(() => this.content.sport(this.sport())?.external);
 
   constructor() {
     inject(SeoService).set({

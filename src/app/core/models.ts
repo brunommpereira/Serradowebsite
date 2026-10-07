@@ -29,6 +29,11 @@ export interface Sport {
   featured: boolean;
   trainings: Training[];
   contactEmail: string;
+  /**
+   * Modalidade com site próprio (ex.: núcleo de rugby). Quando definido,
+   * os links do site apontam para este endereço externo.
+   */
+  external?: { url: string; name: string };
 }
 
 export interface Training {
