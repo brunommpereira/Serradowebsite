@@ -6,6 +6,7 @@ import { ContentService } from '../../core/services/content.service';
 import { Athlete, DocStatus } from '../../core/data/athletes-data';
 import { SportSlug } from '../../core/models';
 import { IconComponent } from '../../shared/icon.component';
+import { AthleteDataComponent } from './athlete-data.component';
 
 const LEVELS = ['Sub-7', 'Sub-9', 'Sub-11', 'Sub-13', 'Sub-15', 'Sub-17', 'Sub-19', 'Seniores'];
 const MAX_FILE_MB = 5;
@@ -21,7 +22,7 @@ const STATUS_CLASS: Record<DocStatus, string> = {
 /** Separador «Os Meus Atletas»: dados, documentos de inscrição e partilha de acesso. */
 @Component({
   selector: 'sfc-athletes-tab',
-  imports: [DatePipe, FormsModule, IconComponent],
+  imports: [DatePipe, FormsModule, IconComponent, AthleteDataComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './athletes-tab.component.html',
   styleUrl: './athletes-tab.component.scss',
@@ -49,9 +50,6 @@ export class AthletesTabComponent {
   protected newAthlete = emptyAthlete();
   protected readonly addError = signal(false);
 
-  // ---- Editar dados
-  protected readonly editingId = signal<string | null>(null);
-  protected edit = { name: '', birthDate: '' };
 
   // ---- Documentos
   protected readonly docsOpen = signal<Record<string, boolean>>({});
@@ -104,18 +102,6 @@ export class AthletesTabComponent {
     this.adding.set(false);
     this.docsOpen.update((o) => ({ ...o, [created.id]: true }));
     this.selected.emit(created.id);
-  }
-
-  // ---- Editar
-  startEdit(a: Athlete) {
-    this.edit = { name: a.name, birthDate: a.birthDate };
-    this.editingId.set(a.id);
-  }
-
-  saveEdit(a: Athlete) {
-    if (!this.edit.name.trim() || !this.edit.birthDate || this.edit.birthDate > this.today) return;
-    this.area.updateAthlete(a.id, { name: this.edit.name.trim(), birthDate: this.edit.birthDate });
-    this.editingId.set(null);
   }
 
   // ---- Documentos (demo: o ficheiro não sai do browser)

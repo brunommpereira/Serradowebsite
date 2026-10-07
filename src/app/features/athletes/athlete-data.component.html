@@ -1,0 +1,228 @@
+@let a = athlete();
+@let d = a.details;
+@let id = a.id;
+<section class="block" [attr.aria-labelledby]="'data-' + id">
+  <div class="block__head">
+    <h4 [id]="'data-' + id"><sfc-icon name="user" size="18" />{{ self() ? 'Os meus dados' : 'Dados do atleta' }}</h4>
+    @if (confirmed()) {
+      <span class="status status--ok"><sfc-icon name="check" size="14" />Confirmados {{ a.confirmedAt | date: 'dd/MM' }}</span>
+    } @else {
+      <span class="status status--todo"><sfc-icon name="warning" size="14" />Por confirmar</span>
+    }
+  </div>
+
+  @if (message(); as m) {
+    <p class="alert" [class.alert--success]="m.kind === 'ok'" [class.alert--info]="m.kind === 'info'" role="status">
+      <sfc-icon [name]="m.kind === 'ok' ? 'check' : 'info'" size="18" /><span>{{ m.text }}</span>
+    </p>
+  }
+
+  @if (!editing()) {
+    @if (!confirmed()) {
+      <div class="confirm">
+        <p>
+          <strong>Confirma os dados {{ self() ? '' : 'de ' + a.name.split(' ')[0] + ' ' }}para a época {{ season }}.</strong>
+          Revê a ficha abaixo: se estiver tudo certo confirma; se não, altera o que for preciso.
+        </p>
+        @if (missing().length) {
+          <p class="confirm__missing"><sfc-icon name="warning" size="16" />Em falta: {{ missing().join(', ') }}.</p>
+        }
+        <div class="actions">
+          <button type="button" class="btn btn--primary btn--sm" [disabled]="missing().length > 0" (click)="confirm()">
+            <sfc-icon name="check" size="16" />Está tudo correto
+          </button>
+          <button type="button" class="btn btn--outline btn--sm" (click)="startEdit()">Alterar dados</button>
+        </div>
+      </div>
+    }
+
+    @if (a.pendingReview; as p) {
+      <p class="review"><sfc-icon name="clock" size="16" />Em validação pela secretaria: {{ p.fields.join(', ') }} (pedido a {{ p.requestedAt | date: 'dd/MM' }}).</p>
+    }
+    @if (idExpired()) {
+      <p class="review review--bad"><sfc-icon name="warning" size="16" />O documento de identificação caducou a {{ d.idExpiry | date: 'dd/MM/y' }}. Atualiza o n.º e a validade e carrega o novo documento.</p>
+    }
+
+    <div class="sheet">
+      <dl class="group">
+        <dt class="group__title">Identificação</dt>
+        <div><dt>Nome</dt><dd>{{ a.name }}</dd></div>
+        <div><dt>Nascimento</dt><dd>{{ a.birthDate | date: 'dd/MM/y' }}</dd></div>
+        <div><dt>Género</dt><dd>{{ d.gender || '—' }}</dd></div>
+        <div><dt>N.º CC</dt><dd>{{ mask(d.idNumber) }}{{ d.idExpiry ? ' · válido até ' + (d.idExpiry | date: 'MM/y') : '' }}</dd></div>
+        <div><dt>NIF</dt><dd>{{ mask(d.taxNumber) }}</dd></div>
+      </dl>
+      <dl class="group">
+        <dt class="group__title">Contactos</dt>
+        <div><dt>Email</dt><dd>{{ d.email || '—' }}</dd></div>
+        <div><dt>Telemóvel</dt><dd>{{ d.phone || '—' }}</dd></div>
+        <div><dt>Morada</dt><dd>{{ d.address ? d.address + ', ' + d.postalCode + ' ' + d.city : '—' }}</dd></div>
+      </dl>
+      <dl class="group">
+        <dt class="group__title">Emergência e equipamento</dt>
+        <div><dt>Contacto</dt><dd>{{ d.emergencyName ? d.emergencyName + ' · ' + d.emergencyPhone : '—' }}</dd></div>
+        <div><dt>T-shirt</dt><dd>{{ d.shirtSize ? d.shirtSize + (d.shirtType ? ' · ' + d.shirtType : '') : '—' }}</dd></div>
+      </dl>
+      <dl class="group">
+        <dt class="group__title">Consentimentos</dt>
+        <div>
+          <dt>RGPD</dt>
+          <dd><span class="yn" [class.yn--yes]="d.consentRgpd"><sfc-icon [name]="d.consentRgpd ? 'check' : 'close'" size="14" />{{ d.consentRgpd ? 'Autorizado' : 'Não autorizado' }}</span></dd>
+        </div>
+        <div>
+          <dt>Imagem</dt>
+          <dd><span class="yn" [class.yn--yes]="d.consentImage"><sfc-icon [name]="d.consentImage ? 'check' : 'close'" size="14" />{{ d.consentImage ? 'Autorizado' : 'Não autorizado' }}</span></dd>
+        </div>
+      </dl>
+    </div>
+
+    @if (confirmed()) {
+      <div class="actions">
+        <button type="button" class="btn btn--outline btn--sm" (click)="startEdit()"><sfc-icon name="user" size="16" />Alterar dados</button>
+      </div>
+    }
+  } @else {
+    <!-- ===== Edição ===== -->
+    @let e = errors();
+    <form class="edit" (ngSubmit)="save()" novalidate>
+      <p class="caption">Alterações a nome, data de nascimento, género, CC ou NIF ficam em validação pela secretaria.</p>
+      <fieldset>
+        <legend>Identificação</legend>
+        <div class="form-row">
+          <div class="field">
+            <label [for]="'ad-name-' + id">Nome completo <span class="req">*</span></label>
+            <input [id]="'ad-name-' + id" name="name" autocomplete="name" [(ngModel)]="draft.name" [attr.aria-invalid]="!!e['name']" [attr.aria-describedby]="e['name'] ? 'ad-name-err-' + id : null" />
+            @if (e['name']) { <span class="error" [id]="'ad-name-err-' + id">{{ e['name'] }}</span> }
+          </div>
+          <div class="field">
+            <label [for]="'ad-birth-' + id">Data de nascimento <span class="req">*</span></label>
+            <input [id]="'ad-birth-' + id" name="birth" type="date" [max]="today" [(ngModel)]="draft.birthDate" [attr.aria-invalid]="!!e['birth']" />
+            @if (e['birth']) { <span class="error">{{ e['birth'] }}</span> }
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label [for]="'ad-gender-' + id">Género <span class="req">*</span></label>
+            <select [id]="'ad-gender-' + id" name="gender" [(ngModel)]="draft.details.gender" [attr.aria-invalid]="!!e['gender']">
+              <option value="" disabled>Escolher…</option>
+              <option value="Feminino">Feminino</option>
+              <option value="Masculino">Masculino</option>
+            </select>
+            @if (e['gender']) { <span class="error">{{ e['gender'] }}</span> }
+          </div>
+          <div class="field">
+            <label [for]="'ad-nif-' + id">NIF <span class="req">*</span></label>
+            <input [id]="'ad-nif-' + id" name="nif" inputmode="numeric" maxlength="9" [(ngModel)]="draft.details.taxNumber" [attr.aria-invalid]="!!e['nif']" />
+            @if (e['nif']) { <span class="error">{{ e['nif'] }}</span> }
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label [for]="'ad-cc-' + id">N.º CC / BI <span class="req">*</span></label>
+            <input [id]="'ad-cc-' + id" name="cc" inputmode="numeric" maxlength="8" [(ngModel)]="draft.details.idNumber" [attr.aria-invalid]="!!e['cc']" />
+            <span class="hint">Só os 8 dígitos do n.º de identificação civil.</span>
+            @if (e['cc']) { <span class="error">{{ e['cc'] }}</span> }
+          </div>
+          <div class="field">
+            <label [for]="'ad-ccexp-' + id">Validade <span class="req">*</span></label>
+            <input [id]="'ad-ccexp-' + id" name="ccexp" type="date" [(ngModel)]="draft.details.idExpiry" [attr.aria-invalid]="!!e['ccexp']" />
+            @if (e['ccexp']) { <span class="error">{{ e['ccexp'] }}</span> }
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Contactos {{ minor() ? 'do encarregado' : '' }}</legend>
+        <div class="form-row">
+          <div class="field">
+            <label [for]="'ad-email-' + id">Email <span class="req">*</span></label>
+            <input [id]="'ad-email-' + id" name="email" type="email" autocomplete="email" [(ngModel)]="draft.details.email" [attr.aria-invalid]="!!e['email']" />
+            @if (e['email']) { <span class="error">{{ e['email'] }}</span> }
+          </div>
+          <div class="field">
+            <label [for]="'ad-phone-' + id">Telemóvel <span class="req">*</span></label>
+            <input [id]="'ad-phone-' + id" name="phone" type="tel" autocomplete="tel" [(ngModel)]="draft.details.phone" [attr.aria-invalid]="!!e['phone']" />
+            @if (e['phone']) { <span class="error">{{ e['phone'] }}</span> }
+          </div>
+        </div>
+        <div class="field">
+          <label [for]="'ad-address-' + id">Morada <span class="req">*</span></label>
+          <input [id]="'ad-address-' + id" name="address" autocomplete="street-address" [(ngModel)]="draft.details.address" [attr.aria-invalid]="!!e['address']" />
+          @if (e['address']) { <span class="error">{{ e['address'] }}</span> }
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label [for]="'ad-postal-' + id">Código postal <span class="req">*</span></label>
+            <input [id]="'ad-postal-' + id" name="postal" autocomplete="postal-code" placeholder="0000-000" maxlength="8" [(ngModel)]="draft.details.postalCode" [attr.aria-invalid]="!!e['postal']" />
+            @if (e['postal']) { <span class="error">{{ e['postal'] }}</span> }
+          </div>
+          <div class="field">
+            <label [for]="'ad-city-' + id">Localidade <span class="req">*</span></label>
+            <input [id]="'ad-city-' + id" name="city" autocomplete="address-level2" [(ngModel)]="draft.details.city" [attr.aria-invalid]="!!e['city']" />
+            @if (e['city']) { <span class="error">{{ e['city'] }}</span> }
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Emergência e equipamento</legend>
+        <div class="form-row">
+          <div class="field">
+            <label [for]="'ad-ename-' + id">Contacto de emergência <span class="req">*</span></label>
+            <input [id]="'ad-ename-' + id" name="ename" [(ngModel)]="draft.details.emergencyName" [attr.aria-invalid]="!!e['ename']" />
+            @if (e['ename']) { <span class="error">{{ e['ename'] }}</span> }
+          </div>
+          <div class="field">
+            <label [for]="'ad-ephone-' + id">Telefone de emergência <span class="req">*</span></label>
+            <input [id]="'ad-ephone-' + id" name="ephone" type="tel" [(ngModel)]="draft.details.emergencyPhone" [attr.aria-invalid]="!!e['ephone']" />
+            @if (e['ephone']) { <span class="error">{{ e['ephone'] }}</span> }
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label [for]="'ad-size-' + id">Tamanho da t-shirt <span class="req">*</span></label>
+            <select [id]="'ad-size-' + id" name="size" [(ngModel)]="draft.details.shirtSize" [attr.aria-invalid]="!!e['size']">
+              <option value="" disabled>Escolher…</option>
+              @for (s of sizes; track s) {
+                <option [value]="s">{{ s }}</option>
+              }
+            </select>
+            @if (e['size']) { <span class="error">{{ e['size'] }}</span> }
+          </div>
+          <div class="field">
+            <label [for]="'ad-type-' + id">Modelo</label>
+            <select [id]="'ad-type-' + id" name="type" [(ngModel)]="draft.details.shirtType">
+              <option value="">Indiferente</option>
+              <option value="Normal">Normal</option>
+              <option value="Alças">Alças</option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Consentimentos</legend>
+        <label class="check">
+          <input type="checkbox" [id]="'ad-rgpd-' + id" name="rgpd" [(ngModel)]="draft.details.consentRgpd" />
+          <span>
+            {{ minor() ? 'Autorizo, como encarregado de educação, o tratamento dos dados do atleta' : 'Autorizo o tratamento dos meus dados' }}
+            para a inscrição e participação nas atividades do clube (RGPD). <span class="req">*</span>
+          </span>
+        </label>
+        @if (e['rgpd']) { <span class="error">{{ e['rgpd'] }}</span> }
+        <label class="check">
+          <input type="checkbox" name="image" [(ngModel)]="draft.details.consentImage" />
+          <span>Autorizo a utilização de fotografias e vídeos {{ minor() ? 'do atleta' : '' }} na comunicação do clube (opcional).</span>
+        </label>
+      </fieldset>
+
+      @if (errorCount()) {
+        <p class="alert alert--warning" role="alert">Há {{ errorCount() }} {{ errorCount() === 1 ? 'campo' : 'campos' }} por corrigir.</p>
+      }
+      <div class="actions">
+        <button type="submit" class="btn btn--primary btn--sm">Guardar e confirmar</button>
+        <button type="button" class="btn btn--outline btn--sm" (click)="cancel()">Cancelar</button>
+      </div>
+    </form>
+  }
+</section>

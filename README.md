@@ -28,7 +28,7 @@ Quando o domínio `serradofc.pt` estiver pronto, há três passos:
 3. Mudar o `SITE_URL` no workflow.
 
 - Para testar localmente o build do GitHub Pages usa-se `npm run build:gh-pages`, que define o base href `/Serradowebsite/`.
-- O `404.html` serve de fallback para as rotas que só existem no browser (`/area-socio`, `/area-atletas`).
+- O `404.html` serve de fallback para as rotas que só existem no browser (`/entrar`, `/area-socio`, `/area-atletas`).
 
 ## Estrutura (secção 55)
 
@@ -60,7 +60,7 @@ O `ContentService` é o único ponto de acesso aos dados. Ao lado de cada métod
 | Eventos e inscrição com pagamento e QR Code de check-in (secção 22) | ✅ demo |
 | Sócios: página pública, categorias e quotas, benefícios, FAQ (secção 9) | ✅ |
 | Registo de sócio (secções 10 e 49): categoria → dados (validação de NIF/CP, RGPD) → pagamento → n.º de sócio + cartão | ✅ demo |
-| Área de Atletas (`/area-atletas`): perfis **encarregado de educação** e **atleta**; agenda com Vou / Não vou, evolução e métricas, **competições** (resultados do Troféu de Almada, evolução por prova entre épocas com tempo/ritmo e distância), histórico com plano de treino, atletas/dados e documentos de inscrição, partilha de acesso com até 2 co-encarregados, recibos, documentos do clube | ✅ demo |
+| Área de Atletas (`/area-atletas`): perfis **encarregado de educação** e **atleta**; agenda com Vou / Não vou, evolução e métricas, **competições** (resultados do Troféu de Almada, evolução por prova entre épocas com tempo/ritmo e distância), histórico com plano de treino, ficha do atleta (ver, alterar e confirmar por época; alterações de identificação em validação pela secretaria), documentos de inscrição, partilha de acesso com até 2 co-encarregados, recibos, documentos do clube | ✅ demo |
 | Área de Sócio (secções 11–14): login, dashboard, quotas e pagamentos, recibos, cartão digital com QR, agregado familiar, notificações | ✅ demo |
 | Parceiros e "Torne-se Parceiro", Comunidade, Multimédia, Contactos (mapa, horários, formulário), Loja (catálogo) | ✅ |
 | Pesquisa global (secção 28) | ✅ |
@@ -69,7 +69,13 @@ O `ContentService` é o único ponto de acesso aos dados. Ao lado de cada métod
 | PWA-ready: manifest e ícones (secção 43) | ✅ base |
 | CI no GitHub Actions: testes + build (secção 53) | ✅ |
 
-**Contas de demonstração:** sócio / encarregado n.º `00482`, password `serrado1978` · atleta n.º `00731`, password `atleta2026`.
+**Área reservada — ponto de acesso único `/entrar`:** escolhe-se entrar como **Sócio** ou como **Atleta / Encarregado** (não é preciso ser sócio para a Área de Atletas). Quem tem os dois perfis muda de área sem sair. Contas de demonstração:
+
+| Conta | Login | Password | Perfis |
+|---|---|---|---|
+| Sócio Demonstração | `00482` ou `socio@exemplo.pt` | `serrado1978` | sócio + encarregado (2 educandos) |
+| Rita Exemplo | `00731` ou `atleta@exemplo.pt` | `atleta2026` | sócia + atleta |
+| João Exemplo | `joao@exemplo.pt` | `atleta2026` | atleta (não sócio) |
 
 **Backend privado (dados reais):** ver [`backend/README.md`](backend/README.md) e [`tools/trofeu-almada/`](tools/trofeu-almada/README.md).
 

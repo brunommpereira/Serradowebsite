@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
-import { ageOn, AthleteAreaService, formatClock, timeToSeconds } from './athlete-area.service';
-import { MemberAuthService } from './member-auth.service';
+import { ageOn, AthleteAreaService, formatClock, isValidNif, timeToSeconds } from './athlete-area.service';
+import { AuthService } from './auth.service';
 
 describe('AthleteAreaService', () => {
   let service: AthleteAreaService;
-  let auth: MemberAuthService;
+  let auth: AuthService;
   beforeEach(() => {
     localStorage.removeItem('sfc.athletes.v2');
-    auth = TestBed.inject(MemberAuthService);
+    auth = TestBed.inject(AuthService);
     auth.login('00482', 'serrado1978'); // encarregado de educação
     service = TestBed.inject(AthleteAreaService);
     service.reset();
@@ -34,6 +34,42 @@ describe('AthleteAreaService', () => {
     expect(second.delta).toBeCloseTo(timeToSeconds('46:20.73') - timeToSeconds('48:10.42'), 2);
     expect(third.sameDistance).toBe(false); // 9 km → 7 km: diferença de ritmo por km
     expect(third.delta).toBeCloseTo(timeToSeconds('35:40.17') / 7 - timeToSeconds('46:20.73') / 9, 2);
+  });
+
+  it('atleta não sócio entra por email e vê só o seu registo', () => {
+    auth.logout();
+    expect(auth.login('joao@exemplo.pt', 'atleta2026')).toBe(true);
+    expect(auth.isMember()).toBe(false);
+    expect(service.role()).toBe('atleta');
+    expect(service.athletes().map((a) => a.id)).toEqual(['atl-4']);
+  });
+
+  it('só confirma a época com a ficha completa', () => {
+    const tomas = service.athletes().find((a) => a.id === 'atl-1')!;
+    expect(service.isConfirmed(tomas)).toBe(false);
+    expect(service.missingFields(tomas)).toContain('Contacto de emergência');
+    expect(service.confirmData('atl-1')).toBe(false);
+    service.updateAthlete('atl-1', {
+      name: tomas.name,
+      birthDate: tomas.birthDate,
+      details: { ...tomas.details, emergencyName: 'Mãe Exemplo', emergencyPhone: '910000003' },
+    });
+    const after = service.athletes().find((a) => a.id === 'atl-1')!;
+    expect(service.isConfirmed(after)).toBe(true);
+    expect(after.pendingReview).toBeUndefined(); // só mudaram contactos
+  });
+
+  it('alterações de identificação ficam em validação pela secretaria', () => {
+    const ines = service.athletes().find((a) => a.id === 'atl-2')!;
+    const changed = service.updateAthlete('atl-2', { name: 'Inês Maria Exemplo', birthDate: ines.birthDate, details: { ...ines.details, taxNumber: '123456789' } });
+    expect(changed).toEqual(['Nome', 'NIF']);
+    expect(service.athletes().find((a) => a.id === 'atl-2')!.pendingReview?.fields).toEqual(['Nome', 'NIF']);
+  });
+
+  it('valida o NIF pelo dígito de controlo', () => {
+    expect(isValidNif('123456789')).toBe(true);
+    expect(isValidNif('123456788')).toBe(false);
+    expect(isValidNif('12345678')).toBe(false);
   });
 
   it('converte e formata tempos', () => {

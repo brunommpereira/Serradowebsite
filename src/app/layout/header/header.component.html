@@ -102,11 +102,11 @@
       <button class="icon-btn" type="button" (click)="toggleSearch()" [attr.aria-expanded]="searchOpen()" aria-controls="site-search" aria-label="Pesquisar">
         <sfc-icon [name]="searchOpen() ? 'close' : 'search'" size="22" />
       </button>
-      <a class="btn btn--primary btn--sm header__account" routerLink="/area-socio">
+      <a class="btn btn--primary btn--sm header__account" routerLink="/entrar">
         <sfc-icon name="user" size="18" />
-        <span>{{ auth.isLoggedIn() ? 'Minha Área' : 'Área de Sócio' }}</span>
+        <span>{{ auth.isLoggedIn() ? 'Minha Área' : 'Entrar' }}</span>
       </a>
-      <a class="icon-btn header__account-mobile" routerLink="/area-socio" aria-label="Área de Sócio">
+      <a class="icon-btn header__account-mobile" routerLink="/entrar" [attr.aria-label]="auth.isLoggedIn() ? 'Minha Área' : 'Entrar'">
         <sfc-icon name="user" size="24" />
       </a>
     </div>
@@ -162,7 +162,7 @@
     </ul>
     <div class="mobile-nav__cta">
       <a class="btn btn--accent btn--block" routerLink="/socios/registo">Torna-te Sócio</a>
-      <a class="btn btn--ghost-light btn--block" routerLink="/area-socio">Área de Sócio</a>
+      <a class="btn btn--ghost-light btn--block" routerLink="/entrar">{{ auth.isLoggedIn() ? 'Minha Área' : 'Entrar (sócio ou atleta)' }}</a>
     </div>
   </nav>
 </header>

@@ -232,6 +232,15 @@ export interface Member {
   dependents: { name: string; relation: string; memberNumber: string; status: string }[];
 }
 
+/** Conta de acesso à área reservada: uma pessoa, com ou sem perfil de sócio. */
+export interface Account {
+  id: string;
+  name: string;
+  email: string;
+  /** null = não é sócio (ex.: atleta ou encarregado sem quota de sócio) */
+  member: Member | null;
+}
+
 export interface SearchResult {
   type: 'Página' | 'Notícia' | 'Evento' | 'Modalidade' | 'Equipa' | 'Documento';
   title: string;

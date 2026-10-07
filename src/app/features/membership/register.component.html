@@ -210,7 +210,7 @@
                 <li>Cartão digital disponível na Área de Sócio</li>
               </ul>
               <div class="actions">
-                <a class="btn btn--primary" routerLink="/area-socio/entrar">Entrar na Área de Sócio</a>
+                <a class="btn btn--primary" routerLink="/entrar" [queryParams]="{ perfil: 'socio' }">Entrar na Área de Sócio</a>
                 <a class="btn btn--outline" routerLink="/">Voltar ao início</a>
               </div>
               <p class="caption">Demonstração: o registo não foi guardado. Para explorar a Área de Sócio usa a conta de demonstração indicada na página de entrada.</p>

@@ -5,11 +5,16 @@
     <div>
       <p class="hero__eyebrow">{{ role() === 'atleta' ? 'Atleta' : 'Encarregado de Educação' }}</p>
       <h1 class="hero__title">{{ role() === 'atleta' ? 'O meu perfil' : 'Os meus educandos' }}</h1>
-      @if (member(); as m) {
-        <p class="hero__who">Sessão iniciada como <strong>{{ m.name }}</strong> · Sócio n.º {{ m.memberNumber }}</p>
+      @if (account(); as acc) {
+        <p class="hero__who">
+          Sessão iniciada como <strong>{{ acc.name }}</strong>{{ acc.member ? ' · Sócio n.º ' + acc.member.memberNumber : '' }}
+        </p>
       }
     </div>
-    <a routerLink="/area-socio" class="btn btn--ghost-light btn--sm"><sfc-icon name="card" size="18" />Área de Sócio</a>
+    <div class="hero__actions">
+      <sfc-area-switch current="atleta" tone="dark" />
+      <button type="button" class="btn btn--ghost-light btn--sm" (click)="logout()"><sfc-icon name="logout" size="18" />Sair</button>
+    </div>
   </div>
 
   <div class="container">
@@ -226,7 +231,9 @@
           <h2 class="panel__title">Os meus recibos</h2>
           <p class="panel__lead">Mensalidades e inscrições pagas{{ a ? ' de ' + a.name : '' }}.</p>
         </div>
-        <a routerLink="/area-socio" class="link-arrow">Quotas de sócio na Área de Sócio</a>
+        @if (account()?.member) {
+          <a routerLink="/area-socio" class="link-arrow">Quotas de sócio na Área de Sócio</a>
+        }
       </div>
       @if (receipts().length) {
         <div class="table-wrap card card--flush">

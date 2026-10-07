@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { MemberAuthService } from '../../core/services/member-auth.service';
+import { AuthService } from '../../core/services/auth.service';
 import { ContentService } from '../../core/services/content.service';
 import { SeoService } from '../../core/services/seo.service';
 import { IconComponent } from '../../shared/icon.component';
+import { AreaSwitchComponent } from '../../shared/area-switch.component';
 import { MemberCardComponent } from '../../shared/member-card.component';
 import { PaymentStepComponent } from '../../shared/payment-step.component';
 import { MembershipPayment, PaymentStatus } from '../../core/models';
@@ -14,13 +15,13 @@ type Section = 'dashboard' | 'dados' | 'quotas' | 'recibos' | 'cartao' | 'agrega
 /** Área reservada de sócio (secção 11) — modo demonstração. */
 @Component({
   selector: 'sfc-dashboard',
-  imports: [RouterLink, DatePipe, CurrencyPipe, IconComponent, MemberCardComponent, PaymentStepComponent],
+  imports: [RouterLink, DatePipe, CurrencyPipe, IconComponent, MemberCardComponent, PaymentStepComponent, AreaSwitchComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardComponent {
-  private readonly auth = inject(MemberAuthService);
+  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly content = inject(ContentService);
 
@@ -85,6 +86,6 @@ export class DashboardComponent {
 
   logout() {
     this.auth.logout();
-    this.router.navigateByUrl('/area-socio/entrar');
+    this.router.navigateByUrl('/entrar');
   }
 }

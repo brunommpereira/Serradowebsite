@@ -218,3 +218,15 @@
     border-color: var(--sfc-yellow);
   }
 }
+
+.dash__top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem 1.2rem;
+  margin-bottom: 1rem;
+  h1 {
+    margin: 0;
+  }
+}

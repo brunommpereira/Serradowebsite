@@ -1,129 +1,96 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { MemberAuthService } from '../../core/services/member-auth.service';
+import { AuthService } from '../../core/services/auth.service';
+import { AthleteAreaService } from '../../core/services/athlete-area.service';
 import { SeoService } from '../../core/services/seo.service';
 import { IconComponent } from '../../shared/icon.component';
 
+export type Profile = 'socio' | 'atleta';
+
+const AREA: Record<Profile, string> = { socio: '/area-socio', atleta: '/area-atletas' };
+
+/**
+ * Ponto de acesso único à área reservada (/entrar).
+ * A pessoa escolhe se entra como sócio ou como atleta/encarregado; com sessão
+ * iniciada, a página passa a ser o «hub» das áreas a que a conta tem acesso.
+ */
 @Component({
   selector: 'sfc-login',
   imports: [ReactiveFormsModule, RouterLink, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <section class="login">
-      <div class="login__card card">
-        <img src="brand/logo.svg" alt="" width="90" height="100" class="login__logo" />
-        <h1>Área de Sócio</h1>
-
-        @if (mode() === 'login') {
-          <form class="form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-            <div class="field">
-              <label for="l-num">N.º de Sócio</label>
-              <input id="l-num" formControlName="memberNumber" inputmode="numeric" autocomplete="username" />
-            </div>
-            <div class="field">
-              <label for="l-pass">Password</label>
-              <input id="l-pass" type="password" formControlName="password" autocomplete="current-password" />
-            </div>
-            @if (error()) {
-              <p class="alert alert--warning" role="alert">N.º de sócio ou password incorretos.</p>
-            }
-            <button class="btn btn--primary btn--block" type="submit" [disabled]="form.invalid">Entrar</button>
-            <button class="linkish" type="button" (click)="mode.set('reset')">Esqueci-me da password</button>
-          </form>
-          <div class="alert alert--info demo">
-            <sfc-icon name="info" />
-            <div>
-              <p><strong>Contas de demonstração</strong></p>
-              <p>
-                Sócio / encarregado · <code>{{ demoNumber }}</code> · <code>{{ demoPassword }}</code>
-                <button class="linkish" type="button" (click)="fillDemo('encarregado')">Preencher</button>
-              </p>
-              <p>
-                Atleta · <code>{{ demoAthleteNumber }}</code> · <code>{{ demoAthletePassword }}</code>
-                <button class="linkish" type="button" (click)="fillDemo('atleta')">Preencher</button>
-              </p>
-            </div>
-          </div>
-        } @else {
-          @if (resetSent()) {
-            <p class="alert alert--success" role="status">Se o n.º/email existir, vais receber um email com instruções para definir uma nova password.</p>
-          } @else {
-            <form class="form" (ngSubmit)="resetSent.set(true)">
-              <p class="muted">Indica o teu n.º de sócio ou email. Enviamos-te uma ligação para definires uma nova password.</p>
-              <div class="field">
-                <label for="l-reset">N.º de Sócio ou email</label>
-                <input id="l-reset" name="reset" required autocomplete="username" />
-              </div>
-              <button class="btn btn--primary btn--block" type="submit">Enviar instruções</button>
-            </form>
-          }
-          <button class="linkish" type="button" (click)="mode.set('login'); resetSent.set(false)">← Voltar à entrada</button>
-        }
-
-        <p class="login__foot">Ainda não és sócio? <a routerLink="/socios/registo">Regista-te</a></p>
-      </div>
-    </section>
-  `,
-  styles: `
-    .login {
-      min-height: 70vh;
-      display: grid;
-      place-items: center;
-      padding: 3rem 16px;
-      background: radial-gradient(800px 400px at 50% 0, var(--sfc-blue-50), transparent 70%);
-    }
-    .login__card { width: min(440px, 100%); box-shadow: var(--shadow); padding: 2rem; text-align: center; }
-    .login__logo { margin: 0 auto 0.5rem; }
-    h1 { font-size: 2.2rem; }
-    .form { text-align: left; }
-    .linkish { background: none; border: 0; color: var(--color-link); font-weight: 600; cursor: pointer; padding: 0.3rem 0; text-decoration: underline; }
-    .demo { margin-top: 1.4rem; text-align: left; p { margin: 0 0 0.3rem; } code { background: #fff; padding: 0.1em 0.4em; border-radius: 4px; } }
-    .login__foot { margin: 1.4rem 0 0; font-size: 0.92rem; }
-  `,
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.scss',
 })
 export class LoginComponent {
-  private readonly auth = inject(MemberAuthService);
+  protected readonly auth = inject(AuthService);
+  private readonly area = inject(AthleteAreaService);
   private readonly router = inject(Router);
-  /** ?voltar= — destino após o login (só caminhos internos) */
-  private readonly voltar = inject(ActivatedRoute).snapshot.queryParamMap.get('voltar');
-  protected readonly demoNumber = MemberAuthService.DEMO_NUMBER;
-  protected readonly demoPassword = MemberAuthService.DEMO_PASSWORD;
-  protected readonly demoAthleteNumber = MemberAuthService.DEMO_ATHLETE_NUMBER;
-  protected readonly demoAthletePassword = MemberAuthService.DEMO_ATHLETE_PASSWORD;
+  private readonly params = inject(ActivatedRoute).snapshot.queryParamMap;
+
+  /** ?voltar= — destino depois de entrar (só caminhos internos) */
+  private readonly voltar = safePath(this.params.get('voltar'));
+  protected readonly profile = signal<Profile>(
+    this.params.get('perfil') === 'atleta' || (!this.params.get('perfil') && this.voltar?.startsWith('/area-atletas')) ? 'atleta' : 'socio',
+  );
   protected readonly mode = signal<'login' | 'reset'>('login');
   protected readonly error = signal(false);
   protected readonly resetSent = signal(false);
+  protected readonly demos = AuthService.DEMO;
+
+  /** Quantos atletas a conta acompanha (educandos e/ou o próprio). */
+  protected readonly athleteCount = computed(() => this.area.athletes().length);
+  protected readonly athleteRole = this.area.role;
+  /** Pediu a Área de Sócio com uma conta que não é de sócio */
+  protected readonly notMember = computed(() => this.auth.isLoggedIn() && !this.auth.isMember() && this.profile() === 'socio');
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
-    memberNumber: ['', Validators.required],
+    identifier: ['', Validators.required],
     password: ['', Validators.required],
   });
 
   constructor() {
-    inject(SeoService).set({ title: 'Área de Sócio — Entrar', description: 'Entra na Área de Sócio do Serrado FC.', path: '/area-socio/entrar' });
-    if (this.auth.isLoggedIn()) this.router.navigateByUrl(this.target());
+    inject(SeoService).set({ title: 'Entrar', description: 'Entra na área reservada do Serrado FC: Área de Sócio e Área de Atletas.', path: '/entrar' });
+    // Veio de uma página protegida e já tem acesso: segue diretamente
+    if (this.voltar && this.canOpen(this.profile())) this.router.navigateByUrl(this.voltar);
   }
 
-  private target() {
-    const url = this.voltar;
-    return url && url.startsWith('/') && !url.startsWith('//') ? url : '/area-socio';
+  setProfile(p: Profile) {
+    this.profile.set(p);
+    this.error.set(false);
   }
 
-  fillDemo(profile: 'encarregado' | 'atleta') {
-    this.form.setValue(
-      profile === 'atleta'
-        ? { memberNumber: this.demoAthleteNumber, password: this.demoAthletePassword }
-        : { memberNumber: this.demoNumber, password: this.demoPassword },
-    );
+  useDemo(login: string, password: string, isMember: boolean) {
+    this.form.setValue({ identifier: login, password });
+    if (!isMember) this.profile.set('atleta');
   }
 
   submit() {
-    const { memberNumber, password } = this.form.getRawValue();
-    if (this.auth.login(memberNumber, password)) {
-      this.router.navigateByUrl(this.target());
-    } else {
+    const { identifier, password } = this.form.getRawValue();
+    if (!this.auth.login(identifier, password)) {
       this.error.set(true);
+      return;
     }
+    this.error.set(false);
+    // Conta sem perfil de sócio a tentar entrar como sócio: fica no hub com a explicação
+    if (this.canOpen(this.profile())) this.open(this.profile());
   }
+
+  open(p: Profile) {
+    const target = this.voltar && this.voltar.startsWith(AREA[p]) ? this.voltar : AREA[p];
+    this.router.navigateByUrl(target);
+  }
+
+  logout() {
+    this.auth.logout();
+    this.form.reset();
+  }
+
+  private canOpen(p: Profile) {
+    return p === 'socio' ? this.auth.isMember() : this.auth.isLoggedIn();
+  }
+}
+
+function safePath(url: string | null) {
+  return url && url.startsWith('/') && !url.startsWith('//') ? url : null;
 }

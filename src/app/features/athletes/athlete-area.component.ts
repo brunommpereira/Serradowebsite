@@ -3,7 +3,7 @@ import { CurrencyPipe, DatePipe, NgTemplateOutlet } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AthleteAreaService } from '../../core/services/athlete-area.service';
-import { MemberAuthService } from '../../core/services/member-auth.service';
+import { AuthService } from '../../core/services/auth.service';
 import { ContentService } from '../../core/services/content.service';
 import { SeoService } from '../../core/services/seo.service';
 import { Rsvp, Session } from '../../core/data/athletes-data';
@@ -12,6 +12,7 @@ import { DialogComponent } from '../../shared/dialog.component';
 import { SessionCardComponent } from './session-card.component';
 import { ComparisonChartComponent } from './comparison-chart.component';
 import { AthletesTabComponent } from './athletes-tab.component';
+import { AreaSwitchComponent } from '../../shared/area-switch.component';
 import { CompetitionsTabComponent } from './competitions-tab.component';
 
 export type TabId = 'agenda' | 'evolucao' | 'competicoes' | 'historico' | 'atletas' | 'recibos' | 'clube';
@@ -43,6 +44,7 @@ const SEASON_START = '2026-09-01';
     ComparisonChartComponent,
     AthletesTabComponent,
     CompetitionsTabComponent,
+    AreaSwitchComponent,
   ],
   templateUrl: './athlete-area.component.html',
   styleUrl: './athlete-area.component.scss',
@@ -54,11 +56,11 @@ export class AthleteAreaComponent {
   readonly atleta = input<string>();
 
   protected readonly area = inject(AthleteAreaService);
-  private readonly auth = inject(MemberAuthService);
+  private readonly auth = inject(AuthService);
   private readonly content = inject(ContentService);
   private readonly router = inject(Router);
 
-  protected readonly member = this.auth.member;
+  protected readonly account = this.auth.account;
   protected readonly role = this.area.role;
   /** No perfil «Atleta» o separador de gestão de educandos passa a «Os Meus Dados». */
   protected readonly tabs = computed(() =>
@@ -103,6 +105,11 @@ export class AthleteAreaComponent {
 
   constructor() {
     inject(SeoService).set({ title: 'Área de Atletas', description: 'Área reservada dos atletas e encarregados de educação do Serrado FC.', path: '/area-atletas' });
+  }
+
+  logout() {
+    this.auth.logout();
+    this.router.navigateByUrl('/entrar');
   }
 
   selectAthlete(id: string) {

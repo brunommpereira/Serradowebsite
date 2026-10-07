@@ -1,0 +1,130 @@
+<section class="login">
+  <div class="login__card card">
+    <img src="brand/logo.svg" alt="" width="90" height="100" class="login__logo" />
+
+    @if (auth.account(); as acc) {
+      <!-- ===== Hub: sessão iniciada ===== -->
+      <h1>Olá, {{ acc.name.split(' ')[0] }}</h1>
+      <p class="muted">Escolhe a área onde queres entrar.</p>
+
+      @if (notMember()) {
+        <p class="alert alert--info" role="status">
+          <sfc-icon name="info" />
+          <span>Esta conta não está associada a um sócio. Podes entrar na Área de Atletas ou tornar-te sócio.</span>
+        </p>
+      }
+
+      <div class="areas">
+        <article class="area-card" [class.area-card--off]="!auth.isMember()">
+          <span class="area-card__icon" aria-hidden="true"><sfc-icon name="card" size="26" /></span>
+          <div class="area-card__text">
+            <h2>Área de Sócio</h2>
+            @if (auth.member(); as m) {
+              <p>Sócio n.º {{ m.memberNumber }} · quotas, cartão digital e recibos</p>
+            } @else {
+              <p>Ainda não és sócio do Serrado FC.</p>
+            }
+          </div>
+          @if (auth.isMember()) {
+            <button type="button" class="btn btn--primary btn--sm" (click)="open('socio')">Entrar</button>
+          } @else {
+            <a class="btn btn--accent btn--sm" routerLink="/socios/registo">Tornar-me sócio</a>
+          }
+        </article>
+
+        <article class="area-card">
+          <span class="area-card__icon" aria-hidden="true"><sfc-icon name="run" size="26" /></span>
+          <div class="area-card__text">
+            <h2>Área de Atletas</h2>
+            <p>
+              @if (athleteCount() === 0) {
+                Inscrever um atleta ou encarregado de educação
+              } @else if (athleteRole() === 'atleta') {
+                O meu perfil de atleta · treinos, competições e dados
+              } @else {
+                {{ athleteCount() }} {{ athleteCount() === 1 ? 'atleta acompanhado' : 'atletas acompanhados' }} · treinos, competições e dados
+              }
+            </p>
+          </div>
+          <button type="button" class="btn btn--primary btn--sm" (click)="open('atleta')">Entrar</button>
+        </article>
+      </div>
+
+      <button type="button" class="linkish" (click)="logout()"><sfc-icon name="logout" size="16" /> Terminar sessão</button>
+    } @else {
+      <!-- ===== Entrada ===== -->
+      <h1>Entrar</h1>
+
+      @if (mode() === 'login') {
+        <div class="seg" role="radiogroup" aria-label="Entrar como">
+          <button type="button" role="radio" class="seg__opt" [attr.aria-checked]="profile() === 'socio'" (click)="setProfile('socio')">
+            <sfc-icon name="card" size="20" />
+            <span><strong>Sócio</strong><small>Quotas, cartão e recibos</small></span>
+          </button>
+          <button type="button" role="radio" class="seg__opt" [attr.aria-checked]="profile() === 'atleta'" (click)="setProfile('atleta')">
+            <sfc-icon name="run" size="20" />
+            <span><strong>Atleta / Encarregado</strong><small>Treinos, competições e dados</small></span>
+          </button>
+        </div>
+        <p class="hint">
+          {{ profile() === 'atleta' ? 'Não precisas de ser sócio para entrar na Área de Atletas.' : 'Se também és atleta ou encarregado, encontras as duas áreas depois de entrar.' }}
+        </p>
+
+        <form class="form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="field">
+            <label for="l-id">Email {{ profile() === 'socio' ? 'ou n.º de sócio' : '' }}</label>
+            <input id="l-id" formControlName="identifier" autocomplete="username" autocapitalize="none" spellcheck="false" />
+          </div>
+          <div class="field">
+            <label for="l-pass">Password</label>
+            <input id="l-pass" type="password" formControlName="password" autocomplete="current-password" />
+          </div>
+          @if (error()) {
+            <p class="alert alert--warning" role="alert">Email / n.º de sócio ou password incorretos.</p>
+          }
+          <button class="btn btn--primary btn--block" type="submit" [disabled]="form.invalid">
+            Entrar {{ profile() === 'socio' ? 'na Área de Sócio' : 'na Área de Atletas' }}
+          </button>
+          <button class="linkish" type="button" (click)="mode.set('reset')">Esqueci-me da password</button>
+        </form>
+
+        <div class="alert alert--info demo">
+          <sfc-icon name="info" />
+          <div>
+            <p><strong>Contas de demonstração</strong></p>
+            <ul class="demo__list">
+              @for (d of demos; track d.login) {
+                <li>
+                  <span>
+                    <strong>{{ d.name }}</strong> · {{ d.isMember ? 'sócio' : 'não sócio' }}<br />
+                    <code>{{ d.login }}</code> · <code>{{ d.password }}</code>
+                  </span>
+                  <button class="linkish" type="button" (click)="useDemo(d.login, d.password, d.isMember)">Usar</button>
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
+      } @else {
+        @if (resetSent()) {
+          <p class="alert alert--success" role="status">Se o email ou n.º existir, vais receber um email com instruções para definir uma nova password.</p>
+        } @else {
+          <form class="form" (ngSubmit)="resetSent.set(true)">
+            <p class="muted">Indica o teu email ou n.º de sócio. Enviamos-te uma ligação para definires uma nova password.</p>
+            <div class="field">
+              <label for="l-reset">Email ou n.º de sócio</label>
+              <input id="l-reset" name="reset" required autocomplete="username" />
+            </div>
+            <button class="btn btn--primary btn--block" type="submit">Enviar instruções</button>
+          </form>
+        }
+        <button class="linkish" type="button" (click)="mode.set('login'); resetSent.set(false)">← Voltar à entrada</button>
+      }
+
+      <p class="login__foot">
+        Ainda não és sócio? <a routerLink="/socios/registo">Regista-te</a><br />
+        Atleta novo? A conta é criada pela secretaria na inscrição — <a routerLink="/contactos">fala connosco</a>.
+      </p>
+    }
+  </div>
+</section>

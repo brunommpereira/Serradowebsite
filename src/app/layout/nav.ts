@@ -120,9 +120,9 @@ export const MAIN_NAV: NavItem[] = [
         ],
       },
       {
-        title: 'Área de Sócio',
+        title: 'Área reservada',
         links: [
-          { label: 'Entrar', link: '/area-socio/entrar' },
+          { label: 'Entrar', link: '/entrar' },
           { label: 'Pagar Quota', link: '/area-socio' },
           { label: 'Cartão Digital', link: '/area-socio' },
           { label: 'Área de Atletas', link: '/area-atletas' },

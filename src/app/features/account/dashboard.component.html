@@ -20,7 +20,10 @@
     <section class="content" aria-live="polite">
       @switch (section()) {
         @case ('dashboard') {
-          <h1>Olá, {{ m.name.split(' ')[0] }}!</h1>
+          <div class="dash__top">
+            <h1>Olá, {{ m.name.split(' ')[0] }}!</h1>
+            <sfc-area-switch current="socio" />
+          </div>
           <div class="dash">
             <div>
               <sfc-member-card [number]="m.memberNumber" [name]="m.name" [category]="m.category" [since]="m.registrationDate.slice(0, 4)" [upToDate]="upToDate()" />

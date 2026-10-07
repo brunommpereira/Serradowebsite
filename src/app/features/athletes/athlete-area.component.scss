@@ -34,6 +34,12 @@
   color: #fff;
   font-size: clamp(2rem, 5vw, 3rem);
 }
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
 .hero__who {
   margin: 0.4rem 0 0;
   font-size: 0.9rem;
@@ -45,7 +51,6 @@
   gap: 0.6rem;
   overflow-x: auto;
   padding-bottom: 0.2rem;
-  scrollbar-width: thin;
 }
 .picker__chip {
   flex: none;
