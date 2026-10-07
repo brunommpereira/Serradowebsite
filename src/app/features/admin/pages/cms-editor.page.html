@@ -1,0 +1,166 @@
+@let d = def();
+@let e = errors();
+<nav class="crumbs" aria-label="Caminho">
+  <a [routerLink]="['/admin/conteudos', d.type]"><sfc-icon name="chevron" size="16" class="back" />{{ d.label }}</a>
+</nav>
+
+<div class="adm-head">
+  <div>
+    <h1>{{ title() }}</h1>
+    @if (entry(); as en) {
+      <p>
+        <span class="st" [class]="'st st--' + en.status">{{ statusLabel[en.status] }}</span>
+        · atualizado {{ en.updatedAt | date: 'dd/MM/y HH:mm' }}
+        @if (en.publishedAt) {
+          · publicado {{ en.publishedAt | date: 'dd/MM/y' }}
+        }
+      </p>
+    } @else {
+      <p>Fica em rascunho até carregares em «Publicar».</p>
+    }
+  </div>
+</div>
+
+@if (message(); as m) {
+  <p class="alert" [class.alert--success]="m.kind === 'ok'" [class.alert--warning]="m.kind === 'error'" role="status" aria-live="polite">
+    <sfc-icon [name]="m.kind === 'ok' ? 'check' : 'warning'" size="18" /><span>{{ m.text }}</span>
+  </p>
+}
+
+@if (loading()) {
+  <p class="adm-empty">A carregar…</p>
+} @else {
+  <div class="layout">
+    <form class="adm-panel form-main" (ngSubmit)="save()" novalidate>
+      <div class="grid">
+        @for (f of mainFields(); track f.key) {
+          <div class="field" [class.wide]="f.wide" [class.field--check]="f.kind === 'checkbox'">
+            @switch (f.kind) {
+              @case ('checkbox') {
+                <label class="check">
+                  <input type="checkbox" [id]="fieldId(f)" [name]="f.key" [(ngModel)]="model[f.key]" />
+                  <span>{{ f.label }}</span>
+                </label>
+              }
+              @default {
+                <label [for]="fieldId(f)">{{ f.label }} @if (f.required) {<span class="req">*</span>}</label>
+                @switch (f.kind) {
+                  @case ('textarea') {
+                    <textarea [id]="fieldId(f)" [name]="f.key" rows="3" [attr.maxlength]="f.max" [(ngModel)]="model[f.key]" [attr.aria-invalid]="!!e[f.key]"></textarea>
+                  }
+                  @case ('select') {
+                    <select [id]="fieldId(f)" [name]="f.key" [(ngModel)]="model[f.key]" [attr.aria-invalid]="!!e[f.key]">
+                      <option [ngValue]="f.required ? '' : null" [disabled]="f.required">{{ f.required ? 'Escolher…' : '—' }}</option>
+                      @for (o of f.options; track o) {
+                        <option [ngValue]="o">{{ o }}</option>
+                      }
+                    </select>
+                  }
+                  @case ('number') {
+                    <input [id]="fieldId(f)" [name]="f.key" type="number" min="0" step="any" [(ngModel)]="model[f.key]" [attr.aria-invalid]="!!e[f.key]" />
+                  }
+                  @case ('datetime') {
+                    <input [id]="fieldId(f)" [name]="f.key" type="datetime-local" [(ngModel)]="model[f.key]" [attr.aria-invalid]="!!e[f.key]" />
+                  }
+                  @case ('time') {
+                    <input [id]="fieldId(f)" [name]="f.key" type="time" [(ngModel)]="model[f.key]" />
+                  }
+                  @case ('url') {
+                    <input [id]="fieldId(f)" [name]="f.key" type="url" placeholder="https://" [attr.maxlength]="f.max" [(ngModel)]="model[f.key]" [attr.aria-invalid]="!!e[f.key]" />
+                  }
+                  @default {
+                    @if (f.key === d.titleKey) {
+                      <input [id]="fieldId(f)" [name]="f.key" [attr.maxlength]="f.max" [ngModel]="model[f.key]" (ngModelChange)="onTitle($event)" [attr.aria-invalid]="!!e[f.key]" />
+                    } @else if (f.key === 'slug') {
+                      <div class="slug">
+                        <span class="slug__prefix" aria-hidden="true">/</span>
+                        <input [id]="fieldId(f)" [name]="f.key" [attr.maxlength]="f.max" autocapitalize="none" spellcheck="false" [ngModel]="model[f.key]" (ngModelChange)="onSlug($event)" [attr.aria-invalid]="!!e[f.key]" />
+                      </div>
+                    } @else {
+                      <input [id]="fieldId(f)" [name]="f.key" [attr.maxlength]="f.max" [(ngModel)]="model[f.key]" [attr.aria-invalid]="!!e[f.key]" />
+                    }
+                  }
+                }
+                @if (e[f.key]) {
+                  <span class="error">{{ e[f.key] }}</span>
+                } @else if (f.hint) {
+                  <span class="hint">{{ f.hint }}</span>
+                }
+              }
+            }
+          </div>
+          @if (f.key === 'summary' && bodyField(); as b) {
+            <div class="field wide body">
+              <div class="body__head">
+                <label [for]="fieldId(b)">{{ b.label }}</label>
+                <div class="chips" role="group" aria-label="Modo do editor">
+                  <button type="button" class="chip" [attr.aria-pressed]="!preview()" (click)="preview.set(false)">Escrever</button>
+                  <button type="button" class="chip" [attr.aria-pressed]="preview()" (click)="preview.set(true)">Pré-visualizar</button>
+                </div>
+              </div>
+              @if (preview()) {
+                <div class="body__preview prose" aria-live="polite">
+                  @for (p of bodyParagraphs(); track $index) {
+                    <p>{{ p }}</p>
+                  } @empty {
+                    <p class="caption">Sem texto.</p>
+                  }
+                </div>
+              } @else {
+                <textarea [id]="fieldId(b)" name="body" rows="12" [(ngModel)]="model['body']"></textarea>
+              }
+              <span class="hint">{{ b.hint }}</span>
+            </div>
+          }
+        }
+      </div>
+    </form>
+
+    <aside class="side">
+      <section class="adm-panel">
+        <h2>Publicação</h2>
+        <div class="actions">
+          <button type="button" class="btn btn--outline btn--block" [disabled]="busy()" (click)="save()">
+            {{ isNew() ? 'Guardar rascunho' : 'Guardar' }}
+          </button>
+          @if (entry()?.status !== 'published') {
+            <button type="button" class="btn btn--primary btn--block" [disabled]="busy()" (click)="save(true)"><sfc-icon name="check" size="16" />Guardar e publicar</button>
+          } @else {
+            <button type="button" class="btn btn--outline btn--block" [disabled]="busy()" (click)="setStatus('unpublish')">Despublicar</button>
+          }
+          @if (entry(); as en) {
+            @if (en.status !== 'archived') {
+              <button type="button" class="linkish" [disabled]="busy()" (click)="setStatus('archive')">Arquivar</button>
+            }
+            @if (en.status === 'published' && d.publicPath) {
+              <a class="linkish" [href]="d.publicPath(en)" target="_blank" rel="noopener"><sfc-icon name="external" size="16" />Ver no site</a>
+            }
+            <button type="button" class="linkish linkish--danger" [disabled]="busy()" (click)="remove()">Apagar</button>
+          }
+        </div>
+      </section>
+
+      @if (!isNew()) {
+        <section class="adm-panel">
+          <h2>Histórico</h2>
+          @if (!revisions().length) {
+            <p class="caption">Ainda sem versões guardadas neste browser/servidor.</p>
+          }
+          <ol class="revs">
+            @for (r of revisions(); track r.id; let first = $first) {
+              <li>
+                <span>
+                  <strong>{{ r.createdAt | date: 'dd/MM/y HH:mm' }}</strong>
+                  <span class="caption">{{ r.author ?? '—' }}{{ first ? ' · atual' : '' }}</span>
+                </span>
+                @if (!first) {
+                  <button type="button" class="linkish" [disabled]="busy()" (click)="restore(r)">Repor</button>
+                }
+              </li>
+            }
+          </ol>
+        </section>
+      }
+    </aside>
+  </div>
+}

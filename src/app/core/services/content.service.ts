@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import * as DATA from '../data/mock-data';
 import { AgendaItem, ClubEvent, Match, NewsArticle, SearchResult, Sport, SportSlug } from '../models';
+import { CmsStore } from '../cms/cms-store';
 
 /**
  * Ponto único de acesso ao conteúdo do site.
@@ -12,6 +13,8 @@ import { AgendaItem, ClubEvent, Match, NewsArticle, SearchResult, Sport, SportSl
 @Injectable({ providedIn: 'root' })
 export class ContentService {
   readonly club = DATA.CLUB;
+  /** Notícias, eventos e parceiros vêm do CMS (editados no backoffice). */
+  private readonly cms = inject(CmsStore);
 
   /** GET /api/sports */
   sports(): Sport[] {
@@ -64,14 +67,14 @@ export class ContentService {
 
   /** GET /api/news */
   news(category?: string): NewsArticle[] {
-    return [...DATA.NEWS]
+    return [...this.cms.news()]
       .filter((n) => !category || n.category === category)
       .sort((a, b) => b.publicationDate.localeCompare(a.publicationDate));
   }
 
   /** GET /api/news/{slug} */
   article(slug: string) {
-    return DATA.NEWS.find((n) => n.slug === slug);
+    return this.cms.news().find((n) => n.slug === slug);
   }
 
   newsCategories() {
@@ -80,7 +83,7 @@ export class ContentService {
 
   /** GET /api/events */
   events(): ClubEvent[] {
-    return [...DATA.EVENTS].sort((a, b) => a.date.localeCompare(b.date));
+    return [...this.cms.events()].sort((a, b) => a.date.localeCompare(b.date));
   }
 
   upcomingEvents(): ClubEvent[] {
@@ -89,7 +92,7 @@ export class ContentService {
   }
 
   event(slug: string) {
-    return DATA.EVENTS.find((e) => e.slug === slug);
+    return this.cms.events().find((e) => e.slug === slug);
   }
 
   /** Agenda agregada: jogos, competições de atletismo, eventos e vida associativa. */
@@ -157,7 +160,7 @@ export class ContentService {
   }
 
   sponsors() {
-    return DATA.SPONSORS.filter((s) => s.active);
+    return this.cms.partners();
   }
 
   gallery() {
@@ -203,13 +206,13 @@ export class ContentService {
         summary: `${t.category} · Época ${t.season}`,
         link: `/modalidades/${t.sportSlug}`,
       })),
-      ...DATA.NEWS.filter((n) => hit(n.title, n.summary, n.category)).map<SearchResult>((n) => ({
+      ...this.cms.news().filter((n) => hit(n.title, n.summary, n.category)).map<SearchResult>((n) => ({
         type: 'Notícia',
         title: n.title,
         summary: n.summary,
         link: `/noticias/${n.slug}`,
       })),
-      ...DATA.EVENTS.filter((e) => hit(e.title, e.summary, e.kind)).map<SearchResult>((e) => ({
+      ...this.cms.events().filter((e) => hit(e.title, e.summary, e.kind)).map<SearchResult>((e) => ({
         type: 'Evento',
         title: e.title,
         summary: e.summary,

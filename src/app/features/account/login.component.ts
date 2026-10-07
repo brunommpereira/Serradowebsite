@@ -6,9 +6,9 @@ import { AthleteAreaService } from '../../core/services/athlete-area.service';
 import { SeoService } from '../../core/services/seo.service';
 import { IconComponent } from '../../shared/icon.component';
 
-export type Profile = 'socio' | 'atleta';
+export type Profile = 'socio' | 'atleta' | 'staff';
 
-const AREA: Record<Profile, string> = { socio: '/area-socio', atleta: '/area-atletas' };
+const AREA: Record<Profile, string> = { socio: '/area-socio', atleta: '/area-atletas', staff: '/admin' };
 
 /**
  * Ponto de acesso único à área reservada (/entrar).
@@ -30,19 +30,20 @@ export class LoginComponent {
 
   /** ?voltar= — destino depois de entrar (só caminhos internos) */
   private readonly voltar = safePath(this.params.get('voltar'));
-  protected readonly profile = signal<Profile>(
-    this.params.get('perfil') === 'atleta' || (!this.params.get('perfil') && this.voltar?.startsWith('/area-atletas')) ? 'atleta' : 'socio',
-  );
+  protected readonly profile = signal<Profile>(initialProfile(this.params.get('perfil'), this.voltar));
   protected readonly mode = signal<'login' | 'reset'>('login');
   protected readonly error = signal(false);
   protected readonly resetSent = signal(false);
-  protected readonly demos = AuthService.DEMO;
+  protected readonly demos = computed(() => AuthService.DEMO.filter((d) => (this.profile() === 'staff') === d.roles.length > 0));
+  protected readonly busy = signal(false);
 
   /** Quantos atletas a conta acompanha (educandos e/ou o próprio). */
   protected readonly athleteCount = computed(() => this.area.athletes().length);
   protected readonly athleteRole = this.area.role;
   /** Pediu a Área de Sócio com uma conta que não é de sócio */
   protected readonly notMember = computed(() => this.auth.isLoggedIn() && !this.auth.isMember() && this.profile() === 'socio');
+  /** Pediu o backoffice com uma conta sem papel de staff */
+  protected readonly notStaff = computed(() => this.auth.isLoggedIn() && !this.auth.isStaff() && this.profile() === 'staff');
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     identifier: ['', Validators.required],
@@ -62,12 +63,15 @@ export class LoginComponent {
 
   useDemo(login: string, password: string, isMember: boolean) {
     this.form.setValue({ identifier: login, password });
-    if (!isMember) this.profile.set('atleta');
+    if (!isMember && this.profile() === 'socio') this.profile.set('atleta');
   }
 
-  submit() {
+  async submit() {
     const { identifier, password } = this.form.getRawValue();
-    if (!this.auth.login(identifier, password)) {
+    this.busy.set(true);
+    const ok = await this.auth.login(identifier, password);
+    this.busy.set(false);
+    if (!ok) {
       this.error.set(true);
       return;
     }
@@ -87,8 +91,15 @@ export class LoginComponent {
   }
 
   private canOpen(p: Profile) {
-    return p === 'socio' ? this.auth.isMember() : this.auth.isLoggedIn();
+    return p === 'socio' ? this.auth.isMember() : p === 'staff' ? this.auth.isStaff() : this.auth.isLoggedIn();
   }
+}
+
+function initialProfile(param: string | null, voltar: string | null): Profile {
+  if (param === 'atleta' || param === 'staff' || param === 'socio') return param;
+  if (voltar?.startsWith('/area-atletas')) return 'atleta';
+  if (voltar?.startsWith('/admin')) return 'staff';
+  return 'socio';
 }
 
 function safePath(url: string | null) {

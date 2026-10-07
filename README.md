@@ -77,15 +77,39 @@ O `ContentService` é o único ponto de acesso aos dados. Ao lado de cada métod
 | Rita Exemplo | `00731` ou `atleta@exemplo.pt` | `atleta2026` | sócia + atleta |
 | João Exemplo | `joao@exemplo.pt` | `atleta2026` | atleta (não sócio) |
 
-**Backend privado (dados reais):** ver [`backend/README.md`](backend/README.md) e [`tools/trofeu-almada/`](tools/trofeu-almada/README.md).
+**Backoffice `/admin` (CMS):** entrar com uma conta da equipa do clube (em `/entrar` → «Equipa do clube? Entrar no backoffice»):
 
-## O que falta e precisa de backend (fases 2 a 7)
+| Conta | Password | Papel |
+|---|---|---|
+| `admin@serradofc.pt` | `admin2026` | admin (tudo) |
+| `editor@serradofc.pt` | `editor2026` | editor: notícias, eventos, páginas, parceiros |
+| `secretaria@serradofc.pt` | `secretaria2026` | secretaria: atletas, validações, resultados |
+| `treinador@serradofc.pt` | `treinador2026` | treinador: consulta de atletas (sem dados sensíveis) |
 
-Os fluxos marcados como **demo** funcionam de ponta a ponta no browser, mas ainda não guardam dados nem cobram nada. Ficam por fazer:
+## Arquitetura: front · middleware · backend · base de dados
 
-- Backend Java/Spring Boot com PostgreSQL, OAuth2/OIDC e MFA para administradores.
-- Pagamentos reais (MB WAY, Multibanco, cartão, débito direto) com webhooks, recibos em PDF e emails.
-- Backoffice/CMS (secções 29–30), newsletter, notificações push/SMS e assistente IA.
+| Camada | Pasta | Papel |
+|---|---|---|
+| Front | `src/` | Angular: site público, Área de Sócio/Atletas e backoffice com CMS |
+| Middleware | `services/middleware` | API pública `/api/v1` (sessão, permissões, cache, agregação) |
+| Backend | `services/backend` | API interna `/internal/v1` (regras de negócio, acesso a dados) |
+| Base de dados | `services/db` | PostgreSQL 16: migrações e seed |
+
+Ver [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) e [`services/README.md`](services/README.md). Sem `apiBaseUrl` (o caso do GitHub Pages), o front corre em **modo demonstração**: as edições do CMS ficam só no browser. Com a API configurada, tudo passa pelo middleware até ao PostgreSQL.
+
+Ferramentas de dados: [`tools/trofeu-almada/`](tools/trofeu-almada/README.md).
+
+## O que falta (próximas fases)
+
+Já existem o backoffice com CMS, o middleware e o backend com PostgreSQL. Ficam por fazer:
+
+- **Alojamento:** pôr os serviços e a base de dados em produção, e ligar o front configurando `apiBaseUrl` (ver `services/README.md`).
+- **Áreas de Sócio e de Atletas:** ligá-las à API. As APIs já existem (`/me/*`, `/athletes/*`) e, por agora, as áreas usam os dados de demonstração.
+- **Documentos:** carregamento real para armazenamento privado.
+- **Contas:** convites por email e recuperação de password.
+- **Administradores:** MFA.
+- **Pagamentos reais:** MB WAY, Multibanco, cartão e débito direto, com webhooks, recibos em PDF e emails.
+- **Outros:** newsletter, notificações push e SMS, e assistente IA.
 
 ## Antes de publicar: rever
 

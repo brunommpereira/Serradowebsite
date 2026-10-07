@@ -1,0 +1,253 @@
+{
+ "news": [
+  {
+   "id": 1,
+   "slug": "nova-epoca-futsal",
+   "title": "Arranca a nova época de futsal com mais de 120 atletas",
+   "category": "Futsal",
+   "summary": "Dos Sub-7 aos Seniores, o pavilhão voltou a encher-se. Conhece as equipas e os horários de treino para 2026/27.",
+   "content": [
+    "A época 2026/27 do futsal do Serrado FC arrancou com todas as equipas em treino e casa cheia no pavilhão.",
+    "Este ano o clube conta com sete escalões, desde os Petizes (Sub-7) até à equipa sénior, que volta a disputar o Campeonato Distrital.",
+    "As inscrições continuam abertas em todos os escalões de formação. Os interessados podem experimentar um treino gratuito antes de se inscreverem."
+   ],
+   "author": "Comunicação Serrado FC",
+   "publicationDate": "2026-10-05"
+  },
+  {
+   "id": 2,
+   "slug": "rugby-almada-rugby",
+   "title": "Nasce o Almada Rugby SFC, o núcleo de rugby do Serrado FC",
+   "category": "Rugby",
+   "summary": "Formação de rugby a partir dos 5 anos, nos escalões U8, U10, U12 e U14. A primeira época arrancou a 7 de setembro.",
+   "content": [
+    "O Serrado FC tem um novo núcleo: o Almada Rugby SFC, dedicado à formação de rugby a partir dos 5 anos.",
+    "A primeira época de treinos arrancou a 7 de setembro de 2026, com os escalões U8, U10, U12 e U14. Os treinos são à segunda e à sexta-feira, das 19h00 às 20h00, e os treinos de experiência são gratuitos.",
+    "Toda a informação do núcleo (formação, calendário, perguntas frequentes e contactos) está em almadarugby.pt."
+   ],
+   "author": "Comunicação Serrado FC",
+   "publicationDate": "2026-09-07"
+  },
+  {
+   "id": 3,
+   "slug": "campanha-socios-2026",
+   "title": "Campanha de Sócios 2026: faz parte da família Serrado",
+   "category": "Clube",
+   "summary": "Novas categorias, quota familiar e, em breve, pagamento online. Ser sócio nunca foi tão simples.",
+   "content": [
+    "O Serrado FC lançou a campanha de sócios 2026 com novas categorias, incluindo a quota Familiar.",
+    "Em breve será possível pagar quotas online por MB WAY, Referência Multibanco ou cartão, e ter o cartão de sócio digital no telemóvel.",
+    "Ser sócio é apoiar diretamente a formação de centenas de jovens do nosso bairro."
+   ],
+   "author": "Direção",
+   "publicationDate": "2026-10-01"
+  },
+  {
+   "id": 4,
+   "slug": "atletismo-meia-maratona",
+   "title": "Atletismo: 12 atletas na Meia Maratona e 3.º lugar coletivo",
+   "category": "Atletismo",
+   "summary": "Uma manhã em grande para a secção de atletismo, com pódio coletivo e vários recordes pessoais.",
+   "content": [
+    "A secção de atletismo esteve em destaque na Meia Maratona, com 12 atletas classificados e o 3.º lugar coletivo.",
+    "Parabéns a todos os atletas e à equipa técnica!"
+   ],
+   "author": "Secção de Atletismo",
+   "publicationDate": "2026-09-29"
+  },
+  {
+   "id": 5,
+   "slug": "caminhada-solidaria-inscricoes",
+   "title": "Inscrições abertas para a Caminhada Solidária",
+   "category": "Comunidade",
+   "summary": "Uma caminhada pelo património da Caparica com receita revertida para famílias apoiadas pelo clube.",
+   "content": [
+    "Estão abertas as inscrições para a Caminhada Solidária do Serrado FC.",
+    "O percurso passa por locais de interesse histórico da freguesia, no âmbito do projeto Descobrir Património."
+   ],
+   "author": "Comunicação Serrado FC",
+   "publicationDate": "2026-09-20"
+  },
+  {
+   "id": 6,
+   "slug": "escola-de-desporto-arranque",
+   "title": "Escola de Desporto recebe os mais pequenos",
+   "category": "Formação",
+   "summary": "Sábados de manhã dedicados à descoberta de várias modalidades, para crianças dos 4 aos 8 anos.",
+   "content": [
+    "A Escola de Desporto voltou com sessões aos sábados de manhã, no pavilhão.",
+    "As crianças experimentam futsal, rugby e atletismo num ambiente divertido e seguro."
+   ],
+   "author": "Coordenação de Formação",
+   "publicationDate": "2026-09-15"
+  },
+  {
+   "id": 7,
+   "slug": "convocatoria-assembleia-geral",
+   "title": "Convocatória: Assembleia Geral Ordinária",
+   "category": "Comunicados",
+   "summary": "Convocam-se os sócios para a Assembleia Geral Ordinária. Consulta a ordem de trabalhos.",
+   "content": [
+    "Nos termos dos Estatutos, convocam-se os sócios do Serrado Futebol Clube para a Assembleia Geral Ordinária.",
+    "A ordem de trabalhos e os documentos de apoio estarão disponíveis na área de Transparência."
+   ],
+   "author": "Mesa da Assembleia Geral",
+   "publicationDate": "2026-09-10"
+  }
+ ],
+ "events": [
+  {
+   "id": 1,
+   "slug": "caminhada-solidaria",
+   "title": "Caminhada Solidária — Descobrir Património",
+   "kind": "Caminhada",
+   "summary": "Percurso de 8 km pelo património da Caparica. Receita revertida para famílias apoiadas pelo clube.",
+   "description": [
+    "Uma manhã para caminhar em família e conhecer a história da nossa terra.",
+    "Inclui t-shirt do evento, abastecimento a meio do percurso e seguro.",
+    "Partida e chegada junto à sede do clube."
+   ],
+   "date": "2026-11-08T09:30",
+   "endTime": "12:30",
+   "location": "Sede do Serrado FC",
+   "capacity": 200,
+   "registered": 87,
+   "price": 8,
+   "memberPrice": 5,
+   "registrationRequired": true,
+   "askShirtSize": true
+  },
+  {
+   "id": 2,
+   "slug": "torneio-futsal-natal",
+   "title": "Torneio de Natal de Futsal (Formação)",
+   "kind": "Torneio",
+   "sportSlug": "futsal",
+   "summary": "Torneio de formação Sub-9 a Sub-13 com equipas convidadas da região.",
+   "description": [
+    "Dois dias de futsal de formação, convívio e espírito natalício.",
+    "Inscrições por equipa, através dos coordenadores."
+   ],
+   "date": "2026-12-19T09:00",
+   "endTime": "19:00",
+   "location": "Pavilhão do Serrado",
+   "capacity": 16,
+   "registered": 9,
+   "price": 0,
+   "registrationRequired": true,
+   "askShirtSize": false
+  },
+  {
+   "id": 3,
+   "slug": "corrida-serrado-5k",
+   "title": "Corrida Serrado 5K",
+   "kind": "Corrida",
+   "sportSlug": "atletismo",
+   "summary": "A corrida do clube, aberta a todos. Inclui caminhada de 3 km e corrida infantil.",
+   "description": [
+    "Prova de 5 km com cronometragem, caminhada de 3 km e corridas infantis.",
+    "Prémios para os três primeiros de cada escalão."
+   ],
+   "date": "2027-03-14T10:00",
+   "endTime": "13:00",
+   "location": "Bairro do Serrado",
+   "capacity": 400,
+   "registered": 0,
+   "price": 10,
+   "memberPrice": 7,
+   "registrationRequired": true,
+   "askShirtSize": true
+  },
+  {
+   "id": 4,
+   "slug": "dia-aberto-escola-de-desporto",
+   "title": "Dia Aberto da Escola de Desporto",
+   "kind": "Crianças",
+   "sportSlug": "escola-de-desporto",
+   "summary": "Traz os teus filhos para experimentar várias modalidades. Gratuito.",
+   "description": [
+    "Sessão aberta para crianças dos 4 aos 8 anos experimentarem futsal, rugby e atletismo."
+   ],
+   "date": "2026-10-24T10:00",
+   "endTime": "12:00",
+   "location": "Pavilhão do Serrado",
+   "capacity": 40,
+   "registered": 22,
+   "price": 0,
+   "registrationRequired": true,
+   "askShirtSize": false
+  }
+ ],
+ "sponsors": [
+  {
+   "id": 1,
+   "name": "Patrocinador Principal",
+   "category": "Patrocinador Principal",
+   "website": "",
+   "description": "Espaço reservado ao patrocinador principal do clube.",
+   "active": true
+  },
+  {
+   "id": 2,
+   "name": "Patrocinador A",
+   "category": "Patrocinador",
+   "website": "",
+   "description": "Espaço reservado.",
+   "active": true
+  },
+  {
+   "id": 3,
+   "name": "Patrocinador B",
+   "category": "Patrocinador",
+   "website": "",
+   "description": "Espaço reservado.",
+   "active": true
+  },
+  {
+   "id": 4,
+   "name": "Patrocinador C",
+   "category": "Patrocinador",
+   "website": "",
+   "description": "Espaço reservado.",
+   "active": true
+  },
+  {
+   "id": 5,
+   "name": "Parceiro Local",
+   "category": "Parceiro",
+   "website": "",
+   "description": "Espaço reservado.",
+   "active": true
+  },
+  {
+   "id": 6,
+   "name": "Parceiro Institucional",
+   "category": "Parceiro Institucional",
+   "website": "",
+   "description": "Espaço reservado.",
+   "active": true
+  }
+ ],
+ "sports": [
+  {
+   "slug": "atletismo",
+   "name": "Atletismo"
+  },
+  {
+   "slug": "futsal",
+   "name": "Futsal"
+  },
+  {
+   "slug": "rugby",
+   "name": "Rugby"
+  },
+  {
+   "slug": "formacao",
+   "name": "Formação"
+  },
+  {
+   "slug": "escola-de-desporto",
+   "name": "Escola de Desporto"
+  }
+ ]
+}

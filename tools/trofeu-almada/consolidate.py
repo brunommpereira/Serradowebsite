@@ -423,7 +423,7 @@ notes.column_dimensions['A'].width = 140
 wb.move_sheet('Notas', offset=-(len(wb.sheetnames) - 1))
 wb.save(OUT)
 
-# --------------------------------------------- 8. CSV de importação no backend (backend/supabase/schema.sql)
+# --------------------------------------------- 8. CSV de importação (results.csv → backoffice; athletes.csv → tabela athletes, ver services/README.md)
 if args.import_dir:
     os.makedirs(args.import_dir, exist_ok=True)
     with open(os.path.join(args.import_dir, 'athletes.csv'), 'w', encoding='utf-8', newline='') as f:

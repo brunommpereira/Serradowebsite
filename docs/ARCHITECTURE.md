@@ -1,0 +1,96 @@
+# Arquitetura — Serrado FC Digital
+
+Três camadas com responsabilidades separadas, e uma base de dados.
+
+```
+┌──────────────────────────┐   HTTPS + cookie de sessão   ┌───────────────────────────┐  rede interna   ┌──────────────────────────┐      ┌──────────────┐
+│ FRONT (Angular)          │ ───────────────────────────▶ │ MIDDLEWARE (BFF)          │ ──────────────▶ │ BACKEND (API interna)     │ ───▶ │ PostgreSQL   │
+│ src/                     │      /api/v1/…               │ services/middleware       │ /internal/v1/…  │ services/backend          │  SQL │ services/db  │
+│ • site público           │                              │ • autenticação (JWT)      │ token de serviço│ • regras de negócio       │      │ • migrações  │
+│ • Área de Sócio/Atletas  │                              │ • permissões por papel    │ + utilizador    │ • acesso à base de dados  │      │ • seed demo  │
+│ • Backoffice /admin (CMS)│                              │ • validação, rate limit   │                 │ • transações e auditoria  │      └──────────────┘
+└──────────────────────────┘                              │ • cache e agregação       │                 │ • revisões do CMS         │
+       GitHub Pages                                       └───────────────────────────┘                 └──────────────────────────┘
+                                                            público (Internet)                            privado (sem acesso externo)
+```
+
+## Responsabilidades
+
+| Camada | Faz | Não faz |
+|---|---|---|
+| **Front** (`src/`) | Interface, navegação e validação de formulários (para a experiência do utilizador). Fala **só** com o middleware. | Não guarda segredos e não acede à base de dados. Nunca decide permissões sozinho. |
+| **Middleware** (`services/middleware`) | Login e sessão (JWT em cookie `httpOnly`); papéis (`admin`, `editor`, `secretaria`, `treinador`); validação de pedidos; rate limit; CORS; cache do conteúdo público; agregação de dados para o front (por exemplo `/home`, `/me` e o dashboard). | Não tem SQL nem regras de negócio. |
+| **Backend** (`services/backend`) | Regras de negócio, por exemplo: pedidos de alteração validados pela secretaria; no máximo 2 co-encarregados; confirmação de dados por época; publicação e revisões do CMS. Faz o acesso a PostgreSQL e escreve a auditoria. | Não fica exposto à Internet. Só aceita pedidos com o token de serviço do middleware. |
+| **Base de dados** (`services/db`) | Esquema versionado (migrações), integridade (chaves estrangeiras e `check`) e dados de demonstração (seed). | — |
+
+**Defesa em profundidade:** o middleware verifica o papel de quem faz o pedido. O backend volta a verificar o acesso ao nível dos dados: um encarregado só consegue ler ou alterar os seus educandos, mesmo que o middleware falhe.
+
+## Base de dados
+
+**PostgreSQL 16.** Opções de alojamento, todas com região UE:
+
+| Opção | Notas |
+|---|---|
+| Postgres gerido (Supabase, Neon, Azure Database for PostgreSQL, AWS RDS) | Recomendado: backups automáticos e TLS. O plano gratuito chega para começar. |
+| Servidor do clube / VPS com Docker | `docker compose up` (ver `docker-compose.yml`). Os backups ficam a cargo do clube. |
+
+Tabelas principais (ver `services/db/migrations`):
+
+- **Identidade:** `users` (uma conta por pessoa; o n.º de sócio é opcional), `user_roles`, `audit_log`.
+- **Sócios:** `members`, `quotas`.
+- **Atletas:** `athletes`, `athlete_access` (encarregado, co-encarregado ou atleta), `athlete_documents`, `athlete_change_requests`.
+- **Competições:** `races`, `results` (Troféu de Almada).
+- **CMS:** `cms_news`, `cms_events`, `cms_pages`, `cms_partners`, `cms_revisions` (histórico de versões de cada conteúdo).
+
+## APIs
+
+- **Middleware (pública):** `services/middleware/openapi.json`, com documentação interativa em `/api/docs`.
+- **Backend (interna):** `services/backend/openapi.json`, com documentação em `/internal/docs`. Só está disponível em desenvolvimento.
+
+| Grupo | Middleware `/api/v1` | Backend `/internal/v1` |
+|---|---|---|
+| Sessão | `POST /auth/login`, `POST /auth/logout`, `GET /me` | `POST /auth/verify`, `GET /users/{id}` |
+| Conteúdo público | `GET /content/home`, `/content/news[/{slug}]`, `/content/events[/{slug}]`, `/content/pages/{slug}`, `/content/partners` (com cache) | `GET /cms/{tipo}?status=published` |
+| Área de Atletas | `GET /me/athletes`, `GET\|PATCH /athletes/{id}`, `POST /athletes/{id}/confirm`, `POST /athletes/{id}/change-requests`, `GET /athletes/{id}/results` | `GET /athletes?accessibleBy=`, `GET\|PATCH /athletes/{id}`, `POST /athletes/{id}/confirm`, `POST /athletes/{id}/change-requests`, `GET /athletes/{id}/results` |
+| Área de Sócio | `GET /me/member`, `GET /me/quotas` | `GET /members/{number}`, `GET /members/{number}/quotas` |
+| Backoffice: CMS | `GET\|POST /admin/cms/{tipo}`, `GET\|PUT\|DELETE /admin/cms/{tipo}/{id}`, `POST …/publish`, `POST …/unpublish`, `GET …/revisions`, `POST …/revisions/{rev}/restore` | as mesmas, em `/cms/…` |
+| Backoffice: atletas | `GET /admin/athletes`, `GET /admin/change-requests`, `POST /admin/change-requests/{id}/approve\|reject`, `POST /admin/documents/{id}/approve\|reject` | as mesmas, sem o prefixo `/admin` |
+| Backoffice: resultados | `POST /admin/results/import` | `POST /results/import` |
+| Backoffice: gestão | `GET /admin/dashboard` (agregado), `GET /admin/users`, `PUT /admin/users/{id}/roles`, `GET /admin/audit` | `GET /stats`, `GET /users`, `PUT /users/{id}/roles`, `GET /audit` |
+
+### Papéis no backoffice
+
+| Papel | CMS | Atletas e documentos | Pedidos de alteração | Resultados | Utilizadores e auditoria |
+|---|---|---|---|---|---|
+| `admin` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `editor` | ✅ | — | — | — | — |
+| `secretaria` | — | ✅ | ✅ | ✅ | — |
+| `treinador` | — | ver | — | — | — |
+
+## Front: modo demonstração vs API
+
+O front tem uma camada de dados com duas implementações:
+
+- **Demo:** quando `apiBaseUrl` está vazio, que é o caso do GitHub Pages hoje. Os dados vêm de `core/data` e do `localStorage` do browser. No modo demo, o CMS do backoffice já publica no site, mas só no browser de quem edita.
+- **API:** quando `apiBaseUrl` está definido em `src/app/core/api/api.config.ts`. O front passa a chamar o middleware com `withCredentials`, e o conteúdo e as áreas reservadas passam a ser reais.
+
+## Correr localmente
+
+```bash
+docker compose up -d db                     # PostgreSQL
+cd services && npm ci
+npm run db:migrate && npm run db:seed      # esquema + dados de demonstração
+npm run backend                            # :4100  /internal/docs
+npm run middleware                         # :4000  /api/docs
+cd .. && npm start                         # front :4200 (apiBaseUrl → http://localhost:4000/api/v1)
+```
+
+Ou tudo junto: `docker compose up --build`.
+
+## Segurança
+
+- **Sessão:** JWT de curta duração em cookie `httpOnly`, `Secure` e `SameSite=Lax`. Para pedidos que alteram dados, o middleware exige o cabeçalho `X-Requested-With` como proteção CSRF.
+- **Passwords:** guardadas com `scrypt` e salt. O login tem rate limit e responde à mesma velocidade quer a conta exista quer não.
+- **Backend privado:** acessível só com `SERVICE_TOKEN`, e o middleware envia o utilizador autenticado em cabeçalhos de contexto (`X-Actor-Id`, `X-Actor-Roles`), que o backend só aceita acompanhados desse token.
+- **Auditoria:** todas as escritas ficam registadas em `audit_log` (quem, o quê, quando).
+- **Dados de identificação:** nome, nascimento, CC e NIF só mudam através de pedidos aprovados pela secretaria. Um trigger na base de dados garante isto.

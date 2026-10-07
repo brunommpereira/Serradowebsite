@@ -35,7 +35,7 @@ python3 consolidate.py --bd "BD.xlsx" --form "Respostas_1.xlsx" --form "Resposta
   --results out/resultados.csv --out out/serrado-consolidado.xlsx --import-dir out/import
 ```
 
-Gera um Excel com as folhas **Notas**, **Atletas**, **Resultados**, **Comparação épocas**, **Distâncias**, **Corrida Natal (Form. 2)** e **Por associar**. Com `--import-dir`, gera também os CSV `athletes.csv` e `results.csv` para importar no backend (ver `backend/README.md`).
+Gera um Excel com as folhas **Notas**, **Atletas**, **Resultados**, **Comparação épocas**, **Distâncias**, **Corrida Natal (Form. 2)** e **Por associar**. Com `--import-dir`, gera também os CSV `athletes.csv` e `results.csv` para importar: `results.csv` no backoffice (**Resultados → Importar**) e `athletes.csv` na tabela `athletes` (ver `services/README.md`).
 
 ### Como liga os dados
 

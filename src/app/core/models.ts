@@ -239,7 +239,11 @@ export interface Account {
   email: string;
   /** null = não é sócio (ex.: atleta ou encarregado sem quota de sócio) */
   member: Member | null;
+  /** Papéis no backoffice (vazio = utilizador normal do site) */
+  roles: StaffRole[];
 }
+
+export type StaffRole = 'admin' | 'editor' | 'secretaria' | 'treinador';
 
 export interface SearchResult {
   type: 'Página' | 'Notícia' | 'Evento' | 'Modalidade' | 'Equipa' | 'Documento';

@@ -37,7 +37,10 @@
     }
 
     @if (a.pendingReview; as p) {
-      <p class="review"><sfc-icon name="clock" size="16" />Em validação pela secretaria: {{ p.fields.join(', ') }} (pedido a {{ p.requestedAt | date: 'dd/MM' }}).</p>
+      <p class="review">
+        <sfc-icon name="clock" size="16" />
+        <span>Em validação pela secretaria (pedido a {{ p.requestedAt | date: 'dd/MM' }}): {{ requestedText() }}.</span>
+      </p>
     }
     @if (idExpired()) {
       <p class="review review--bad"><sfc-icon name="warning" size="16" />O documento de identificação caducou a {{ d.idExpiry | date: 'dd/MM/y' }}. Atualiza o n.º e a validade e carrega o novo documento.</p>

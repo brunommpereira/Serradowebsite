@@ -1,4 +1,7 @@
-import { ApplicationConfig, LOCALE_ID, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ApplicationConfig, inject, LOCALE_ID, provideAppInitializer, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { provideHttpClient, withFetch } from '@angular/common/http';
+import { CmsStore } from './core/cms/cms-store';
+import { AuthService } from './core/services/auth.service';
 import { registerLocaleData } from '@angular/common';
 import localePt from '@angular/common/locales/pt-PT';
 import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
@@ -17,6 +20,14 @@ export const appConfig: ApplicationConfig = {
       withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' }),
     ),
     provideClientHydration(withEventReplay()),
+    provideHttpClient(withFetch()),
+    // Modo API: recupera a sessão e carrega o conteúdo do CMS antes de mostrar o site
+    provideAppInitializer(async () => {
+      const auth = inject(AuthService); // inject() só antes do primeiro await
+      const cms = inject(CmsStore);
+      await auth.restoreFromApi();
+      await cms.loadFromApi(auth.hasRole('editor'));
+    }),
     { provide: LOCALE_ID, useValue: 'pt-PT' },
   ],
 };

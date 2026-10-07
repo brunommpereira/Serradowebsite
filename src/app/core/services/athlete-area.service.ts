@@ -5,6 +5,7 @@ import {
   AthleteDetails,
   CLUB_DOWNLOADS,
   CURRENT_SEASON,
+  IdentityChanges,
   CompetitionResult,
   DEMO_ASSESSMENTS,
   DEMO_ATHLETES,
@@ -234,17 +235,55 @@ export class AthleteAreaService {
     ];
     const changed = identity.filter(([, before, after]) => before !== after).map(([label]) => label);
     const today = nowIso().slice(0, 10);
+    const requested: IdentityChanges = {};
+    if (data.name !== a.name) requested.name = data.name;
+    if (data.birthDate !== a.birthDate) requested.birthDate = data.birthDate;
+    if (data.details.gender !== a.details.gender) requested.gender = data.details.gender;
+    if (data.details.idNumber !== a.details.idNumber) requested.idNumber = data.details.idNumber;
+    if (data.details.taxNumber !== a.details.taxNumber) requested.taxNumber = data.details.taxNumber;
     this.patchAthlete(athleteId, (x) => ({
       ...x,
-      name: data.name,
-      birthDate: data.birthDate,
-      details: { ...data.details },
+      // Contactos, emergência, equipamento e consentimentos: aplicados já.
+      // Identificação: fica pendente até a secretaria validar (como no backend).
+      details: { ...data.details, gender: x.details.gender, idNumber: x.details.idNumber, taxNumber: x.details.taxNumber },
       confirmedAt: today,
       pendingReview: changed.length
-        ? { fields: [...new Set([...(x.pendingReview?.fields ?? []), ...changed])], requestedAt: today }
+        ? {
+            fields: [...new Set([...(x.pendingReview?.fields ?? []), ...changed])],
+            requestedAt: today,
+            changes: { ...(x.pendingReview?.changes ?? {}), ...requested },
+          }
         : x.pendingReview,
     }));
     return changed;
+  }
+
+  // ---------------------------------------------------------------- backoffice (secretaria)
+
+  /** Todos os atletas do clube (backoffice). GET /api/v1/admin/athletes */
+  readonly allAthletes = computed(() => this.state().athletes);
+
+  /** Aprova (aplica) ou rejeita o pedido de alteração de identificação. */
+  resolveChange(athleteId: string, approve: boolean) {
+    this.patchAthlete(athleteId, (a) => {
+      const c = a.pendingReview?.changes ?? {};
+      return {
+        ...a,
+        ...(approve ? { name: c.name ?? a.name, birthDate: c.birthDate ?? a.birthDate } : {}),
+        details: approve
+          ? { ...a.details, gender: c.gender ?? a.details.gender, idNumber: c.idNumber ?? a.details.idNumber, taxNumber: c.taxNumber ?? a.details.taxNumber }
+          : a.details,
+        pendingReview: undefined,
+      };
+    });
+  }
+
+  /** Valida um documento de inscrição (Aprovado / Rejeitado com motivo). */
+  reviewDocument(athleteId: string, docId: string, approve: boolean, note?: string) {
+    this.patchAthlete(athleteId, (a) => ({
+      ...a,
+      documents: a.documents.map((d) => (d.id === docId ? { ...d, status: approve ? 'Aprovado' : 'Rejeitado', note: approve ? undefined : note } : d)),
+    }));
   }
 
   /** Repõe os dados de demonstração. */

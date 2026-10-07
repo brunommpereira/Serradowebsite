@@ -44,6 +44,18 @@ export class AthleteDataComponent {
   protected readonly missing = computed(() => this.area.missingFields(this.athlete()));
   protected readonly minor = computed(() => ageOn(this.athlete().birthDate) < 18);
   protected readonly self = computed(() => this.area.isSelf(this.athlete().id));
+  /** «Nome → Tomás Miguel Exemplo; NIF → •••••6789» */
+  protected readonly requestedText = computed(() => {
+    const c = this.athlete().pendingReview?.changes ?? {};
+    const parts: string[] = [];
+    if (c.name) parts.push(`Nome → ${c.name}`);
+    if (c.birthDate) parts.push(`Nascimento → ${c.birthDate.split('-').reverse().join('/')}`);
+    if (c.gender) parts.push(`Género → ${c.gender}`);
+    if (c.idNumber) parts.push(`N.º CC → ${this.mask(c.idNumber)}`);
+    if (c.taxNumber) parts.push(`NIF → ${this.mask(c.taxNumber)}`);
+    return parts.join('; ') || this.athlete().pendingReview?.fields.join(', ');
+  });
+
   protected readonly idExpired = computed(() => {
     const exp = this.athlete().details.idExpiry;
     return !!exp && exp < this.today;
