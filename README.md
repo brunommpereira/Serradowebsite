@@ -98,10 +98,10 @@ As cores foram retiradas do emblema oficial (`2025.10.13_SERRADO_FC_FINAL.pdf`):
 
 | Cor | Hex |
 |---|---|
-| Azul Serrado | `#19468E` |
-| Amarelo | `#FDD20E` |
-| Verde Louro | `#217632` |
-| Bola | `#C9593D` |
+| Azul Serrado | `#004A8E` |
+| Amarelo | `#FFD318` |
+| Verde Louro | `#00783A` |
+| Bola | `#C96B47` |
 | Carvão | `#231F20` |
 
 Os tokens estão em `src/styles.scss`. Os títulos usam a fonte *Barlow Condensed*, próxima do lettering do emblema, e o texto corrido usa *Inter*.

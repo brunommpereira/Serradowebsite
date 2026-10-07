@@ -37,7 +37,7 @@ import { QrCodeComponent } from './qr-code.component';
       padding: 1.4rem 1.5rem;
       color: #fff;
       background:
-        radial-gradient(circle at 110% -10%, rgba(253, 210, 14, 0.55), transparent 45%),
+        radial-gradient(circle at 110% -10%, rgba(255, 211, 24, 0.55), transparent 45%),
         repeating-conic-gradient(from 0deg at 105% 110%, rgba(255, 255, 255, 0.06) 0 5deg, transparent 5deg 12deg),
         linear-gradient(135deg, var(--sfc-blue), var(--sfc-blue-900));
       box-shadow: 0 24px 40px -18px rgba(11, 35, 80, 0.7);

@@ -4,15 +4,15 @@
    ===================================================================== */
 :root {
   /* Marca */
-  --sfc-blue: #19468e;
-  --sfc-blue-700: #133770;
-  --sfc-blue-900: #0b2350;
-  --sfc-blue-50: #eaf0fa;
-  --sfc-yellow: #fdd20e;
-  --sfc-yellow-600: #e5bb00;
-  --sfc-green: #217632;
+  --sfc-blue: #004a8e;
+  --sfc-blue-700: #003b72;
+  --sfc-blue-900: #00264f;
+  --sfc-blue-50: #e6eef8;
+  --sfc-yellow: #ffd318;
+  --sfc-yellow-600: #ebbd00;
+  --sfc-green: #00783a;
   --sfc-green-50: #e7f4ea;
-  --sfc-ball: #c9593d;
+  --sfc-ball: #c96b47;
   --sfc-ink: #231f20;
 
   /* Semântica */
@@ -33,9 +33,9 @@
   --color-link: var(--sfc-blue);
 
   /* Modalidades */
-  --sport-atletismo: #c9593d;
-  --sport-futsal: #19468e;
-  --sport-rugby: #217632;
+  --sport-atletismo: #c96b47;
+  --sport-futsal: #004a8e;
+  --sport-rugby: #00783a;
   --sport-formacao: #b98a00;
   --sport-escola: #6a3fa0;
   --sport-clube: #231f20;
@@ -328,7 +328,7 @@ p {
 .btn--accent {
   background: var(--sfc-yellow);
   color: var(--color-on-accent);
-  box-shadow: 0 8px 22px -10px rgba(253, 210, 14, 0.9);
+  box-shadow: 0 8px 22px -10px rgba(255, 211, 24, 0.9);
   &:hover {
     background: var(--sfc-yellow-600);
   }
@@ -547,7 +547,7 @@ p {
     &:focus {
       outline: none;
       border-color: var(--sfc-blue);
-      box-shadow: 0 0 0 3px rgba(25, 70, 142, 0.18);
+      box-shadow: 0 0 0 3px rgba(0, 74, 142, 0.18);
     }
     &.ng-invalid.ng-touched {
       border-color: var(--color-danger);

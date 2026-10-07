@@ -43,11 +43,11 @@ export interface Crumb {
       overflow: hidden;
       color: #fff;
       background:
-        radial-gradient(900px 380px at 90% -10%, rgba(253, 210, 14, 0.28), transparent 60%),
+        radial-gradient(900px 380px at 90% -10%, rgba(255, 211, 24, 0.28), transparent 60%),
         linear-gradient(135deg, var(--hero-a, var(--sfc-blue)) 0%, var(--hero-b, var(--sfc-blue-900)) 100%);
-      &[data-sport='atletismo'] { --hero-a: #c9593d; --hero-b: #6e2414; }
-      &[data-sport='rugby'] { --hero-a: #217632; --hero-b: #0c3d17; }
-      &[data-sport='formacao'] { --hero-a: #19468e; --hero-b: #3d2a00; }
+      &[data-sport='atletismo'] { --hero-a: #c96b47; --hero-b: #6e2414; }
+      &[data-sport='rugby'] { --hero-a: #00783a; --hero-b: #0c3d17; }
+      &[data-sport='formacao'] { --hero-a: #004a8e; --hero-b: #3d2a00; }
       &[data-sport='escola-de-desporto'] { --hero-a: #6a3fa0; --hero-b: #2d1450; }
     }
     .phero__inner {
