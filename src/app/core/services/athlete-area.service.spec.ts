@@ -5,19 +5,19 @@ import { AuthService } from './auth.service';
 describe('AthleteAreaService', () => {
   let service: AthleteAreaService;
   let auth: AuthService;
-  beforeEach(() => {
-    localStorage.removeItem('sfc.athletes.v2');
+  beforeEach(async () => {
+    localStorage.removeItem('sfc.athletes.v3');
     auth = TestBed.inject(AuthService);
-    auth.login('00482', 'serrado1978'); // encarregado de educação
+    await auth.login('00482', 'serrado1978'); // encarregado de educação
     service = TestBed.inject(AthleteAreaService);
     service.reset();
   });
   afterEach(() => auth.logout());
 
-  it('o encarregado vê só os educandos; a atleta vê só o seu registo', () => {
+  it('o encarregado vê só os educandos; a atleta vê só o seu registo', async () => {
     expect(service.role()).toBe('encarregado');
     expect(service.athletes().map((a) => a.id)).toEqual(['atl-1', 'atl-2']);
-    auth.login('00731', 'atleta2026');
+    await auth.login('00731', 'atleta2026');
     expect(service.role()).toBe('atleta');
     expect(service.athletes().map((a) => a.id)).toEqual(['atl-3']);
     expect(service.isSelf('atl-3')).toBe(true);
@@ -25,8 +25,8 @@ describe('AthleteAreaService', () => {
     expect(service.athletes()).toEqual([]);
   });
 
-  it('compara o tempo só com a mesma distância e o ritmo quando a distância muda', () => {
-    auth.login('00731', 'atleta2026');
+  it('compara o tempo só com a mesma distância e o ritmo quando a distância muda', async () => {
+    await auth.login('00731', 'atleta2026');
     const egas = service.raceEvolution('atl-3').find((r) => r.race === 'Corrida Egas Moniz')!;
     const [first, second, third] = egas.editions;
     expect(first.delta).toBeNull();
@@ -36,9 +36,9 @@ describe('AthleteAreaService', () => {
     expect(third.delta).toBeCloseTo(timeToSeconds('35:40.17') / 7 - timeToSeconds('46:20.73') / 9, 2);
   });
 
-  it('atleta não sócio entra por email e vê só o seu registo', () => {
+  it('atleta não sócio entra por email e vê só o seu registo', async () => {
     auth.logout();
-    expect(auth.login('joao@exemplo.pt', 'atleta2026')).toBe(true);
+    expect(await auth.login('joao@exemplo.pt', 'atleta2026')).toBe(true);
     expect(auth.isMember()).toBe(false);
     expect(service.role()).toBe('atleta');
     expect(service.athletes().map((a) => a.id)).toEqual(['atl-4']);

@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { Router, Routes } from '@angular/router';
-import { accountGuard, memberGuard } from './features/account/member.guard';
+import { accountGuard, memberGuard, staffGuard } from './features/account/member.guard';
 
 export const routes: Routes = [
   { path: '', loadComponent: () => import('./features/home/home.component').then((m) => m.HomeComponent) },
@@ -31,6 +31,12 @@ export const routes: Routes = [
     canActivate: [accountGuard],
     loadComponent: () => import('./features/athletes/athlete-area.component').then((m) => m.AthleteAreaComponent),
   },
+  {
+    path: 'admin',
+    canActivate: [staffGuard],
+    loadChildren: () => import('./features/admin/admin.routes').then((m) => m.ADMIN_ROUTES),
+  },
+  { path: 'paginas/:slug', loadComponent: () => import('./features/legal/cms-page.component').then((m) => m.CmsPageComponent) },
   { path: 'parceiros', loadComponent: () => import('./features/partners/partners.component').then((m) => m.PartnersComponent) },
   { path: 'comunidade', loadComponent: () => import('./features/community/community.component').then((m) => m.CommunityComponent) },
   { path: 'multimedia', loadComponent: () => import('./features/media/media.component').then((m) => m.MediaComponent) },

@@ -9,6 +9,9 @@ export const serverRoutes: ServerRoute[] = [
   { path: 'area-socio', renderMode: RenderMode.Client },
   { path: 'area-socio/entrar', renderMode: RenderMode.Client },
   { path: 'entrar', renderMode: RenderMode.Client },
+  { path: 'admin', renderMode: RenderMode.Client },
+  { path: 'admin/**', renderMode: RenderMode.Client },
+  { path: 'paginas/:slug', renderMode: RenderMode.Client },
   { path: 'area-atletas', renderMode: RenderMode.Client },
   {
     path: 'modalidades/:slug',

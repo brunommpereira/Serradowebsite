@@ -25,11 +25,20 @@ export interface Athlete {
   details: AthleteDetails;
   /** Última confirmação dos dados pelo encarregado/atleta (AAAA-MM-DD) */
   confirmedAt?: string;
-  /** Campos de identificação alterados que aguardam validação da secretaria */
-  pendingReview?: { fields: string[]; requestedAt: string };
+  /** Alteração de dados de identificação à espera de validação da secretaria */
+  pendingReview?: { fields: string[]; requestedAt: string; changes: IdentityChanges };
 }
 
 export type ShirtType = 'Normal' | 'Alças';
+
+/** Dados de identificação: só mudam com validação da secretaria. */
+export interface IdentityChanges {
+  name?: string;
+  birthDate?: string;
+  gender?: AthleteDetails['gender'];
+  idNumber?: string;
+  taxNumber?: string;
+}
 
 /** Ficha do atleta (época em curso). */
 export interface AthleteDetails {
@@ -207,6 +216,8 @@ export const DEMO_ATHLETES: Athlete[] = [
       consentImage: true,
     },
     confirmedAt: '2026-09-10',
+    // Pedido do encarregado à espera da secretaria (aparece no backoffice)
+    pendingReview: { fields: ['Nome'], requestedAt: '2026-10-05', changes: { name: 'Inês Maria Exemplo' } },
     documents: REQUIRED_DOCS().map((d) => ({ ...d, status: 'Aprovado' as DocStatus })),
   },
   {

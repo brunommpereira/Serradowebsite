@@ -21,3 +21,32 @@ jobs:
         with:
           name: site
           path: dist/serrado-fc/browser
+
+  services:
+    name: Middleware + backend (PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: serrado
+          POSTGRES_PASSWORD: serrado
+          POSTGRES_DB: serrado
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U serrado" --health-interval 3s --health-retries 20
+    defaults:
+      run:
+        working-directory: services
+    env:
+      TEST_DATABASE_URL: postgres://serrado:serrado@localhost:5432/serrado_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
