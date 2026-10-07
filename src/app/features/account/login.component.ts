@@ -33,10 +33,17 @@ import { IconComponent } from '../../shared/icon.component';
           </form>
           <div class="alert alert--info demo">
             <sfc-icon name="info" />
-            <p>
-              <strong>Demonstração</strong> · N.º <code>{{ demoNumber }}</code> · Password <code>{{ demoPassword }}</code>
-              <button class="linkish" type="button" (click)="fillDemo()">Preencher</button>
-            </p>
+            <div>
+              <p><strong>Contas de demonstração</strong></p>
+              <p>
+                Sócio / encarregado · <code>{{ demoNumber }}</code> · <code>{{ demoPassword }}</code>
+                <button class="linkish" type="button" (click)="fillDemo('encarregado')">Preencher</button>
+              </p>
+              <p>
+                Atleta · <code>{{ demoAthleteNumber }}</code> · <code>{{ demoAthletePassword }}</code>
+                <button class="linkish" type="button" (click)="fillDemo('atleta')">Preencher</button>
+              </p>
+            </div>
           </div>
         } @else {
           @if (resetSent()) {
@@ -71,7 +78,7 @@ import { IconComponent } from '../../shared/icon.component';
     h1 { font-size: 2.2rem; }
     .form { text-align: left; }
     .linkish { background: none; border: 0; color: var(--color-link); font-weight: 600; cursor: pointer; padding: 0.3rem 0; text-decoration: underline; }
-    .demo { margin-top: 1.4rem; text-align: left; code { background: #fff; padding: 0.1em 0.4em; border-radius: 4px; } }
+    .demo { margin-top: 1.4rem; text-align: left; p { margin: 0 0 0.3rem; } code { background: #fff; padding: 0.1em 0.4em; border-radius: 4px; } }
     .login__foot { margin: 1.4rem 0 0; font-size: 0.92rem; }
   `,
 })
@@ -82,6 +89,8 @@ export class LoginComponent {
   private readonly voltar = inject(ActivatedRoute).snapshot.queryParamMap.get('voltar');
   protected readonly demoNumber = MemberAuthService.DEMO_NUMBER;
   protected readonly demoPassword = MemberAuthService.DEMO_PASSWORD;
+  protected readonly demoAthleteNumber = MemberAuthService.DEMO_ATHLETE_NUMBER;
+  protected readonly demoAthletePassword = MemberAuthService.DEMO_ATHLETE_PASSWORD;
   protected readonly mode = signal<'login' | 'reset'>('login');
   protected readonly error = signal(false);
   protected readonly resetSent = signal(false);
@@ -101,8 +110,12 @@ export class LoginComponent {
     return url && url.startsWith('/') && !url.startsWith('//') ? url : '/area-socio';
   }
 
-  fillDemo() {
-    this.form.setValue({ memberNumber: this.demoNumber, password: this.demoPassword });
+  fillDemo(profile: 'encarregado' | 'atleta') {
+    this.form.setValue(
+      profile === 'atleta'
+        ? { memberNumber: this.demoAthleteNumber, password: this.demoAthletePassword }
+        : { memberNumber: this.demoNumber, password: this.demoPassword },
+    );
   }
 
   submit() {

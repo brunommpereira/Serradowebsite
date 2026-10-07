@@ -1,12 +1,46 @@
 import { TestBed } from '@angular/core/testing';
-import { ageOn, AthleteAreaService } from './athlete-area.service';
+import { ageOn, AthleteAreaService, formatClock, timeToSeconds } from './athlete-area.service';
+import { MemberAuthService } from './member-auth.service';
 
 describe('AthleteAreaService', () => {
   let service: AthleteAreaService;
+  let auth: MemberAuthService;
   beforeEach(() => {
-    localStorage.removeItem('sfc.athletes.v1');
+    localStorage.removeItem('sfc.athletes.v2');
+    auth = TestBed.inject(MemberAuthService);
+    auth.login('00482', 'serrado1978'); // encarregado de educação
     service = TestBed.inject(AthleteAreaService);
     service.reset();
+  });
+  afterEach(() => auth.logout());
+
+  it('o encarregado vê só os educandos; a atleta vê só o seu registo', () => {
+    expect(service.role()).toBe('encarregado');
+    expect(service.athletes().map((a) => a.id)).toEqual(['atl-1', 'atl-2']);
+    auth.login('00731', 'atleta2026');
+    expect(service.role()).toBe('atleta');
+    expect(service.athletes().map((a) => a.id)).toEqual(['atl-3']);
+    expect(service.isSelf('atl-3')).toBe(true);
+    auth.logout();
+    expect(service.athletes()).toEqual([]);
+  });
+
+  it('compara o tempo só com a mesma distância e o ritmo quando a distância muda', () => {
+    auth.login('00731', 'atleta2026');
+    const egas = service.raceEvolution('atl-3').find((r) => r.race === 'Corrida Egas Moniz')!;
+    const [first, second, third] = egas.editions;
+    expect(first.delta).toBeNull();
+    expect(second.sameDistance).toBe(true); // 9 km → 9 km: diferença de tempo
+    expect(second.delta).toBeCloseTo(timeToSeconds('46:20.73') - timeToSeconds('48:10.42'), 2);
+    expect(third.sameDistance).toBe(false); // 9 km → 7 km: diferença de ritmo por km
+    expect(third.delta).toBeCloseTo(timeToSeconds('35:40.17') / 7 - timeToSeconds('46:20.73') / 9, 2);
+  });
+
+  it('converte e formata tempos', () => {
+    expect(timeToSeconds('38:15.02')).toBeCloseTo(2295.02, 2);
+    expect(timeToSeconds('1:02:03')).toBe(3723);
+    expect(formatClock(225.4)).toBe('3:45');
+    expect(formatClock(3723)).toBe('1:02:03');
   });
 
   it('usa apenas atletas de demonstração', () => {

@@ -1,12 +1,20 @@
 <div class="head">
   <div>
-    <h2 class="title">Os meus atletas</h2>
-    <p class="lead">
-      {{ area.athletes().length }} {{ area.athletes().length === 1 ? 'atleta associado' : 'atletas associados' }} à tua conta.
-    </p>
+    @if (profile() === 'atleta') {
+      <h2 class="title">Os meus dados</h2>
+      <p class="lead">Dados pessoais e documentos de inscrição da época.</p>
+    } @else {
+      <h2 class="title">Os meus atletas</h2>
+      <p class="lead">
+        {{ area.athletes().length }}
+        {{ area.athletes().length === 1 ? 'atleta associado' : 'atletas associados' }} à tua conta.
+      </p>
+    }
   </div>
-  @if (!adding()) {
-    <button type="button" class="btn btn--primary" (click)="openAdd()"><sfc-icon name="users" size="18" />Adicionar atleta</button>
+  @if (profile() === 'encarregado' && !adding()) {
+    <button type="button" class="btn btn--primary" (click)="openAdd()">
+      <sfc-icon name="users" size="18" />Adicionar atleta
+    </button>
   }
 </div>
 
@@ -20,7 +28,15 @@
       </div>
       <div class="field">
         <label for="n-birth">Data de nascimento <span class="req">*</span></label>
-        <input id="n-birth" name="birth" type="date" required [max]="today" [(ngModel)]="newAthlete.birthDate" (change)="suggestLevel()" />
+        <input
+          id="n-birth"
+          name="birth"
+          type="date"
+          required
+          [max]="today"
+          [(ngModel)]="newAthlete.birthDate"
+          (change)="suggestLevel()"
+        />
       </div>
     </div>
     <div class="form-row">
@@ -46,7 +62,10 @@
       </div>
     </div>
     @if (addError()) {
-      <p class="error" role="alert"><sfc-icon name="warning" size="16" />Preenche todos os campos obrigatórios com uma data válida.</p>
+      <p class="error" role="alert">
+        <sfc-icon name="warning" size="16" />Preenche todos os campos obrigatórios com uma data
+        válida.
+      </p>
     }
     <div class="actions">
       <button type="submit" class="btn btn--primary">Guardar atleta</button>
@@ -59,18 +78,27 @@
   @for (a of ordered(); track a.id) {
     @let done = approved(a);
     @let bad = rejected(a);
-    <article class="athlete card" [class.athlete--current]="a.id === athleteId()" [attr.aria-labelledby]="'ath-' + a.id">
+    <article
+      class="athlete card"
+      [class.athlete--current]="a.id === athleteId()"
+      [attr.aria-labelledby]="'ath-' + a.id"
+    >
       <header class="athlete__head">
         <span class="athlete__avatar" aria-hidden="true">{{ a.name.charAt(0) }}</span>
         <div class="athlete__id">
           <h3 [id]="'ath-' + a.id">{{ a.name }}</h3>
           <p>
             <span class="badge badge--accent">{{ a.level }}</span>
-            <span class="caption">{{ sportName(a.sportSlug) }} · nascido(a) a {{ a.birthDate | date: 'dd/MM/y' }} · {{ age(a.birthDate) }} anos</span>
+            <span class="caption"
+              >{{ sportName(a.sportSlug) }} · nascido(a) a {{ a.birthDate | date: 'dd/MM/y' }} ·
+              {{ age(a.birthDate) }} anos</span
+            >
           </p>
         </div>
         @if (editingId() !== a.id) {
-          <button type="button" class="btn btn--outline btn--sm" (click)="startEdit(a)"><sfc-icon name="user" size="16" />Editar dados</button>
+          <button type="button" class="btn btn--outline btn--sm" (click)="startEdit(a)">
+            <sfc-icon name="user" size="16" />Editar dados
+          </button>
         }
       </header>
 
@@ -83,12 +111,21 @@
             </div>
             <div class="field">
               <label [for]="'e-birth-' + a.id">Data de nascimento</label>
-              <input [id]="'e-birth-' + a.id" name="birth" type="date" required [max]="today" [(ngModel)]="edit.birthDate" />
+              <input
+                [id]="'e-birth-' + a.id"
+                name="birth"
+                type="date"
+                required
+                [max]="today"
+                [(ngModel)]="edit.birthDate"
+              />
             </div>
           </div>
           <div class="actions">
             <button type="submit" class="btn btn--primary btn--sm">Guardar</button>
-            <button type="button" class="btn btn--outline btn--sm" (click)="editingId.set(null)">Cancelar</button>
+            <button type="button" class="btn btn--outline btn--sm" (click)="editingId.set(null)">
+              Cancelar
+            </button>
           </div>
         </form>
       }
@@ -97,9 +134,18 @@
       <section class="block" [attr.aria-labelledby]="'docs-' + a.id">
         <div class="block__head">
           <h4 [id]="'docs-' + a.id"><sfc-icon name="file" size="18" />Documentos de inscrição</h4>
-          <span class="count" [class.count--ok]="done === a.documents.length">{{ done }}/{{ a.documents.length }} aprovados</span>
+          <span class="count" [class.count--ok]="done === a.documents.length"
+            >{{ done }}/{{ a.documents.length }} aprovados</span
+          >
         </div>
-        <div class="progress" role="progressbar" [attr.aria-valuenow]="done" aria-valuemin="0" [attr.aria-valuemax]="a.documents.length" [attr.aria-label]="'Documentos aprovados de ' + a.name">
+        <div
+          class="progress"
+          role="progressbar"
+          [attr.aria-valuenow]="done"
+          aria-valuemin="0"
+          [attr.aria-valuemax]="a.documents.length"
+          [attr.aria-label]="'Documentos aprovados de ' + a.name"
+        >
           @for (d of a.documents; track d.id) {
             <span [attr.data-status]="d.status"></span>
           }
@@ -108,8 +154,11 @@
           <div class="alert alert--danger" role="status">
             <sfc-icon name="warning" size="20" />
             <p>
-              <strong>{{ bad.length === 1 ? '1 documento rejeitado' : bad.length + ' documentos rejeitados' }}</strong> —
-              {{ bad[0].name }}{{ bad[0].note ? ': ' + bad[0].note : '' }}. Volta a carregar para continuar a inscrição.
+              <strong>{{
+                bad.length === 1 ? '1 documento rejeitado' : bad.length + ' documentos rejeitados'
+              }}</strong>
+              — {{ bad[0].name }}{{ bad[0].note ? ': ' + bad[0].note : '' }}. Volta a carregar para
+              continuar a inscrição.
             </p>
           </div>
         } @else if (done === a.documents.length) {
@@ -118,7 +167,13 @@
             <p>Inscrição completa — todos os documentos foram validados pelo clube.</p>
           </div>
         }
-        <button type="button" class="toggle" [attr.aria-expanded]="!!docsOpen()[a.id]" [attr.aria-controls]="'doclist-' + a.id" (click)="toggleDocs(a.id)">
+        <button
+          type="button"
+          class="toggle"
+          [attr.aria-expanded]="!!docsOpen()[a.id]"
+          [attr.aria-controls]="'doclist-' + a.id"
+          (click)="toggleDocs(a.id)"
+        >
           {{ docsOpen()[a.id] ? 'Esconder estados' : 'Ver estados e carregar documentos' }}
           <sfc-icon name="chevron" size="18" [class.rot]="docsOpen()[a.id]" />
         </button>
@@ -128,83 +183,131 @@
               <li class="doc">
                 <div class="doc__text">
                   <strong>{{ d.name }}</strong>
-                  <span class="caption">{{ d.status === 'Rejeitado' && d.note ? d.note : d.hint }}</span>
+                  <span class="caption">{{
+                    d.status === 'Rejeitado' && d.note ? d.note : d.hint
+                  }}</span>
                 </div>
-                <span class="badge" [class]="'badge badge--' + statusClass(d.status)">{{ d.status }}</span>
+                <span class="badge" [class]="'badge badge--' + statusClass(d.status)">{{
+                  d.status
+                }}</span>
                 @if (d.status === 'Em falta' || d.status === 'Rejeitado') {
                   <label class="btn btn--outline btn--sm upload">
-                    <sfc-icon name="share" size="16" />{{ d.status === 'Rejeitado' ? 'Substituir' : 'Carregar' }}
-                    <input type="file" accept="application/pdf,image/jpeg,image/png" (change)="upload(a, d.id, $event)" [attr.aria-label]="'Carregar ' + d.name" />
+                    <sfc-icon name="share" size="16" />{{
+                      d.status === 'Rejeitado' ? 'Substituir' : 'Carregar'
+                    }}
+                    <input
+                      type="file"
+                      accept="application/pdf,image/jpeg,image/png"
+                      (change)="upload(a, d.id, $event)"
+                      [attr.aria-label]="'Carregar ' + d.name"
+                    />
                   </label>
                 }
               </li>
             }
           </ul>
           @if (uploadError()?.athleteId === a.id) {
-            <p class="error" role="alert"><sfc-icon name="warning" size="16" />{{ uploadError()!.message }}</p>
+            <p class="error" role="alert">
+              <sfc-icon name="warning" size="16" />{{ uploadError()!.message }}
+            </p>
           }
-          <p class="caption">PDF, JPG ou PNG até {{ maxFileMb }} MB. Os documentos ficam «Em análise» até serem validados pela secretaria.</p>
+          <p class="caption">
+            PDF, JPG ou PNG até {{ maxFileMb }} MB. Os documentos ficam «Em análise» até serem
+            validados pela secretaria.
+          </p>
         }
       </section>
 
-      <!-- Partilhar acesso -->
-      <section class="block" [attr.aria-labelledby]="'share-' + a.id">
-        <div class="block__head">
-          <h4 [id]="'share-' + a.id"><sfc-icon name="users" size="18" />Partilhar acesso</h4>
-          <span class="count">{{ a.coGuardians.length }}/{{ maxCo }}</span>
-        </div>
-        <p class="caption">
-          Convida até {{ maxCo }} co-encarregados (por exemplo, o outro progenitor) a acompanhar {{ a.name.split(' ')[0] }}. O link é pessoal, de uso único e expira em 7 dias.
-        </p>
-        @if (a.coGuardians.length) {
-          <ul class="guardians">
-            @for (g of a.coGuardians; track g) {
-              <li>
-                <sfc-icon name="mail" size="16" /><span>{{ g }}</span>
-                <button type="button" class="link-btn" (click)="revoke(a, g)" [attr.aria-label]="'Remover acesso de ' + g">Remover</button>
-              </li>
-            }
-          </ul>
-        }
-        @if (a.coGuardians.length < maxCo) {
-          <form class="invite" (ngSubmit)="invite(a)">
-            <label class="visually-hidden" [for]="'inv-' + a.id">Email do co-encarregado</label>
-            <input
-              [id]="'inv-' + a.id"
-              name="email"
-              type="email"
-              autocomplete="email"
-              placeholder="email@exemplo.pt"
-              [ngModel]="inviteEmail()[a.id]"
-              (ngModelChange)="setInvite(a.id, $event)"
-            />
-            <button type="submit" class="btn btn--accent btn--sm">Enviar convite</button>
-          </form>
-        }
-        @if (inviteMsg()?.athleteId === a.id) {
-          <p class="msg" [class.msg--err]="inviteMsg()!.kind === 'erro'" role="status">{{ inviteMsg()!.text }}</p>
-        }
-      </section>
+      <!-- Partilhar acesso (só para educandos; o atleta adulto gere o seu próprio acesso) -->
+      @if (!area.isSelf(a.id)) {
+        <section class="block" [attr.aria-labelledby]="'share-' + a.id">
+          <div class="block__head">
+            <h4 [id]="'share-' + a.id"><sfc-icon name="users" size="18" />Partilhar acesso</h4>
+            <span class="count">{{ a.coGuardians.length }}/{{ maxCo }}</span>
+          </div>
+          <p class="caption">
+            Convida até {{ maxCo }} co-encarregados (por exemplo, o outro progenitor) a acompanhar
+            {{ a.name.split(' ')[0] }}. O link é pessoal, de uso único e expira em 7 dias.
+          </p>
+          @if (a.coGuardians.length) {
+            <ul class="guardians">
+              @for (g of a.coGuardians; track g) {
+                <li>
+                  <sfc-icon name="mail" size="16" /><span>{{ g }}</span>
+                  <button
+                    type="button"
+                    class="link-btn"
+                    (click)="revoke(a, g)"
+                    [attr.aria-label]="'Remover acesso de ' + g"
+                  >
+                    Remover
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+          @if (a.coGuardians.length < maxCo) {
+            <form class="invite" (ngSubmit)="invite(a)">
+              <label class="visually-hidden" [for]="'inv-' + a.id">Email do co-encarregado</label>
+              <input
+                [id]="'inv-' + a.id"
+                name="email"
+                type="email"
+                autocomplete="email"
+                placeholder="email@exemplo.pt"
+                [ngModel]="inviteEmail()[a.id]"
+                (ngModelChange)="setInvite(a.id, $event)"
+              />
+              <button type="submit" class="btn btn--accent btn--sm">Enviar convite</button>
+            </form>
+          }
+          @if (inviteMsg()?.athleteId === a.id) {
+            <p class="msg" [class.msg--err]="inviteMsg()!.kind === 'erro'" role="status">
+              {{ inviteMsg()!.text }}
+            </p>
+          }
+        </section>
+      }
     </article>
   } @empty {
-    <div class="empty-state"><sfc-icon name="users" size="32" /><p>Ainda não tens atletas associados.</p></div>
+    <div class="empty-state">
+      <sfc-icon name="users" size="32" />
+      <p>Ainda não tens atletas associados.</p>
+    </div>
   }
 </div>
 
-<section class="howto card" aria-labelledby="howto-title">
-  <h3 id="howto-title" class="h-s">Como completar a inscrição</h3>
-  <ol class="steps">
-    <li>
-      <span class="steps__n">1</span>
-      <div><strong>Adiciona o atleta</strong><p>Nome, data de nascimento, modalidade e escalão.</p></div>
-    </li>
-    <li>
-      <span class="steps__n">2</span>
-      <div><strong>Carrega os 6 documentos</strong><p>Identificação, fotografia, RGPD, exame médico e ficha de sócio. Os modelos estão em «O Meu Clube».</p></div>
-    </li>
-    <li>
-      <span class="steps__n">3</span>
-      <div><strong>Aguarda a validação</strong><p>A secretaria revê cada documento. Se algum for rejeitado, vês o motivo aqui e podes substituí-lo.</p></div>
-    </li>
-  </ol>
-</section>
+@if (profile() === 'encarregado') {
+  <section class="howto card" aria-labelledby="howto-title">
+    <h3 id="howto-title" class="h-s">Como completar a inscrição</h3>
+    <ol class="steps">
+      <li>
+        <span class="steps__n">1</span>
+        <div>
+          <strong>Adiciona o atleta</strong>
+          <p>Nome, data de nascimento, modalidade e escalão.</p>
+        </div>
+      </li>
+      <li>
+        <span class="steps__n">2</span>
+        <div>
+          <strong>Carrega os 6 documentos</strong>
+          <p>
+            Identificação, fotografia, RGPD, exame médico e ficha de sócio. Os modelos estão em «O
+            Meu Clube».
+          </p>
+        </div>
+      </li>
+      <li>
+        <span class="steps__n">3</span>
+        <div>
+          <strong>Aguarda a validação</strong>
+          <p>
+            A secretaria revê cada documento. Se algum for rejeitado, vês o motivo aqui e podes
+            substituí-lo.
+          </p>
+        </div>
+      </li>
+    </ol>
+  </section>
+}

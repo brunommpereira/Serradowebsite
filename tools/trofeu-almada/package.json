@@ -1,0 +1,11 @@
+{
+  "name": "serrado-trofeu-almada",
+  "private": true,
+  "description": "Extração dos resultados do Troféu Almada em Atletismo para os atletas do Serrado FC",
+  "scripts": {
+    "extract": "node extract.js out/resultados-brutos.csv"
+  },
+  "dependencies": {
+    "playwright": "^1.56.0"
+  }
+}

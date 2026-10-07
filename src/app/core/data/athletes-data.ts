@@ -18,6 +18,26 @@ export interface Athlete {
   birthDate: string;
   documents: AthleteDocument[];
   coGuardians: string[];
+  /** N.º de sócio dos encarregados de educação com acesso (perfil «Encarregado») */
+  guardians: string[];
+  /** N.º de sócio do próprio atleta, quando entra com perfil «Atleta» */
+  selfMember?: string;
+}
+
+/** Resultado oficial numa prova do Troféu Almada em Atletismo (fonte: tatletismo-almada.pt). */
+export interface CompetitionResult {
+  id: string;
+  athleteId: string;
+  season: string; // 2025/2026
+  round: number; // n.º da prova na época
+  race: string; // nome publicado (muda com a edição)
+  raceBase: string; // nome comparável entre épocas
+  date: string;
+  category: string; // escalão normalizado
+  place: number | null; // classificação no escalão
+  time: string; // m:ss ou h:mm:ss
+  distanceM: number | null; // distância do regulamento
+  trophyPoints: number | null;
 }
 
 export interface AthleteDocument {
@@ -88,6 +108,7 @@ export const DEMO_ATHLETES: Athlete[] = [
     level: 'Sub-11',
     birthDate: '2016-03-12',
     coGuardians: [],
+    guardians: ['00482'],
     documents: REQUIRED_DOCS().map((d) => {
       if (d.id === 'cc-frente' || d.id === 'foto') return { ...d, status: 'Aprovado' };
       if (d.id === 'cc-verso') return { ...d, status: 'Rejeitado', note: 'Imagem desfocada. Volta a fotografar com boa luz.' };
@@ -102,7 +123,22 @@ export const DEMO_ATHLETES: Athlete[] = [
     level: 'Sub-14',
     birthDate: '2013-07-02',
     coGuardians: ['avo.exemplo@exemplo.pt'],
+    guardians: ['00482'],
     documents: REQUIRED_DOCS().map((d) => ({ ...d, status: 'Aprovado' as DocStatus })),
+  },
+  {
+    // Atleta adulta: entra com o seu próprio perfil (conta 00731)
+    id: 'atl-3',
+    name: 'Rita Exemplo',
+    sportSlug: 'atletismo',
+    level: 'Veteranas I',
+    birthDate: '1985-04-21',
+    coGuardians: [],
+    guardians: [],
+    selfMember: '00731',
+    documents: REQUIRED_DOCS()
+      .filter((d) => d.id !== 'rgpd')
+      .map((d) => (d.id === 'exame' ? { ...d, status: 'Em análise' as DocStatus } : { ...d, status: 'Aprovado' as DocStatus })),
   },
 ];
 
@@ -119,6 +155,13 @@ const PLAN_ATLETISMO = [
   'Técnica de corrida: skippings e saídas (15 min)',
   'Séries 6×150 m a ritmo controlado (25 min)',
   'Alongamentos e conversa de grupo (10 min)',
+];
+
+const PLAN_ESTRADA = [
+  'Aquecimento: 15 min de corrida leve + mobilidade',
+  'Bloco principal: 5×1000 m a ritmo de 10 km, recuperação 2 min',
+  'Técnica de corrida e reforço de core (10 min)',
+  'Retorno à calma (10 min)',
 ];
 
 function futsal(id: string, date: string, extra: Partial<Session> = {}): Session {
@@ -209,6 +252,40 @@ export const DEMO_SESSIONS: Session[] = [
   atletismo('t10', '2026-10-08T18:30', { rsvp: 'vou' }),
   atletismo('t11', '2026-10-13T18:30'),
   atletismo('t12', '2026-10-15T18:30'),
+  // Rita — atletismo, grupo de estrada (ter/qui 19h30 e sáb 9h00)
+  ...(
+    [
+      ['v1', '2026-09-08T19:30', 'Terminado', 'vou', true],
+      ['v2', '2026-09-12T09:00', 'Terminado', 'vou', true],
+      ['v3', '2026-09-15T19:30', 'Terminado', 'nao-vou', false],
+      ['v4', '2026-09-19T09:00', 'Terminado', 'vou', true],
+      ['v5', '2026-09-22T19:30', 'Terminado', 'vou', true],
+      ['v6', '2026-09-26T09:00', 'Terminado', 'vou', true],
+      ['v7', '2026-09-29T19:30', 'Terminado', 'vou', true],
+      ['v8', '2026-10-03T09:00', 'Terminado', 'vou', true],
+      ['v9', '2026-10-06T19:30', 'Terminado', 'vou', false],
+      ['v10', '2026-10-08T19:30', 'Agendado', null, undefined],
+      ['v11', '2026-10-10T09:00', 'Agendado', null, undefined],
+    ] as const
+  ).map(([id, date, status, rsvp, attended]) =>
+    atletismo(id, date, {
+      athleteId: 'atl-3',
+      status,
+      rsvp,
+      attended,
+      minutes: date.endsWith('09:00') ? 75 : 60,
+      location: date.endsWith('09:00') ? 'Parque da Paz' : 'Centro de Treinos do Serrado',
+      plan: PLAN_ESTRADA,
+    }),
+  ),
+  atletismo('v12', '2026-11-08T09:30', {
+    athleteId: 'atl-3',
+    type: 'Jogo',
+    title: '7º GP São Martinho de Almada',
+    minutes: 60,
+    location: 'Almada',
+    plan: undefined,
+  }),
 ];
 
 /** Métricas técnicas 0–100 do atleta vs média (anónima) do escalão. */
@@ -220,6 +297,12 @@ export const DEMO_METRICS: Record<string, Metric[]> = {
     { label: 'Remate', athlete: 49, average: 55 },
     { label: 'Leitura de jogo', athlete: 67, average: 59 },
   ],
+  'atl-3': [
+    { label: 'Resistência aeróbia', athlete: 78, average: 66 },
+    { label: 'Ritmo de prova', athlete: 71, average: 63 },
+    { label: 'Força', athlete: 58, average: 60 },
+    { label: 'Técnica de corrida', athlete: 69, average: 61 },
+  ],
   'atl-2': [
     { label: 'Velocidade', athlete: 77, average: 62 },
     { label: 'Resistência', athlete: 69, average: 64 },
@@ -229,6 +312,19 @@ export const DEMO_METRICS: Record<string, Metric[]> = {
 };
 
 export const DEMO_ASSESSMENTS: Record<string, Assessment[]> = {
+  'atl-3': [
+    {
+      moment: 'Início de época',
+      date: '2026-09-16',
+      results: [
+        { test: 'Teste de Cooper (12 min)', value: '2 650 m' },
+        { test: '3000 m', value: '13:12' },
+        { test: 'Prancha', value: '1:45' },
+      ],
+    },
+    { moment: 'Meio de época', results: [] },
+    { moment: 'Fim de época', results: [] },
+  ],
   'atl-1': [
     {
       moment: 'Início de época',
@@ -263,7 +359,74 @@ export const DEMO_RECEIPTS: AthleteReceipt[] = [
   { id: 'r2', athleteId: 'atl-1', number: 'R2026/0301', period: 'Época 2026/27', description: 'Inscrição anual (seguro, kit de treino, federação)', amount: 60, date: '2026-08-28' },
   { id: 'r3', athleteId: 'atl-1', number: 'R2026/0421', period: 'Outubro 2026', description: 'Mensalidade Futsal Sub-11', amount: 25, date: '2026-10-03' },
   { id: 'r4', athleteId: 'atl-2', number: 'R2026/0390', period: 'Setembro 2026', description: 'Mensalidade Atletismo Sub-14', amount: 20, date: '2026-09-05' },
+  { id: 'r6', athleteId: 'atl-3', number: 'R2026/0395', period: 'Época 2026/27', description: 'Inscrição no Troféu de Almada (dorsal com chip e t-shirt)', amount: 15, date: '2026-09-06' },
+  { id: 'r7', athleteId: 'atl-3', number: 'R2026/0430', period: 'Outubro 2026', description: 'Mensalidade Atletismo — grupo de estrada', amount: 20, date: '2026-10-04' },
   { id: 'r5', athleteId: 'atl-2', number: 'R2026/0422', period: 'Outubro 2026', description: 'Mensalidade Atletismo Sub-14', amount: 20, date: '2026-10-03' },
+];
+
+// ---------------------------------------------------------------------------
+// Resultados no Troféu Almada em Atletismo — FICTÍCIOS (mesma estrutura dos
+// resultados oficiais; distâncias reais de cada regulamento).
+// ---------------------------------------------------------------------------
+type R = [season: string, round: number, race: string, raceBase: string, date: string, category: string, place: number, time: string, distanceM: number, points: number];
+
+function results(athleteId: string, rows: R[]): CompetitionResult[] {
+  return rows.map(([season, round, race, raceBase, date, category, place, time, distanceM, trophyPoints], i) => ({
+    id: `${athleteId}-r${i + 1}`,
+    athleteId,
+    season,
+    round,
+    race,
+    raceBase,
+    date,
+    category,
+    place,
+    time,
+    distanceM,
+    trophyPoints,
+  }));
+}
+
+const CAP = 'Troféu da Caparica';
+const SMA = 'GP São Martinho de Almada';
+const CHA = 'GPA Charneca da Caparica';
+const RDS = 'Corta-Mato Rui Duarte Silva';
+const MIL = 'Milha Urbana Alberto Chaíça';
+const EGA = 'Corrida Egas Moniz';
+const REI = 'Corrida Noturna dos Reis';
+
+export const DEMO_RESULTS: CompetitionResult[] = [
+  ...results('atl-2', [
+    ['2023/2024', 1, 'Troféu da Caparica 2023', CAP, '2023-11-19', 'Benjamins B', 6, '2:21.40', 600, 5],
+    ['2023/2024', 2, '29º GPA Charneca da Caparica', CHA, '2024-03-24', 'Benjamins B', 5, '2:16.85', 600, 6],
+    ['2023/2024', 4, '5º Corta-Mato Rui Duarte Silva', RDS, '2024-05-12', 'Benjamins B', 4, '2:05.10', 500, 7],
+    ['2023/2024', 6, 'Corrida da Egas Moniz', EGA, '2024-05-26', 'Benjamins B', 3, '2:14.02', 600, 8],
+    ['2024/2025', 1, 'Troféu da Caparica 2024', CAP, '2024-11-17', 'Infantis', 9, '4:02.33', 1000, 2],
+    ['2024/2025', 2, '5º GP São Martinho de Almada', SMA, '2024-11-24', 'Infantis', 7, '3:58.70', 1000, 4],
+    ['2024/2025', 4, '30º GPA Charneca da Caparica', CHA, '2025-03-16', 'Infantis', 6, '3:55.12', 1000, 5],
+    ['2024/2025', 7, '8ª Milha Urbana Alberto Chaíça', MIL, '2025-05-03', 'Infantis', 5, '3:05.48', 800, 6],
+    ['2024/2025', 9, 'Corrida Egas Moniz 2025', EGA, '2025-06-08', 'Infantis', 4, '3:49.90', 1000, 7],
+    ['2025/2026', 1, '6º GP São Martinho de Almada', SMA, '2025-11-09', 'Infantis', 4, '3:44.25', 1000, 7],
+    ['2025/2026', 2, 'Troféu da Caparica 2025', CAP, '2025-11-16', 'Infantis', 3, '3:47.61', 1000, 8],
+    ['2025/2026', 3, '1ª Corrida Noturna dos Reis', REI, '2026-01-17', 'Infantis', 2, '2:12.08', 600, 9],
+    ['2025/2026', 4, '31º GPA Charneca da Caparica', CHA, '2026-03-15', 'Infantis', 3, '3:38.44', 1000, 8],
+    ['2025/2026', 6, '9ª Milha Urbana Alberto Chaíça', MIL, '2026-05-03', 'Infantis', 2, '2:54.30', 800, 9],
+    ['2025/2026', 8, '3ª Corrida Egas Moniz', EGA, '2026-05-24', 'Infantis', 2, '3:35.19', 1000, 9],
+  ]),
+  ...results('atl-3', [
+    ['2023/2024', 2, '29º GPA Charneca da Caparica', CHA, '2024-03-24', 'Veteranas I', 14, '41:20.15', 7800, 1],
+    ['2023/2024', 4, '5º Corta-Mato Rui Duarte Silva', RDS, '2024-05-12', 'Veteranas I', 9, '20:45.80', 4000, 2],
+    ['2023/2024', 6, 'Corrida da Egas Moniz', EGA, '2024-05-26', 'Veteranas I', 11, '48:10.42', 9000, 1],
+    ['2024/2025', 1, 'Troféu da Caparica 2024', CAP, '2024-11-17', 'Veteranas I', 10, '47:05.66', 9000, 1],
+    ['2024/2025', 2, '5º GP São Martinho de Almada', SMA, '2024-11-24', 'Veteranas I', 8, '30:12.09', 5850, 3],
+    ['2024/2025', 4, '30º GPA Charneca da Caparica', CHA, '2025-03-16', 'Veteranas I', 7, '39:50.27', 7800, 4],
+    ['2024/2025', 9, 'Corrida Egas Moniz 2025', EGA, '2025-06-08', 'Veteranas I', 6, '46:20.73', 9000, 5],
+    ['2025/2026', 1, '6º GP São Martinho de Almada', SMA, '2025-11-09', 'Veteranas I', 5, '29:05.31', 5850, 6],
+    ['2025/2026', 2, 'Troféu da Caparica 2025', CAP, '2025-11-16', 'Veteranas I', 6, '41:10.88', 8000, 5],
+    ['2025/2026', 4, '31º GPA Charneca da Caparica', CHA, '2026-03-15', 'Veteranas I', 4, '38:15.02', 7800, 7],
+    ['2025/2026', 6, '9ª Milha Urbana Alberto Chaíça', MIL, '2026-05-03', 'Veteranas I', 3, '7:05.64', 1609, 8],
+    ['2025/2026', 8, '3ª Corrida Egas Moniz', EGA, '2026-05-24', 'Veteranas I', 3, '35:40.17', 7000, 8],
+  ]),
 ];
 
 export const CLUB_DOWNLOADS = [

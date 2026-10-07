@@ -60,7 +60,7 @@ O `ContentService` é o único ponto de acesso aos dados. Ao lado de cada métod
 | Eventos e inscrição com pagamento e QR Code de check-in (secção 22) | ✅ demo |
 | Sócios: página pública, categorias e quotas, benefícios, FAQ (secção 9) | ✅ |
 | Registo de sócio (secções 10 e 49): categoria → dados (validação de NIF/CP, RGPD) → pagamento → n.º de sócio + cartão | ✅ demo |
-| Área de Atletas (`/area-atletas`, encarregados de educação): agenda com Vou / Não vou, evolução e métricas (atleta vs média anónima do escalão, exportar CSV, avaliações físicas), histórico com plano de treino, atletas e documentos de inscrição, partilha de acesso com até 2 co-encarregados, recibos, documentos do clube | ✅ demo |
+| Área de Atletas (`/area-atletas`): perfis **encarregado de educação** e **atleta**; agenda com Vou / Não vou, evolução e métricas, **competições** (resultados do Troféu de Almada, evolução por prova entre épocas com tempo/ritmo e distância), histórico com plano de treino, atletas/dados e documentos de inscrição, partilha de acesso com até 2 co-encarregados, recibos, documentos do clube | ✅ demo |
 | Área de Sócio (secções 11–14): login, dashboard, quotas e pagamentos, recibos, cartão digital com QR, agregado familiar, notificações | ✅ demo |
 | Parceiros e "Torne-se Parceiro", Comunidade, Multimédia, Contactos (mapa, horários, formulário), Loja (catálogo) | ✅ |
 | Pesquisa global (secção 28) | ✅ |
@@ -69,7 +69,9 @@ O `ContentService` é o único ponto de acesso aos dados. Ao lado de cada métod
 | PWA-ready: manifest e ícones (secção 43) | ✅ base |
 | CI no GitHub Actions: testes + build (secção 53) | ✅ |
 
-**Conta de demonstração da Área de Sócio:** n.º `00482`, password `serrado1978`.
+**Contas de demonstração:** sócio / encarregado n.º `00482`, password `serrado1978` · atleta n.º `00731`, password `atleta2026`.
+
+**Backend privado (dados reais):** ver [`backend/README.md`](backend/README.md) e [`tools/trofeu-almada/`](tools/trofeu-almada/README.md).
 
 ## O que falta e precisa de backend (fases 2 a 7)
 

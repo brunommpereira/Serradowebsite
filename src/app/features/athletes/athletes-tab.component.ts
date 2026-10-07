@@ -28,6 +28,8 @@ const STATUS_CLASS: Record<DocStatus, string> = {
 })
 export class AthletesTabComponent {
   readonly athleteId = input.required<string>();
+  /** «atleta»: o próprio atleta vê os seus dados (sem adicionar atletas nem partilhar acesso) */
+  readonly profile = input<'encarregado' | 'atleta'>('encarregado');
   readonly selected = output<string>();
 
   protected readonly area = inject(AthleteAreaService);
