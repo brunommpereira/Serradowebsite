@@ -2,7 +2,9 @@ import { computed, inject, Injectable, PLATFORM_ID, signal } from '@angular/core
 import { isPlatformBrowser } from '@angular/common';
 import {
   Athlete,
+  AthleteDetails,
   CLUB_DOWNLOADS,
+  CURRENT_SEASON,
   CompetitionResult,
   DEMO_ASSESSMENTS,
   DEMO_ATHLETES,
@@ -10,15 +12,16 @@ import {
   DEMO_RECEIPTS,
   DEMO_RESULTS,
   DEMO_SESSIONS,
+  emptyDetails,
   newAthleteDocuments,
   Rsvp,
   Session,
 } from '../data/athletes-data';
 import { SportSlug } from '../models';
 import { nowIso } from './content.service';
-import { MemberAuthService } from './member-auth.service';
+import { AuthService } from './auth.service';
 
-const STORAGE_KEY = 'sfc.athletes.v2';
+const STORAGE_KEY = 'sfc.athletes.v3';
 export const MAX_CO_GUARDIANS = 2;
 
 interface PersistedState {
@@ -36,14 +39,14 @@ interface PersistedState {
 @Injectable({ providedIn: 'root' })
 export class AthleteAreaService {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
-  private readonly auth = inject(MemberAuthService);
+  private readonly auth = inject(AuthService);
   private readonly state = signal<PersistedState>(this.restore());
-  private readonly memberNumber = computed(() => this.auth.member()?.memberNumber ?? '');
+  private readonly accountId = computed(() => this.auth.account()?.id ?? '');
 
   /** Atletas que a conta pode ver: os seus educandos e/ou o próprio registo de atleta. */
   readonly athletes = computed(() => {
-    const m = this.memberNumber();
-    return this.state().athletes.filter((a) => a.guardians.includes(m) || a.selfMember === m);
+    const id = this.accountId();
+    return id ? this.state().athletes.filter((a) => a.guardians.includes(id) || a.selfAccount === id) : [];
   });
 
   /**
@@ -51,16 +54,16 @@ export class AthleteAreaService {
    * «atleta» quando só tem o seu próprio registo. GET /api/me/profile
    */
   readonly role = computed<'encarregado' | 'atleta'>(() => {
-    const m = this.memberNumber();
+    const id = this.accountId();
     const list = this.athletes();
-    return list.length && list.every((a) => a.selfMember === m) ? 'atleta' : 'encarregado';
+    return list.length && list.every((a) => a.selfAccount === id) ? 'atleta' : 'encarregado';
   });
 
   readonly downloads = CLUB_DOWNLOADS;
 
   /** O atleta é o próprio titular da conta? */
   isSelf(athleteId: string) {
-    return this.athletes().some((a) => a.id === athleteId && a.selfMember === this.memberNumber());
+    return this.athletes().some((a) => a.id === athleteId && a.selfAccount === this.accountId());
   }
 
   /** GET /api/athletes/{id}/sessions?from=hoje */
@@ -175,16 +178,73 @@ export class AthleteAreaService {
       id: `atl-${Date.now()}`,
       ...data,
       coGuardians: [],
-      guardians: [this.memberNumber()],
+      guardians: [this.accountId()],
+      details: emptyDetails(),
       documents: newAthleteDocuments(),
     };
     this.update((st) => ({ ...st, athletes: [...st.athletes, athlete] }));
     return athlete;
   }
 
-  /** PUT /api/athletes/{id} */
-  updateAthlete(athleteId: string, data: { name: string; birthDate: string }) {
-    this.patchAthlete(athleteId, (a) => ({ ...a, ...data }));
+  /** Dados confirmados para a época em curso? */
+  isConfirmed(a: Athlete): boolean {
+    return !!a.confirmedAt && a.confirmedAt >= CURRENT_SEASON.start;
+  }
+
+  /** Campos em falta para poder confirmar os dados da época. */
+  missingFields(a: Athlete): string[] {
+    const d = a.details;
+    const minor = ageOn(a.birthDate) < 18;
+    const required: [boolean, string][] = [
+      [!!d.gender, 'Género'],
+      [!!d.idNumber, 'N.º CC'],
+      [!!d.taxNumber, 'NIF'],
+      [!!d.email, 'Email'],
+      [!!d.phone, 'Telemóvel'],
+      [!!d.address && !!d.postalCode && !!d.city, 'Morada'],
+      [!!d.shirtSize, 'Tamanho da t-shirt'],
+      [!!d.emergencyName && !!d.emergencyPhone, 'Contacto de emergência'],
+      [d.consentRgpd, minor ? 'Autorização RGPD do encarregado' : 'Consentimento RGPD'],
+    ];
+    return required.filter(([ok]) => !ok).map(([, label]) => label);
+  }
+
+  /** «Confirmo que os dados estão corretos» — PUT /api/athletes/{id}/confirmation */
+  confirmData(athleteId: string): boolean {
+    const a = this.athletes().find((x) => x.id === athleteId);
+    if (!a || this.missingFields(a).length) return false;
+    this.patchAthlete(athleteId, (x) => ({ ...x, confirmedAt: nowIso().slice(0, 10) }));
+    return true;
+  }
+
+  /**
+   * Guarda a ficha (e confirma-a). Alterações a dados de identificação ficam
+   * marcadas para validação da secretaria. PUT /api/athletes/{id}
+   * @returns campos de identificação alterados (vazio se só mudaram contactos)
+   */
+  updateAthlete(athleteId: string, data: { name: string; birthDate: string; details: AthleteDetails }): string[] {
+    const a = this.athletes().find((x) => x.id === athleteId);
+    if (!a) return [];
+    const identity: [string, unknown, unknown][] = [
+      ['Nome', a.name, data.name],
+      ['Data de nascimento', a.birthDate, data.birthDate],
+      ['Género', a.details.gender, data.details.gender],
+      ['N.º CC', a.details.idNumber, data.details.idNumber],
+      ['NIF', a.details.taxNumber, data.details.taxNumber],
+    ];
+    const changed = identity.filter(([, before, after]) => before !== after).map(([label]) => label);
+    const today = nowIso().slice(0, 10);
+    this.patchAthlete(athleteId, (x) => ({
+      ...x,
+      name: data.name,
+      birthDate: data.birthDate,
+      details: { ...data.details },
+      confirmedAt: today,
+      pendingReview: changed.length
+        ? { fields: [...new Set([...(x.pendingReview?.fields ?? []), ...changed])], requestedAt: today }
+        : x.pendingReview,
+    }));
+    return changed;
   }
 
   /** Repõe os dados de demonstração. */
@@ -261,6 +321,23 @@ export function formatClock(seconds: number): string {
   const r = String(s % 60).padStart(2, '0');
   return h ? `${h}:${String(m).padStart(2, '0')}:${r}` : `${m}:${r}`;
 }
+
+// ---------------------------------------------------------------- validações
+
+/** NIF português: 9 dígitos com dígito de controlo (módulo 11). */
+export function isValidNif(nif: string): boolean {
+  if (!/^[1235689]\d{8}$/.test(nif)) return false;
+  const sum = [...nif.slice(0, 8)].reduce((acc, d, i) => acc + Number(d) * (9 - i), 0);
+  const check = 11 - (sum % 11);
+  return Number(nif[8]) === (check >= 10 ? 0 : check);
+}
+
+/** CC/BI: 7 ou 8 dígitos do número de identificação civil. */
+export const isValidIdNumber = (v: string) => /^\d{7,8}$/.test(v);
+export const isValidPostalCode = (v: string) => /^\d{4}-\d{3}$/.test(v);
+/** Telemóvel/telefone nacional (9 dígitos) ou internacional (+…). */
+export const isValidPhone = (v: string) => /^(9\d{8}|2\d{8}|\+\d{8,15})$/.test(v.replace(/\s/g, ''));
+export const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
 
 /** Idade em anos completos numa data de referência. */
 export function ageOn(birthDate: string, ref = new Date()): number {

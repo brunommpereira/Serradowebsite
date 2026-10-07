@@ -18,10 +18,59 @@ export interface Athlete {
   birthDate: string;
   documents: AthleteDocument[];
   coGuardians: string[];
-  /** N.º de sócio dos encarregados de educação com acesso (perfil «Encarregado») */
+  /** Contas dos encarregados de educação com acesso (perfil «Encarregado») */
   guardians: string[];
-  /** N.º de sócio do próprio atleta, quando entra com perfil «Atleta» */
-  selfMember?: string;
+  /** Conta do próprio atleta, quando entra com perfil «Atleta» (não precisa de ser sócio) */
+  selfAccount?: string;
+  details: AthleteDetails;
+  /** Última confirmação dos dados pelo encarregado/atleta (AAAA-MM-DD) */
+  confirmedAt?: string;
+  /** Campos de identificação alterados que aguardam validação da secretaria */
+  pendingReview?: { fields: string[]; requestedAt: string };
+}
+
+export type ShirtType = 'Normal' | 'Alças';
+
+/** Ficha do atleta (época em curso). */
+export interface AthleteDetails {
+  gender: 'Feminino' | 'Masculino' | '';
+  idNumber: string; // CC / BI
+  idExpiry: string;
+  taxNumber: string; // NIF
+  email: string;
+  phone: string;
+  address: string;
+  postalCode: string;
+  city: string;
+  shirtSize: string;
+  shirtType: ShirtType | '';
+  emergencyName: string;
+  emergencyPhone: string;
+  consentRgpd: boolean;
+  consentImage: boolean;
+}
+
+/** Época em curso e data a partir da qual uma confirmação conta para ela. */
+export const CURRENT_SEASON = { label: '2026/27', start: '2026-09-01' };
+
+export function emptyDetails(): AthleteDetails {
+  return {
+    gender: '',
+    idNumber: '',
+    idExpiry: '',
+    taxNumber: '',
+    email: '',
+    phone: '',
+    address: '',
+    postalCode: '',
+    city: '',
+    shirtSize: '',
+    shirtType: '',
+    emergencyName: '',
+    emergencyPhone: '',
+    consentRgpd: false,
+    consentImage: false,
+  };
 }
 
 /** Resultado oficial numa prova do Troféu Almada em Atletismo (fonte: tatletismo-almada.pt). */
@@ -108,11 +157,27 @@ export const DEMO_ATHLETES: Athlete[] = [
     level: 'Sub-11',
     birthDate: '2016-03-12',
     coGuardians: [],
-    guardians: ['00482'],
+    guardians: ['acc-socio'],
+    // Ficha incompleta: falta o contacto de emergência — a confirmação da época está pendente
+    details: {
+      ...emptyDetails(),
+      gender: 'Masculino',
+      idNumber: '31234567',
+      idExpiry: '2029-05-30',
+      taxNumber: '258369140',
+      email: 'socio@exemplo.pt',
+      phone: '910000000',
+      address: 'Rua do Exemplo, 10',
+      postalCode: '2825-000',
+      city: 'Caparica',
+      shirtSize: '10A',
+      shirtType: 'Normal',
+      consentRgpd: true,
+    },
     documents: REQUIRED_DOCS().map((d) => {
       if (d.id === 'cc-frente' || d.id === 'foto') return { ...d, status: 'Aprovado' };
-      if (d.id === 'cc-verso') return { ...d, status: 'Rejeitado', note: 'Imagem desfocada. Volta a fotografar com boa luz.' };
-      if (d.id === 'exame') return { ...d, status: 'Rejeitado', note: 'Falta a assinatura do médico.' };
+      if (d.id === 'cc-verso') return { ...d, status: 'Rejeitado', note: 'Imagem desfocada. Volta a fotografar com boa luz' };
+      if (d.id === 'exame') return { ...d, status: 'Rejeitado', note: 'Falta a assinatura do médico' };
       return d;
     }),
   },
@@ -123,7 +188,25 @@ export const DEMO_ATHLETES: Athlete[] = [
     level: 'Sub-14',
     birthDate: '2013-07-02',
     coGuardians: ['avo.exemplo@exemplo.pt'],
-    guardians: ['00482'],
+    guardians: ['acc-socio'],
+    details: {
+      gender: 'Feminino',
+      idNumber: '30987654',
+      idExpiry: '2028-11-15',
+      taxNumber: '246813571',
+      email: 'socio@exemplo.pt',
+      phone: '910000000',
+      address: 'Rua do Exemplo, 10',
+      postalCode: '2825-000',
+      city: 'Caparica',
+      shirtSize: 'XS',
+      shirtType: 'Normal',
+      emergencyName: 'Avó Exemplo',
+      emergencyPhone: '920000000',
+      consentRgpd: true,
+      consentImage: true,
+    },
+    confirmedAt: '2026-09-10',
     documents: REQUIRED_DOCS().map((d) => ({ ...d, status: 'Aprovado' as DocStatus })),
   },
   {
@@ -135,10 +218,61 @@ export const DEMO_ATHLETES: Athlete[] = [
     birthDate: '1985-04-21',
     coGuardians: [],
     guardians: [],
-    selfMember: '00731',
+    selfAccount: 'acc-rita',
+    details: {
+      gender: 'Feminino',
+      idNumber: '12345678',
+      idExpiry: '2027-02-28',
+      taxNumber: '123456789',
+      email: 'atleta@exemplo.pt',
+      phone: '910000001',
+      address: 'Avenida do Exemplo, 25, 3.º Esq.',
+      postalCode: '2825-001',
+      city: 'Costa da Caparica',
+      shirtSize: 'S',
+      shirtType: 'Alças',
+      emergencyName: 'Pedro Exemplo',
+      emergencyPhone: '930000000',
+      consentRgpd: true,
+      consentImage: true,
+    },
+    // Confirmou na época passada: tem de voltar a confirmar em 2026/27
+    confirmedAt: '2025-10-02',
     documents: REQUIRED_DOCS()
       .filter((d) => d.id !== 'rgpd')
       .map((d) => (d.id === 'exame' ? { ...d, status: 'Em análise' as DocStatus } : { ...d, status: 'Aprovado' as DocStatus })),
+  },
+  {
+    // Atleta adulto que NÃO é sócio (conta joao@exemplo.pt)
+    id: 'atl-4',
+    name: 'João Exemplo',
+    sportSlug: 'atletismo',
+    level: 'Seniores',
+    birthDate: '1996-08-09',
+    coGuardians: [],
+    guardians: [],
+    selfAccount: 'acc-joao',
+    details: {
+      gender: 'Masculino',
+      idNumber: '14567890',
+      idExpiry: '2031-01-20',
+      taxNumber: '214365875',
+      email: 'joao@exemplo.pt',
+      phone: '960000000',
+      address: 'Travessa do Exemplo, 3',
+      postalCode: '2820-000',
+      city: 'Charneca da Caparica',
+      shirtSize: 'M',
+      shirtType: 'Normal',
+      emergencyName: 'Ana Exemplo',
+      emergencyPhone: '910000002',
+      consentRgpd: true,
+      consentImage: false,
+    },
+    confirmedAt: '2026-09-20',
+    documents: REQUIRED_DOCS()
+      .filter((d) => d.id !== 'ficha') // não é sócio: não entrega ficha de sócio
+      .map((d) => ({ ...d, status: 'Aprovado' as DocStatus })),
   },
 ];
 
@@ -278,6 +412,11 @@ export const DEMO_SESSIONS: Session[] = [
       plan: PLAN_ESTRADA,
     }),
   ),
+  // João — atletismo, grupo de estrada
+  atletismo('j1', '2026-10-01T19:30', { athleteId: 'atl-4', status: 'Terminado', rsvp: 'vou', attended: true, minutes: 60, plan: PLAN_ESTRADA }),
+  atletismo('j2', '2026-10-06T19:30', { athleteId: 'atl-4', status: 'Terminado', rsvp: 'vou', attended: true, minutes: 60, plan: PLAN_ESTRADA }),
+  atletismo('j3', '2026-10-08T19:30', { athleteId: 'atl-4', minutes: 60, plan: PLAN_ESTRADA }),
+  atletismo('j4', '2026-10-13T19:30', { athleteId: 'atl-4', minutes: 60, plan: PLAN_ESTRADA }),
   atletismo('v12', '2026-11-08T09:30', {
     athleteId: 'atl-3',
     type: 'Jogo',
@@ -412,6 +551,11 @@ export const DEMO_RESULTS: CompetitionResult[] = [
     ['2025/2026', 4, '31º GPA Charneca da Caparica', CHA, '2026-03-15', 'Infantis', 3, '3:38.44', 1000, 8],
     ['2025/2026', 6, '9ª Milha Urbana Alberto Chaíça', MIL, '2026-05-03', 'Infantis', 2, '2:54.30', 800, 9],
     ['2025/2026', 8, '3ª Corrida Egas Moniz', EGA, '2026-05-24', 'Infantis', 2, '3:35.19', 1000, 9],
+  ]),
+  ...results('atl-4', [
+    ['2025/2026', 2, 'Troféu da Caparica 2025', 'Troféu da Caparica', '2025-11-16', 'Seniores', 18, '33:52.40', 8000, 1],
+    ['2025/2026', 4, '31º GPA Charneca da Caparica', 'GPA Charneca da Caparica', '2026-03-15', 'Seniores', 15, '32:10.85', 7800, 1],
+    ['2025/2026', 8, '3ª Corrida Egas Moniz', 'Corrida Egas Moniz', '2026-05-24', 'Seniores', 12, '28:41.06', 7000, 1],
   ]),
   ...results('atl-3', [
     ['2023/2024', 2, '29º GPA Charneca da Caparica', CHA, '2024-03-24', 'Veteranas I', 14, '41:20.15', 7800, 1],

@@ -95,42 +95,10 @@
             >
           </p>
         </div>
-        @if (editingId() !== a.id) {
-          <button type="button" class="btn btn--outline btn--sm" (click)="startEdit(a)">
-            <sfc-icon name="user" size="16" />Editar dados
-          </button>
-        }
       </header>
 
-      @if (editingId() === a.id) {
-        <form class="edit" (ngSubmit)="saveEdit(a)">
-          <div class="form-row">
-            <div class="field">
-              <label [for]="'e-name-' + a.id">Nome completo</label>
-              <input [id]="'e-name-' + a.id" name="name" required [(ngModel)]="edit.name" />
-            </div>
-            <div class="field">
-              <label [for]="'e-birth-' + a.id">Data de nascimento</label>
-              <input
-                [id]="'e-birth-' + a.id"
-                name="birth"
-                type="date"
-                required
-                [max]="today"
-                [(ngModel)]="edit.birthDate"
-              />
-            </div>
-          </div>
-          <div class="actions">
-            <button type="submit" class="btn btn--primary btn--sm">Guardar</button>
-            <button type="button" class="btn btn--outline btn--sm" (click)="editingId.set(null)">
-              Cancelar
-            </button>
-          </div>
-        </form>
-      }
+      <sfc-athlete-data [athlete]="a" />
 
-      <!-- Documentos de inscrição -->
       <section class="block" [attr.aria-labelledby]="'docs-' + a.id">
         <div class="block__head">
           <h4 [id]="'docs-' + a.id"><sfc-icon name="file" size="18" />Documentos de inscrição</h4>

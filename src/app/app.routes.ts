@@ -1,5 +1,6 @@
-import { Routes } from '@angular/router';
-import { memberGuard } from './features/account/member.guard';
+import { inject } from '@angular/core';
+import { Router, Routes } from '@angular/router';
+import { accountGuard, memberGuard } from './features/account/member.guard';
 
 export const routes: Routes = [
   { path: '', loadComponent: () => import('./features/home/home.component').then((m) => m.HomeComponent) },
@@ -14,7 +15,12 @@ export const routes: Routes = [
   { path: 'eventos/:slug', loadComponent: () => import('./features/events/event-detail.component').then((m) => m.EventDetailComponent) },
   { path: 'socios', loadComponent: () => import('./features/membership/membership.component').then((m) => m.MembershipComponent) },
   { path: 'socios/registo', loadComponent: () => import('./features/membership/register.component').then((m) => m.RegisterComponent) },
-  { path: 'area-socio/entrar', loadComponent: () => import('./features/account/login.component').then((m) => m.LoginComponent) },
+  { path: 'entrar', loadComponent: () => import('./features/account/login.component').then((m) => m.LoginComponent) },
+  // Endereço antigo da entrada de sócio → ponto de acesso único
+  {
+    path: 'area-socio/entrar',
+    redirectTo: ({ queryParams }) => inject(Router).createUrlTree(['/entrar'], { queryParams: { ...queryParams, perfil: 'socio' } }),
+  },
   {
     path: 'area-socio',
     canActivate: [memberGuard],
@@ -22,7 +28,7 @@ export const routes: Routes = [
   },
   {
     path: 'area-atletas',
-    canActivate: [memberGuard],
+    canActivate: [accountGuard],
     loadComponent: () => import('./features/athletes/athlete-area.component').then((m) => m.AthleteAreaComponent),
   },
   { path: 'parceiros', loadComponent: () => import('./features/partners/partners.component').then((m) => m.PartnersComponent) },
