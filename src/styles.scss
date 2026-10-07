@@ -453,6 +453,32 @@ p {
   }
 }
 
+/* ---------- Faixa de modo demonstração ---------- */
+.demo-bar {
+  background: #fff6e0;
+  color: #6b4300;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.45rem 16px;
+}
+
+/* ---------- Estado vazio ---------- */
+.empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--color-muted);
+  background: #fff;
+  border: 1.5px dashed var(--color-line);
+  border-radius: var(--radius);
+  p {
+    margin: 0;
+  }
+}
+
 /* ---------- Alertas ---------- */
 .alert {
   display: flex;

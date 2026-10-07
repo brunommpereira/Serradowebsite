@@ -20,6 +20,11 @@ export const routes: Routes = [
     canActivate: [memberGuard],
     loadComponent: () => import('./features/account/dashboard.component').then((m) => m.DashboardComponent),
   },
+  {
+    path: 'area-atletas',
+    canActivate: [memberGuard],
+    loadComponent: () => import('./features/athletes/athlete-area.component').then((m) => m.AthleteAreaComponent),
+  },
   { path: 'parceiros', loadComponent: () => import('./features/partners/partners.component').then((m) => m.PartnersComponent) },
   { path: 'comunidade', loadComponent: () => import('./features/community/community.component').then((m) => m.CommunityComponent) },
   { path: 'multimedia', loadComponent: () => import('./features/media/media.component').then((m) => m.MediaComponent) },

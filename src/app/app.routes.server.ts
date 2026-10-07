@@ -8,6 +8,7 @@ import { EVENTS, NEWS, SPORTS } from './core/data/mock-data';
 export const serverRoutes: ServerRoute[] = [
   { path: 'area-socio', renderMode: RenderMode.Client },
   { path: 'area-socio/entrar', renderMode: RenderMode.Client },
+  { path: 'area-atletas', renderMode: RenderMode.Client },
   {
     path: 'modalidades/:slug',
     renderMode: RenderMode.Prerender,

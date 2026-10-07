@@ -1,0 +1,318 @@
+<div class="demo-bar">Modo demonstração · atletas, sessões e recibos são fictícios</div>
+
+<header class="hero">
+  <div class="container hero__inner">
+    <div>
+      <p class="hero__eyebrow">Encarregado de Educação</p>
+      <h1 class="hero__title">Os meus educandos</h1>
+      @if (member(); as m) {
+        <p class="hero__who">Sessão iniciada como <strong>{{ m.name }}</strong> · Sócio n.º {{ m.memberNumber }}</p>
+      }
+    </div>
+    <a routerLink="/area-socio" class="btn btn--ghost-light btn--sm"><sfc-icon name="card" size="18" />Área de Sócio</a>
+  </div>
+
+  <div class="container">
+    @if (area.athletes().length) {
+      <div class="picker" role="group" aria-label="Escolher educando">
+        @for (a of area.athletes(); track a.id) {
+          <button type="button" class="picker__chip" [attr.aria-pressed]="a.id === athleteId()" (click)="selectAthlete(a.id)">
+            <span class="picker__avatar" aria-hidden="true">{{ a.name.charAt(0) }}</span>
+            <span class="picker__text">
+              <strong>{{ a.name }}</strong>
+              <span>{{ sportName(a.sportSlug) }} · {{ a.level }}</span>
+            </span>
+          </button>
+        }
+      </div>
+    }
+  </div>
+</header>
+
+<nav class="tabs-bar" aria-label="Secções da Área de Atletas">
+  <div class="container">
+    <div class="tabs" role="tablist" aria-label="Secções">
+      @for (t of tabs; track t.id; let i = $index) {
+        <button
+          #tabBtn
+          type="button"
+          role="tab"
+          class="tab"
+          [id]="'tab-' + t.id"
+          [attr.aria-selected]="tab() === t.id"
+          [attr.aria-controls]="'panel-' + t.id"
+          [attr.tabindex]="tab() === t.id ? 0 : -1"
+          (click)="selectTab(t.id)"
+          (keydown)="onTabKey($event, i)"
+        >
+          <sfc-icon [name]="t.icon" size="18" />{{ t.label }}
+          @if (t.id === 'atletas' && pendingDocs()) {
+            <span class="tab__dot" [attr.aria-label]="pendingDocs() + ' documentos por validar'">{{ pendingDocs() }}</span>
+          }
+        </button>
+      }
+    </div>
+  </div>
+</nav>
+
+<section class="container panel" role="tabpanel" [id]="'panel-' + tab()" [attr.aria-labelledby]="'tab-' + tab()" tabindex="0">
+  @let a = athlete();
+  @switch (tab()) {
+    <!-- ================= AGENDA ================= -->
+    @case ('agenda') {
+      <div class="panel__head">
+        <div>
+          <h2 class="panel__title">Agenda e presenças</h2>
+          <p class="panel__lead">Confirma se {{ a?.name?.split(' ')?.[0] }} vai a cada treino ou jogo. A equipa técnica vê as respostas em tempo real.</p>
+        </div>
+      </div>
+      @if (a) {
+        <div class="sessions">
+          @for (s of upcoming(); track s.id) {
+            <sfc-session-card [session]="s" [level]="a.level" (answer)="answer(s, $event)" />
+          } @empty {
+            <div class="empty-state"><sfc-icon name="calendar" size="32" /><p>Sem sessões agendadas para os próximos dias.</p></div>
+          }
+        </div>
+      } @else {
+        <ng-container [ngTemplateOutlet]="noAthlete" />
+      }
+    }
+
+    <!-- ================= EVOLUÇÃO ================= -->
+    @case ('evolucao') {
+      <div class="panel__head">
+        <div>
+          <h2 class="panel__title">Evolução e métricas</h2>
+          <p class="panel__lead">Assiduidade e indicadores técnicos no período escolhido.</p>
+        </div>
+      </div>
+      @if (a) {
+        <div class="filters">
+          <div class="field field--inline">
+            <label for="f-from">De</label>
+            <input id="f-from" type="date" [ngModel]="from()" (ngModelChange)="from.set($event)" [max]="to()" />
+          </div>
+          <div class="field field--inline">
+            <label for="f-to">Até</label>
+            <input id="f-to" type="date" [ngModel]="to()" (ngModelChange)="to.set($event)" [min]="from()" [max]="today" />
+          </div>
+          <div class="chips" role="group" aria-label="Períodos rápidos">
+            <button type="button" class="chip" (click)="setRange('30')">Últimos 30 dias</button>
+            <button type="button" class="chip" (click)="setRange('epoca')">Desde o início da época</button>
+          </div>
+          <button type="button" class="btn btn--outline btn--sm filters__export" (click)="exportReport()"><sfc-icon name="download" size="18" />Exportar relatório</button>
+        </div>
+
+        <button type="button" class="assess" (click)="assessmentsOpen.set(true)">
+          <span class="assess__icon" aria-hidden="true"><sfc-icon name="run" size="26" /></span>
+          <span class="assess__text">
+            <strong>Ver avaliações físicas da época</strong>
+            <span>3 momentos de avaliação: início, meio e fim de época</span>
+          </span>
+          <sfc-icon name="chevron" size="20" class="assess__chev" />
+        </button>
+
+        <div class="kpis">
+          <div class="kpi kpi--hero">
+            <span class="kpi__label">Minutos treinados</span>
+            <span class="kpi__value">{{ stats().minutes }}<small>min</small></span>
+            <span class="kpi__hint">≈ {{ (stats().minutes / 60).toFixed(1).replace('.', ',') }} horas no período</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi__label">Presenças</span>
+            <span class="kpi__value">{{ stats().attended }}<small>/ {{ stats().sessions }}</small></span>
+            <span class="kpi__meter" role="meter" aria-label="Taxa de presença" [attr.aria-valuenow]="attendanceRate()" aria-valuemin="0" aria-valuemax="100">
+              <span [style.width.%]="attendanceRate()"></span>
+            </span>
+            <span class="kpi__hint">{{ attendanceRate() }}% de assiduidade</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi__label">Faltas</span>
+            <span class="kpi__value">{{ stats().absences }}</span>
+            <span class="kpi__hint">{{ stats().absences === 0 ? 'Sem faltas no período' : 'Sessões terminadas sem presença' }}</span>
+          </div>
+        </div>
+
+        <div class="card chart-card">
+          <h3 class="h-s">{{ a.name }} vs média {{ a.level }}</h3>
+          @if (metrics().length) {
+            <sfc-comparison-chart [metrics]="metrics()" [athleteName]="a.name.split(' ')[0]" [level]="a.level" />
+          } @else {
+            <p class="caption">A equipa técnica ainda não registou métricas para este atleta.</p>
+          }
+        </div>
+
+        <sfc-dialog heading="Avaliações físicas da época" [open]="assessmentsOpen()" (closed)="assessmentsOpen.set(false)">
+          <ol class="moments">
+            @for (m of assessments(); track m.moment) {
+              <li class="moment" [class.moment--done]="m.results.length">
+                <div class="moment__head">
+                  <strong>{{ m.moment }}</strong>
+                  @if (m.date) {
+                    <span class="caption">{{ m.date | date: 'd MMM y' }}</span>
+                  } @else {
+                    <span class="badge badge--neutral">Por realizar</span>
+                  }
+                </div>
+                @if (m.results.length) {
+                  <dl class="moment__results">
+                    @for (r of m.results; track r.test) {
+                      <div><dt>{{ r.test }}</dt><dd>{{ r.value }}</dd></div>
+                    }
+                  </dl>
+                }
+              </li>
+            }
+          </ol>
+        </sfc-dialog>
+      } @else {
+        <ng-container [ngTemplateOutlet]="noAthlete" />
+      }
+    }
+
+    <!-- ================= HISTÓRICO ================= -->
+    @case ('historico') {
+      <div class="panel__head">
+        <div>
+          <h2 class="panel__title">Histórico</h2>
+          <p class="panel__lead">Sessões passadas, resposta registada e presença marcada pelo treinador.</p>
+        </div>
+      </div>
+      @if (a) {
+        <div class="sessions">
+          @for (s of history(); track s.id) {
+            <sfc-session-card [session]="s" [level]="a.level" mode="historico" (openPlan)="planSession.set(s)" />
+          } @empty {
+            <div class="empty-state"><sfc-icon name="clock" size="32" /><p>Ainda não há sessões no histórico.</p></div>
+          }
+        </div>
+        <sfc-dialog [heading]="'Plano de treino' + (planSession() ? ' · ' + (planSession()!.date | date: 'd MMM') : '')" [open]="!!planSession()" (closed)="planSession.set(null)">
+          @if (planSession(); as p) {
+            <p class="caption">{{ p.title }} · {{ p.minutes }} min · {{ p.location }}</p>
+            <ol class="plan">
+              @for (step of p.plan; track $index) {
+                <li>{{ step }}</li>
+              }
+            </ol>
+          }
+        </sfc-dialog>
+      } @else {
+        <ng-container [ngTemplateOutlet]="noAthlete" />
+      }
+    }
+
+    <!-- ================= OS MEUS ATLETAS ================= -->
+    @case ('atletas') {
+      <sfc-athletes-tab [athleteId]="athleteId()" (selected)="selectAthlete($event)" />
+    }
+
+    <!-- ================= RECIBOS ================= -->
+    @case ('recibos') {
+      <div class="panel__head">
+        <div>
+          <h2 class="panel__title">Os meus recibos</h2>
+          <p class="panel__lead">Mensalidades e inscrições pagas{{ a ? ' de ' + a.name : '' }}.</p>
+        </div>
+        <a routerLink="/area-socio" class="link-arrow">Quotas de sócio na Área de Sócio</a>
+      </div>
+      @if (receipts().length) {
+        <div class="table-wrap card card--flush">
+          <table class="table receipts">
+            <caption class="visually-hidden">Recibos de {{ a?.name }}</caption>
+            <thead>
+              <tr>
+                <th scope="col">N.º</th>
+                <th scope="col">Data</th>
+                <th scope="col">Descrição</th>
+                <th scope="col" class="num">Valor</th>
+                <th scope="col"><span class="visually-hidden">Ações</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of receipts(); track r.id) {
+                <tr>
+                  <td class="mono r-num">{{ r.number }}</td>
+                  <td class="r-date">{{ r.date | date: 'dd/MM/y' }}</td>
+                  <td class="r-desc">{{ r.description }}<br /><span class="caption">{{ r.period }}</span></td>
+                  <td class="num r-amount">{{ r.amount | currency: 'EUR' }}</td>
+                  <td class="actions r-act">
+                    <button type="button" class="btn btn--outline btn--sm" (click)="downloadReceipt(r.id)" [attr.aria-label]="'Descarregar recibo ' + r.number">
+                      <sfc-icon name="download" size="16" />Recibo
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr>
+                <th scope="row" colspan="3">Total da época</th>
+                <td class="num r-amount"><strong>{{ receiptsTotal() | currency: 'EUR' }}</strong></td>
+                <td class="r-act"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      } @else {
+        <div class="empty-state"><sfc-icon name="euro" size="32" /><p>Sem recibos emitidos para este atleta.</p></div>
+      }
+    }
+
+    <!-- ================= O MEU CLUBE ================= -->
+    @case ('clube') {
+      <div class="panel__head">
+        <div>
+          <h2 class="panel__title">O meu clube</h2>
+          <p class="panel__lead">Documentos, horários e contactos úteis para a época 2026/27.</p>
+        </div>
+      </div>
+      <div class="club">
+        <div class="card">
+          <h3 class="h-s">Documentos para descarregar</h3>
+          <ul class="downloads">
+            @for (d of area.downloads; track d.id) {
+              <li>
+                <span class="downloads__icon" aria-hidden="true"><sfc-icon name="file" size="22" /></span>
+                <span class="downloads__text"><strong>{{ d.title }}</strong><span class="caption">{{ d.text }}</span></span>
+                <button type="button" class="btn btn--outline btn--sm" (click)="downloadForm(d.id)" [attr.aria-label]="'Descarregar ' + d.title">
+                  <sfc-icon name="download" size="16" />
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
+
+        <div class="club__side">
+          @if (sport(); as sp) {
+            <div class="card">
+              <h3 class="h-s">Horários · {{ sp.name }}</h3>
+              <ul class="trainings">
+                @for (t of sp.trainings; track t.team) {
+                  <li [class.mine]="t.team.includes(a?.level ?? '—')">
+                    <strong>{{ t.team }}</strong>
+                    <span>{{ t.days }} · {{ t.time }}</span>
+                    <span class="caption">{{ t.location }}</span>
+                  </li>
+                }
+              </ul>
+              <a [routerLink]="['/modalidades', sp.slug]" class="link-arrow">Página da modalidade</a>
+            </div>
+            <div class="card contact">
+              <h3 class="h-s">Falar com a coordenação</h3>
+              <a class="contact__line" [href]="'mailto:' + sp.contactEmail"><sfc-icon name="mail" size="18" />{{ sp.contactEmail }}</a>
+              <a class="contact__line" routerLink="/contactos"><sfc-icon name="pin" size="18" />Secretaria e contactos do clube</a>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
+</section>
+
+<ng-template #noAthlete>
+  <div class="empty-state">
+    <sfc-icon name="users" size="32" />
+    <p>Ainda não tens atletas associados.</p>
+    <button type="button" class="btn btn--primary" (click)="selectTab('atletas')">Adicionar atleta</button>
+  </div>
+</ng-template>

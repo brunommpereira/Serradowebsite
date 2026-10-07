@@ -67,6 +67,7 @@ import { ContentService } from '../../core/services/content.service';
           <a routerLink="/socios">Ser Sócio</a>
           <a routerLink="/socios/registo">Registo</a>
           <a routerLink="/area-socio">Área de Sócio</a>
+          <a routerLink="/area-atletas">Área de Atletas</a>
           <a routerLink="/eventos">Eventos</a>
           <a routerLink="/loja">Loja</a>
         </nav>

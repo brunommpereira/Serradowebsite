@@ -125,6 +125,7 @@ export const MAIN_NAV: NavItem[] = [
           { label: 'Entrar', link: '/area-socio/entrar' },
           { label: 'Pagar Quota', link: '/area-socio' },
           { label: 'Cartão Digital', link: '/area-socio' },
+          { label: 'Área de Atletas', link: '/area-atletas' },
         ],
       },
     ],
