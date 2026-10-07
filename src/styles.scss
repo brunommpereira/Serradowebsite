@@ -360,6 +360,9 @@ p {
   width: 100%;
 }
 .link-arrow {
+  /* Ligações isoladas: área de toque ≥ 24px de altura (WCAG 2.2 Target Size) */
+  display: inline-block;
+  padding-block: 0.25rem;
   font-weight: 700;
   text-decoration: none;
   color: var(--color-link);
@@ -402,7 +405,7 @@ p {
   gap: 0.35em;
   padding: 0.28em 0.7em;
   border-radius: 999px;
-  font: 700 0.72rem/1.2 var(--font-body);
+  font: 700 0.75rem/1.2 var(--font-body);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   background: var(--sfc-blue-50);
