@@ -25,10 +25,10 @@ export class ClubComponent {
     { year: '1978', title: 'Fundação do clube', text: 'A 29 de abril de 1978 nasce o Serrado Futebol Clube, no Bairro do Serrado, Caparica.' },
     { year: '', title: 'Primeiras atividades', text: 'Os primeiros jogos, torneios e convívios juntam o bairro à volta do clube.' },
     { year: '', title: 'Crescimento', text: 'Mais sócios, mais atletas e uma sede que se torna ponto de encontro da comunidade.' },
-    { year: '', title: 'Novas modalidades', text: 'O clube abre-se a novas modalidades: atletismo, futsal e rugby.' },
+    { year: '', title: 'Novas modalidades', text: 'O clube abre-se a novas modalidades, como o atletismo e o futsal.' },
     { year: '', title: 'Formação', text: 'A aposta na formação traz centenas de crianças e jovens ao desporto.' },
     { year: '', title: 'Projetos comunitários', text: 'Caminhadas solidárias, voluntariado e o projeto Descobrir Património.' },
-    { year: '2026', title: 'Clube multidesportivo', text: 'Um clube moderno, digital e aberto a todos, fiel às suas raízes.' },
+    { year: '2026', title: 'Clube multidesportivo', text: 'Nasce o Almada Rugby SFC, núcleo de rugby do clube. Um Serrado FC moderno e aberto a todos, fiel às suas raízes.' },
   ];
 
   protected readonly values = [

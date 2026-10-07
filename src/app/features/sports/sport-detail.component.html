@@ -1,14 +1,19 @@
 @if (sport(); as s) {
   @if (s.external; as ext) {
     <sfc-page-hero
-      eyebrow="Modalidade"
+      [eyebrow]="ext.name + ' · Núcleo do Serrado FC'"
       [title]="s.name"
       [subtitle]="s.tagline"
       [sport]="s.slug"
       [crumbs]="[{ label: 'Modalidades', link: '/modalidades' }, { label: s.name }]"
     >
       <div class="hero-cta">
-        <a class="btn btn--accent" [href]="ext.url" target="_blank" rel="noopener">
+        @if (ext.links?.[0]; as trial) {
+          <a class="btn btn--accent" [href]="trial.url" target="_blank" rel="noopener">
+            Experimenta grátis <sfc-icon name="external" /><span class="visually-hidden">(abre {{ ext.name }} numa nova janela)</span>
+          </a>
+        }
+        <a class="btn btn--ghost-light" [href]="ext.url" target="_blank" rel="noopener">
           Ir para {{ ext.name }} <sfc-icon name="external" /><span class="visually-hidden">(abre numa nova janela)</span>
         </a>
       </div>
@@ -18,21 +23,79 @@
       <div class="container split external">
         <div>
           <p class="eyebrow">{{ ext.name }}</p>
-          <h2>O rugby tem site próprio</h2>
+          <h2>O rugby do Serrado FC</h2>
           <p class="prose">{{ s.description }}</p>
-          <a class="btn btn--primary" [href]="ext.url" target="_blank" rel="noopener">
-            Visitar {{ ext.url.replace('https://', '').replace('/', '') }} <sfc-icon name="external" /><span class="visually-hidden">(abre numa nova janela)</span>
-          </a>
-        </div>
-        <div class="card external__card">
-          <p class="glance__label">No site do núcleo encontras</p>
           <ul class="checklist">
             @for (h of s.highlights; track h) {
               <li>{{ h }}</li>
             }
           </ul>
-          <p class="caption">Notícias do rugby também aparecem em <a routerLink="/noticias" [queryParams]="{ categoria: 'Rugby' }">Notícias</a>.</p>
         </div>
+        <div class="glance">
+          @for (t of s.trainings; track t.team) {
+            <div class="glance__box">
+              <p class="glance__label">Treinos · {{ t.team }}</p>
+              <p class="glance__title">{{ t.days }}</p>
+              <p class="glance__meta">{{ t.time }} · {{ t.location }}</p>
+            </div>
+          }
+          <div class="glance__box glance__box--dark">
+            <p class="glance__label">Primeiro treino</p>
+            <p class="glance__title">Experimenta grátis</p>
+            <p class="glance__meta">Os treinos de experiência são gratuitos. Inscreve-te no site do núcleo.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    @if (s.levels?.length) {
+      <section class="section section--soft" aria-labelledby="h-levels">
+        <div class="container">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Formação</p>
+              <h2 id="h-levels">Escalões</h2>
+            </div>
+            <p>Treino e contacto adaptados a cada idade, com treinadores certificados.</p>
+          </div>
+          <ul class="teams teams--fit">
+            @for (l of s.levels; track l.name) {
+              <li class="card">
+                <h3>{{ l.name }}</h3>
+                <p class="caption">{{ l.text }}</p>
+              </li>
+            }
+          </ul>
+        </div>
+      </section>
+    }
+
+    <section class="section" aria-labelledby="h-ext">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">{{ ext.url.replace('https://', '').replace('/', '') }}</p>
+            <h2 id="h-ext">Tudo sobre o núcleo</h2>
+          </div>
+          <p>Calendário, inscrições, perguntas frequentes e contactos estão no site do {{ ext.name }}.</p>
+        </div>
+        <ul class="ext-links">
+          @for (l of ext.links; track l.url) {
+            <li>
+              <a [href]="l.url" target="_blank" rel="noopener">
+                {{ l.label }} <sfc-icon name="external" size="18" /><span class="visually-hidden">(abre numa nova janela)</span>
+              </a>
+            </li>
+          }
+          @if (ext.instagram) {
+            <li>
+              <a [href]="ext.instagram" target="_blank" rel="noopener">
+                <sfc-icon name="instagram" size="18" /> Instagram <sfc-icon name="external" size="18" /><span class="visually-hidden">(abre numa nova janela)</span>
+              </a>
+            </li>
+          }
+        </ul>
+        <p class="caption">Notícias do rugby também aparecem em <a routerLink="/noticias" [queryParams]="{ categoria: 'Rugby' }">Notícias</a>.</p>
       </div>
     </section>
   } @else {
