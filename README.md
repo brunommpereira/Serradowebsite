@@ -28,7 +28,7 @@ Quando o domínio `serradofc.pt` estiver pronto, há três passos:
 3. Mudar o `SITE_URL` no workflow.
 
 - Para testar localmente o build do GitHub Pages usa-se `npm run build:gh-pages`, que define o base href `/Serradowebsite/`.
-- O `404.html` serve de fallback para as rotas que só existem no browser (`/area-socio`).
+- O `404.html` serve de fallback para as rotas que só existem no browser (`/area-socio`, `/area-atletas`).
 
 ## Estrutura (secção 55)
 
@@ -60,6 +60,7 @@ O `ContentService` é o único ponto de acesso aos dados. Ao lado de cada métod
 | Eventos e inscrição com pagamento e QR Code de check-in (secção 22) | ✅ demo |
 | Sócios: página pública, categorias e quotas, benefícios, FAQ (secção 9) | ✅ |
 | Registo de sócio (secções 10 e 49): categoria → dados (validação de NIF/CP, RGPD) → pagamento → n.º de sócio + cartão | ✅ demo |
+| Área de Atletas (`/area-atletas`, encarregados de educação): agenda com Vou / Não vou, evolução e métricas (atleta vs média anónima do escalão, exportar CSV, avaliações físicas), histórico com plano de treino, atletas e documentos de inscrição, partilha de acesso com até 2 co-encarregados, recibos, documentos do clube | ✅ demo |
 | Área de Sócio (secções 11–14): login, dashboard, quotas e pagamentos, recibos, cartão digital com QR, agregado familiar, notificações | ✅ demo |
 | Parceiros e "Torne-se Parceiro", Comunidade, Multimédia, Contactos (mapa, horários, formulário), Loja (catálogo) | ✅ |
 | Pesquisa global (secção 28) | ✅ |

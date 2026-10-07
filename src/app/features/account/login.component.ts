@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MemberAuthService } from '../../core/services/member-auth.service';
 import { SeoService } from '../../core/services/seo.service';
 import { IconComponent } from '../../shared/icon.component';
@@ -78,6 +78,8 @@ import { IconComponent } from '../../shared/icon.component';
 export class LoginComponent {
   private readonly auth = inject(MemberAuthService);
   private readonly router = inject(Router);
+  /** ?voltar= — destino após o login (só caminhos internos) */
+  private readonly voltar = inject(ActivatedRoute).snapshot.queryParamMap.get('voltar');
   protected readonly demoNumber = MemberAuthService.DEMO_NUMBER;
   protected readonly demoPassword = MemberAuthService.DEMO_PASSWORD;
   protected readonly mode = signal<'login' | 'reset'>('login');
@@ -91,7 +93,12 @@ export class LoginComponent {
 
   constructor() {
     inject(SeoService).set({ title: 'Área de Sócio — Entrar', description: 'Entra na Área de Sócio do Serrado FC.', path: '/area-socio/entrar' });
-    if (this.auth.isLoggedIn()) this.router.navigateByUrl('/area-socio');
+    if (this.auth.isLoggedIn()) this.router.navigateByUrl(this.target());
+  }
+
+  private target() {
+    const url = this.voltar;
+    return url && url.startsWith('/') && !url.startsWith('//') ? url : '/area-socio';
   }
 
   fillDemo() {
@@ -101,7 +108,7 @@ export class LoginComponent {
   submit() {
     const { memberNumber, password } = this.form.getRawValue();
     if (this.auth.login(memberNumber, password)) {
-      this.router.navigateByUrl('/area-socio');
+      this.router.navigateByUrl(this.target());
     } else {
       this.error.set(true);
     }
