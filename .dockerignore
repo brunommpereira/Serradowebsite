@@ -1,0 +1,13 @@
+# Contexto do build do site (deploy/web.Dockerfile). Os serviços usam services/.dockerignore.
+.git
+.github
+.angular
+node_modules
+dist
+coverage
+services
+tools
+.claude
+deploy/.env
+**/*.xlsx
+**/*.csv

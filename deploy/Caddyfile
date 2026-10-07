@@ -1,0 +1,28 @@
+# Certificado HTTPS (Let's Encrypt) obtido e renovado automaticamente para SITE_DOMAIN.
+{$SITE_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	# API pública (middleware). O backend e a base de dados nunca são expostos.
+	handle /api/* {
+		reverse_proxy middleware:4000
+	}
+
+	handle {
+		root * /srv
+		# Ficheiros com hash no nome: cache longa
+		@assets path_regexp -[0-9A-Za-z]{8}\.(js|css)$
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		# Páginas pré-renderizadas; o resto (área reservada, backoffice) é renderizado no browser
+		try_files {path} {path}/index.html /index.csr.html
+		file_server
+	}
+}

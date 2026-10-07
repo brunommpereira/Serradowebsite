@@ -1,0 +1,37 @@
+name: Deploy VPS
+
+# Atualiza a VPS depois de o CI passar no main. Fica inativo até se configurar
+# a variável VPS_HOST e o segredo VPS_SSH_KEY (ver docs/DEPLOY-VPS.md, passo 6).
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: vps
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: vars.VPS_HOST != '' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    environment:
+      name: vps
+      url: https://${{ vars.SITE_DOMAIN || vars.VPS_HOST }}
+    steps:
+      - name: Atualizar a VPS por SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          HOST: ${{ vars.VPS_HOST }}
+          SSH_USER: ${{ vars.VPS_USER || 'deploy' }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -o StrictHostKeyChecking=yes "$SSH_USER@$HOST" 'sudo /opt/serrado/deploy/update.sh'

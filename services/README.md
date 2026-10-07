@@ -20,7 +20,7 @@ npm run db:migrate          # aplica db/migrations/*.sql (cada uma numa transaç
 npm run db:seed             # dados de demonstração (APAGA o conteúdo!)
 npm run backend             # http://localhost:4100/internal/docs
 npm run middleware          # http://localhost:4000/api/docs
-npm test                    # 35 testes de integração com PostgreSQL real
+npm test                    # 39 testes de integração com PostgreSQL real
 npm run typecheck
 npm run openapi             # regenera backend/openapi.json e middleware/openapi.json
 ```
@@ -60,6 +60,12 @@ Também se pode subir tudo com Docker: `docker compose up --build` na raiz (incl
 3. **Acessos:** associar cada conta aos seus atletas na tabela `athlete_access` (encarregado → educandos; atleta → o próprio).
 
 ## Pôr em produção
+
+**Numa VPS** (a opção escolhida para começar): [`docs/DEPLOY-VPS.md`](../docs/DEPLOY-VPS.md). Um só comando instala tudo, com `deploy/docker-compose.prod.yml`: Caddy com HTTPS, site e API no mesmo endereço, backend e PostgreSQL só na rede interna, e cópias de segurança diárias.
+
+Criar a primeira conta de administração (`npm run db:create-admin -- email "Nome"`) e carregar o conteúdo inicial do site, sem dados pessoais (`npm run db:content`).
+
+Outras opções:
 
 - **Base de dados:** PostgreSQL gerido na **região UE**, com backups automáticos (Supabase, Neon, Azure Database for PostgreSQL, RDS…) ou o `docker compose` num servidor do clube.
 - **Serviços:** a mesma imagem `services/Dockerfile` serve os dois, com comandos diferentes. Podem correr em qualquer serviço de containers (Fly.io, Render, Railway, Azure Container Apps, um VPS…).

@@ -9,10 +9,12 @@
   "scripts": {
     "db:migrate": "node db/migrate.ts",
     "db:seed": "node db/seed/seed.ts",
+    "db:content": "node db/seed/content.ts",
+    "db:create-admin": "node db/create-admin.ts",
     "backend": "node backend/src/server.ts",
     "middleware": "node middleware/src/server.ts",
     "openapi": "node scripts/openapi.ts",
-    "test": "node --test --test-concurrency=1 backend/test/*.test.ts middleware/test/*.test.ts",
+    "test": "node --test --test-concurrency=1 db/test/*.test.ts backend/test/*.test.ts middleware/test/*.test.ts",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {

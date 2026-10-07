@@ -72,7 +72,7 @@ Tabelas principais (ver `services/db/migrations`):
 O front tem uma camada de dados com duas implementações:
 
 - **Demo:** quando `apiBaseUrl` está vazio, que é o caso do GitHub Pages hoje. Os dados vêm de `core/data` e do `localStorage` do browser. No modo demo, o CMS do backoffice já publica no site, mas só no browser de quem edita.
-- **API:** quando `apiBaseUrl` está definido em `src/app/core/api/api.config.ts`. O front passa a chamar o middleware com `withCredentials`, e o conteúdo e as áreas reservadas passam a ser reais.
+- **API:** quando `apiBaseUrl` está definido em `src/app/core/api/api.config.ts`. Na VPS, o build define-o como `/api/v1` através de `scripts/set-api-url.mjs` (ver [`DEPLOY-VPS.md`](DEPLOY-VPS.md)). O front passa a chamar o middleware com `withCredentials`, e o conteúdo e as áreas reservadas passam a ser reais.
 
 ## Correr localmente
 
