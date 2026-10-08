@@ -175,6 +175,39 @@ Os botões só aparecem para os fornecedores configurados.
 
 Ficam de fora, mas podem acrescentar-se mais tarde.
 
+## 5c. Página de Facebook → notícias e eventos (opcional)
+
+O site vai buscar à página de Facebook do clube, de 15 em 15 minutos:
+- **publicações → notícias:** o título é a primeira frase e o resto do texto fica como resumo. A foto passa a capa e a notícia leva uma ligação «Ver no Facebook». A categoria vem das hashtags (`#futsal`, `#atletismo`, `#rugby`, `#formacao`…). Se não houver nenhuma, fica «Clube»;
+- **eventos → eventos:** com a data e a hora de Portugal, o local, a capa e o tipo (corrida, caminhada, torneio…). Um evento cancelado no Facebook é arquivado no site.
+
+**Regras:**
+- **Sem duplicados:** cada publicação ou evento só entra uma vez.
+- **Atualizações:** se mudar no Facebook, também muda no site, **exceto se alguém já o tiver editado no backoffice**. Nesse caso a edição do site prevalece.
+- **O que não entra:** as partilhas de publicações de outras páginas e as fotos sem texto.
+
+**Custos:** a Graph API da Meta é gratuita e não se paga por pedido.
+
+### Obter o token da página (uma vez, com a conta de um administrador da página)
+
+1. **Criar a app:** em **developers.facebook.com → As minhas apps → Criar app**, escolhe o caso de uso **«Gerir tudo na tua Página»**. A app pode ficar em modo de desenvolvimento: quem a usa é o próprio administrador.
+2. **Gerar o token:** no **Graph API Explorer**, escolhe a app e carrega em **Get Token → Get Page Access Token**. Autoriza a página do clube com as permissões `pages_show_list` e `pages_read_engagement`.
+3. **Tornar o token de longa duração:** em **Access Token Tool**, carrega em **Extend Access Token** no token de *utilizador*. Depois, no Explorer, pede `GET /me/accounts` com esse token. A resposta traz o **ID da página** e um **token da página que não expira**.
+4. **Na VPS:** corre `sudo serrado facebook` e cola o ID e o token.
+   - **Publicar logo no site:** responde **S** (é a opção por omissão). Com **n**, tudo entra em rascunho para a equipa rever no backoffice.
+   - **Filtrar por hashtag:** opcionalmente, indica uma hashtag (por exemplo `site`). Assim só entram as publicações que a tenham, o que dá ao clube controlo sobre o que vai para o site.
+
+**Comandos:**
+- `sudo serrado facebook-sync`: sincroniza agora.
+- `sudo serrado facebook off`: desliga. O que já foi importado fica no site.
+- `sudo serrado logs`: mostra os erros.
+
+O token deixa de valer se o administrador mudar a password ou deixar de gerir a página. Nesse caso, gera um novo e volta a correr `sudo serrado facebook`.
+
+> **Eventos:** a Meta tem restringido o acesso aos eventos das páginas. Se a leitura de eventos for recusada, a sincronização continua a importar as publicações e os registos mostram `eventos: OAuthException …`.
+
+> **Imagens e RGPD:** as fotos publicadas no Facebook passam também para o site. Se alguma não puder estar no site (por exemplo, por falta de consentimento de imagem de um menor), basta despublicá-la ou trocar a capa no backoffice. Para mais controlo, usa o modo rascunho ou a hashtag.
+
 ## 6. Cópias de segurança
 
 | | Onde | Quando | Quanto tempo |
@@ -213,6 +246,7 @@ sudo serrado offsite-latest /root/recuperar                  # descarrega a últ
 | `sudo serrado rollback` | Versão anterior |
 | `sudo serrado admin <email> "<nome>"` | Criar uma conta de administração ou repor a password |
 | `sudo serrado cf-ips` | Atualizar já os IPs da Cloudflare na firewall |
+| `sudo serrado facebook` / `facebook-sync` / `facebook off` | Ligar, sincronizar agora ou desligar a página de Facebook |
 | `sudo serrado oauth google` / `microsoft` | Ativar a entrada com Google ou Microsoft (`… off` para desativar) |
 
 Para mudar o domínio ou passar a usar a Cloudflare, volta a correr o `bootstrap.sh` com as novas opções. Os dados e os segredos mantêm-se.

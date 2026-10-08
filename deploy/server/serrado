@@ -13,6 +13,9 @@
 #   serrado cf-ips                    atualiza a firewall e o Caddy com os IPs da Cloudflare
 #   serrado oauth google|microsoft    ativa «Continuar com Google/Microsoft» (pede o Client ID e o secret)
 #   serrado oauth google|microsoft off  desativa
+#   serrado facebook                  liga a página de Facebook (publicações → notícias, eventos → eventos)
+#   serrado facebook off              desliga
+#   serrado facebook-sync             sincroniza agora
 #
 # O GitHub Actions só pode correr deploy, rollback, backup e status (ver serrado-ssh-gate).
 set -euo pipefail
@@ -218,6 +221,42 @@ cmd_oauth() {
   echo "  $(grep '^PUBLIC_URL=' "$ETC/serrado.env" | cut -d= -f2-)/api/v1/auth/oauth/$provider/callback"
 }
 
+set_env() {  # set_env CHAVE valor — substitui ou acrescenta em serrado.env
+  sed -i "/^$1=/d" "$ETC/serrado.env"
+  printf '%s=%s\n' "$1" "$2" >> "$ETC/serrado.env"
+}
+
+cmd_facebook() {
+  if [ "${1:-}" = off ]; then
+    sed -i '/^FACEBOOK_/d' "$ETC/serrado.env"
+    $SYSTEMCTL disable --now serrado-facebook.timer 2>/dev/null || true
+    echo '✔ Sincronização com o Facebook desligada (as notícias e eventos já importados ficam no site)'
+    return
+  fi
+  local page token mode tag
+  read -rp 'ID da página de Facebook (só números): ' page
+  read -rsp 'Token da página (não aparece no ecrã): ' token; echo
+  read -rp 'Publicar logo no site? [S/n] (n = fica em rascunho para rever): ' mode
+  read -rp 'Só publicações com esta hashtag (Enter = todas; ex.: site): ' tag
+  [[ $page =~ ^[0-9]{5,25}$ ]] || die 'ID da página inválido'
+  [[ $token =~ ^[A-Za-z0-9]{20,1000}$ ]] || die 'Token inválido'
+  tag=${tag#\#}
+  [[ -z $tag || $tag =~ ^[[:alnum:]_]{1,50}$ ]] || die 'Hashtag inválida'
+  set_env FACEBOOK_PAGE_ID "$page"
+  set_env FACEBOOK_PAGE_TOKEN "$token"
+  set_env FACEBOOK_SYNC_MODE "$([[ $mode =~ ^[nN] ]] && echo draft || echo publish)"
+  set_env FACEBOOK_SYNC_TAG "$tag"
+  (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.facebook check) || die 'A Meta recusou o token ou o ID da página (ver docs/DEPLOY-VPS.md, secção 5c).'
+  $SYSTEMCTL enable --now serrado-facebook.timer
+  cmd_facebook_sync
+}
+
+cmd_facebook_sync() {
+  grep -q '^FACEBOOK_PAGE_TOKEN=' "$ETC/serrado.env" || die 'Facebook ainda não configurado: sudo serrado facebook'
+  info 'A sincronizar com a página de Facebook'
+  (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.facebook sync)
+}
+
 case "${1:-}" in
   deploy) shift; cmd_deploy "$@" ;;
   rollback) cmd_rollback ;;
@@ -227,8 +266,10 @@ case "${1:-}" in
   status) cmd_status ;;
   admin) shift; [ $# -eq 2 ] || die 'Uso: serrado admin <email> "<nome>"'; (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.db.create_admin "$1" "$2") ;;
   content) (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.db.content) ;;
-  logs) journalctl -u serrado-middleware -u serrado-backend -u caddy -n "${2:-100}" --no-pager ;;
+  logs) journalctl -u serrado-middleware -u serrado-backend -u serrado-facebook -u caddy -n "${2:-100}" --no-pager ;;
   cf-ips) cmd_cf_ips ;;
   oauth) shift; cmd_oauth "$@" ;;
-  *) sed -n '2,17p' "$0"; exit 1 ;;
+  facebook) shift; cmd_facebook "$@" ;;
+  facebook-sync) cmd_facebook_sync ;;
+  *) sed -n '2,20p' "$0"; exit 1 ;;
 esac

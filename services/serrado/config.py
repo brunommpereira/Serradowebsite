@@ -59,6 +59,20 @@ class OAuthConfig:
 
 
 @dataclass
+class FacebookConfig:
+    """Página de Facebook do clube: publicações → notícias e eventos → eventos (serrado.facebook)."""
+
+    page_id: str
+    # Token de longa duração da PÁGINA (pages_read_engagement); só existe no servidor
+    page_token: str
+    graph_version: str
+    # «publish»: entra logo no site; «draft»: fica em rascunho para a equipa rever
+    mode: Literal["publish", "draft"]
+    # Opcional: só importa publicações com esta hashtag (ex.: #site); vazio = todas
+    tag: str
+
+
+@dataclass
 class Config:
     production: bool
     database_url: str
@@ -83,6 +97,7 @@ class Config:
     rate_limit_max: int
     version: str
     oauth: OAuthConfig = field(repr=False)
+    facebook: FacebookConfig = field(repr=False)
 
 
 config = Config(
@@ -105,6 +120,13 @@ config = Config(
         site_url=env.get("SITE_URL", env.get("PUBLIC_URL", "")).rstrip("/"),
         google=OAuthCredentials(env.get("GOOGLE_CLIENT_ID", ""), env.get("GOOGLE_CLIENT_SECRET", "")),
         microsoft=OAuthCredentials(env.get("MICROSOFT_CLIENT_ID", ""), env.get("MICROSOFT_CLIENT_SECRET", "")),
+    ),
+    facebook=FacebookConfig(
+        page_id=env.get("FACEBOOK_PAGE_ID", ""),
+        page_token=env.get("FACEBOOK_PAGE_TOKEN", ""),
+        graph_version=env.get("FACEBOOK_GRAPH_VERSION", "v25.0"),
+        mode="draft" if env.get("FACEBOOK_SYNC_MODE") == "draft" else "publish",
+        tag=env.get("FACEBOOK_SYNC_TAG", "").strip().lstrip("#").lower(),
     ),
 )
 

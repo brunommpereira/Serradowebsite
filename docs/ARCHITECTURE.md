@@ -53,6 +53,15 @@ Tabelas principais (ver `services/serrado/db/migrations`):
   - as imagens ficam na tabela `cms_media` e entram nas cópias de segurança;
   - uma imagem em uso não pode ser apagada.
 
+## Página de Facebook
+
+`services/serrado/facebook.py` lê a página do clube na Graph API da Meta, de 15 em 15 minutos (timer do systemd na VPS):
+- **publicações → notícias** e **eventos → eventos**, publicados logo ou em rascunho (`FACEBOOK_SYNC_MODE`);
+- a tabela `cms_external` liga cada publicação ou evento à entrada do CMS: evita duplicados e permite atualizar, sem pisar as edições feitas no backoffice;
+- as fotos entram na biblioteca de imagens (o tipo é confirmado pelo conteúdo, até 5 MB);
+- as escritas ficam no `audit_log` com `via: facebook`;
+- o token da página só existe no servidor e nunca aparece nas mensagens de erro.
+
 ## APIs
 
 - **Middleware (pública):** `services/openapi/middleware.json`, com documentação interativa em `/api/docs`.

@@ -9,6 +9,7 @@ Python 3.12+ com **FastAPI** (os dois serviços), **psycopg 3** (PostgreSQL, SQL
 | `serrado/middleware/` | **API pública** `/api/v1`, consumida pelo front: sessão, papéis, validação, rate limit, CORS, cache, agregação e entrada com Google/Microsoft | 4000 (`/api/docs`) |
 | `serrado/backend/` | **API interna** `/internal/v1`, com as regras de negócio e o acesso à base de dados. Só aceita pedidos do middleware | 4100 (`/internal/docs`, só em dev) |
 | `serrado/db/` | Migrações SQL (`migrations/`, PostgreSQL 16), seed de demonstração, conteúdo inicial e conta de administração | 5432 |
+| `serrado/facebook.py` | Sincronização da página de Facebook com as notícias e os eventos (timer de 15 min no servidor) | — |
 | `serrado/*.py` | Configuração, passwords (scrypt), limpeza de HTML e validações (NIF, CC…) | — |
 | `tests/` | Testes de integração (pytest) contra PostgreSQL real | — |
 | `openapi/` | Contratos das duas APIs (gerados) | — |
@@ -22,7 +23,7 @@ uv run python -m serrado.db.migrate       # aplica serrado/db/migrations/*.sql (
 uv run python -m serrado.db.seed          # dados de demonstração (APAGA o conteúdo!)
 uv run python -m serrado.backend.server   # http://localhost:4100/internal/docs
 uv run python -m serrado.middleware.server  # http://localhost:4000/api/docs
-uv run pytest                             # 75 testes de integração com PostgreSQL real
+uv run pytest                             # 85 testes de integração com PostgreSQL real
 uv run ruff check serrado tests && uv run ruff format --check serrado tests
 uv run mypy                               # tipos
 uv run python -m serrado.openapi          # regenera openapi/backend.json e openapi/middleware.json
@@ -63,6 +64,10 @@ Também se pode subir tudo com Docker: `docker compose up --build` na raiz (incl
 | `SITE_URL` | middleware | Para onde se volta depois de entrar com Google/Microsoft (por omissão `PUBLIC_URL`) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | middleware | Ativam «Continuar com Google» (ver docs/DEPLOY-VPS.md) |
 | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` | middleware | Ativam «Continuar com Microsoft» (só contas pessoais) |
+| `FACEBOOK_PAGE_ID`, `FACEBOOK_PAGE_TOKEN` | sincronização | Página de Facebook → notícias e eventos (`python -m serrado.facebook sync`; ver docs/DEPLOY-VPS.md, 5c) |
+| `FACEBOOK_SYNC_MODE` | sincronização | `publish` (omissão: entra logo no site) ou `draft` (fica em rascunho) |
+| `FACEBOOK_SYNC_TAG` | sincronização | Opcional: só importa publicações com esta hashtag (ex.: `site`) |
+| `FACEBOOK_GRAPH_VERSION` | sincronização | Versão da Graph API (omissão `v25.0`) |
 | `APP_ENV=production` | todos | Torna obrigatórias as variáveis acima, ativa os cookies `Secure` e esconde `/internal/docs` |
 
 ## Importar dados reais
