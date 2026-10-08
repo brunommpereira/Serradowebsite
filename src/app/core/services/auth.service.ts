@@ -36,6 +36,17 @@ const DEMO_ACCOUNTS: { logins: string[]; password: string; account: Account }[] 
   { logins: ['treinador@serradofc.pt'], password: 'treinador2026', account: { id: 'acc-treinador', name: 'Treinador Exemplo', email: 'treinador@serradofc.pt', member: null, roles: ['treinador'] } },
 ];
 
+interface ApiQuota {
+  id: number;
+  period: string;
+  amount: number;
+  dueDate: string;
+  paidAt: string | null;
+  paymentMethod: string | null;
+  receiptNumber: string | null;
+  status: 'Pago' | 'Pendente' | 'Em atraso';
+}
+
 /** Perfil devolvido pelo middleware (GET /me, POST /auth/login). */
 interface ApiProfile {
   id: string;
@@ -107,9 +118,20 @@ export class AuthService {
     }
   }
 
-  /** GET /api/membership/quotas */
-  payments(): MembershipPayment[] {
-    return DEMO_PAYMENTS;
+  /** Quotas e pagamentos do sócio: GET /me/quotas (modo API) ou os de demonstração. */
+  async loadPayments(): Promise<MembershipPayment[]> {
+    if (!this.api.enabled) return DEMO_PAYMENTS;
+    const rows = await this.api.get<ApiQuota[]>('/me/quotas');
+    return rows.map((q) => ({
+      id: q.id,
+      period: q.period,
+      amount: q.amount,
+      dueDate: q.dueDate,
+      paymentDate: q.paidAt ?? undefined,
+      status: q.status,
+      paymentMethod: (q.paymentMethod ?? undefined) as MembershipPayment['paymentMethod'],
+      receiptNumber: q.receiptNumber ?? undefined,
+    }));
   }
 
   private restore(): Account | null {

@@ -1,4 +1,4 @@
-import { computed, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, PLATFORM_ID, signal, untracked } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import {
   Athlete,
@@ -21,6 +21,7 @@ import {
 import { SportSlug } from '../models';
 import { nowIso } from './content.service';
 import { AuthService } from './auth.service';
+import { ApiClient } from '../api/api-client';
 
 const STORAGE_KEY = 'sfc.athletes.v3';
 export const MAX_CO_GUARDIANS = 2;
@@ -31,40 +32,95 @@ interface PersistedState {
 }
 
 /**
- * Área de Atletas (encarregados de educação) — MODO DEMONSTRAÇÃO.
+ * Área de Atletas (encarregados de educação e atletas).
  *
- * Estado em memória, guardado no localStorage do browser para a demo
- * sobreviver a um recarregamento. Na fase 4/5 cada método passa a chamar a
- * API (endpoints indicados ao lado) e o estado deixa de ser local.
+ * MODO API: fichas, documentos, pedidos de alteração e resultados vêm do middleware
+ * (/api/v1/me/athletes, /athletes/{id}…) e nada fica guardado no browser.
+ * Agenda, métricas, recibos, convites e carregamento de documentos ainda não existem
+ * no backend: em modo API essas partes ficam escondidas (ver `apiMode`).
+ *
+ * MODO DEMONSTRAÇÃO: estado em memória, guardado no localStorage.
  */
 @Injectable({ providedIn: 'root' })
 export class AthleteAreaService {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly auth = inject(AuthService);
+  private readonly api = inject(ApiClient);
+  /** Dados reais pela API (sem agenda, métricas, recibos nem convites por agora) */
+  readonly apiMode = this.api.enabled;
   private readonly state = signal<PersistedState>(this.restore());
+  private readonly resultsByAthlete = signal<Record<string, CompetitionResult[]>>({});
   private readonly accountId = computed(() => this.auth.account()?.id ?? '');
+  /** Modo API: a carregar / erro ao carregar os atletas da conta */
+  readonly loading = signal(false);
+  readonly loadError = signal<string | null>(null);
+
+  constructor() {
+    // Modo API: (re)carrega os atletas sempre que muda a conta com sessão iniciada
+    effect(() => {
+      const id = this.accountId();
+      if (!this.apiMode || !this.isBrowser) return;
+      untracked(() => (id ? this.load() : this.state.set({ athletes: [], sessions: [] })));
+    });
+  }
 
   /** Atletas que a conta pode ver: os seus educandos e/ou o próprio registo de atleta. */
   readonly athletes = computed(() => {
     const id = this.accountId();
-    return id ? this.state().athletes.filter((a) => a.guardians.includes(id) || a.selfAccount === id) : [];
+    if (!id) return [];
+    if (this.apiMode) return this.state().athletes; // o backend já só devolve os acessíveis
+    return this.state().athletes.filter((a) => a.guardians.includes(id) || a.selfAccount === id);
   });
+
+  /** Modo API: GET /me/athletes + ficha e resultados de cada atleta. */
+  async load() {
+    if (!this.apiMode) return;
+    this.loading.set(true);
+    this.loadError.set(null);
+    try {
+      const list = await this.api.get<{ id: string }[]>('/me/athletes');
+      const full = await Promise.all(list.map((a) => this.fetchAthlete(a.id)));
+      const results = await Promise.all(list.map((a) => this.api.get<ApiResult[]>(`/athletes/${a.id}/results`).catch(() => [])));
+      this.state.set({ athletes: full, sessions: [] });
+      this.resultsByAthlete.set(Object.fromEntries(list.map((a, i) => [a.id, results[i].map((r) => resultFromApi(a.id, r))])));
+    } catch (e) {
+      this.loadError.set((e as Error).message);
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  private async fetchAthlete(id: string): Promise<Athlete> {
+    return athleteFromApi(await this.api.get<ApiAthlete>(`/athletes/${id}`));
+  }
+
+  private async refreshAthlete(id: string) {
+    const fresh = await this.fetchAthlete(id);
+    this.state.update((st) => ({ ...st, athletes: st.athletes.map((a) => (a.id === id ? fresh : a)) }));
+  }
+
+  private demoOnly() {
+    if (this.apiMode) throw new Error('Disponível brevemente.');
+  }
 
   /**
    * Perfil da conta: «encarregado» quando tem educandos (pode ser também atleta);
    * «atleta» quando só tem o seu próprio registo. GET /api/me/profile
    */
   readonly role = computed<'encarregado' | 'atleta'>(() => {
-    const id = this.accountId();
     const list = this.athletes();
-    return list.length && list.every((a) => a.selfAccount === id) ? 'atleta' : 'encarregado';
+    return list.length && list.every((a) => this.selfOf(a)) ? 'atleta' : 'encarregado';
   });
 
   readonly downloads = CLUB_DOWNLOADS;
 
   /** O atleta é o próprio titular da conta? */
   isSelf(athleteId: string) {
-    return this.athletes().some((a) => a.id === athleteId && a.selfAccount === this.accountId());
+    return this.athletes().some((a) => a.id === athleteId && this.selfOf(a));
+  }
+
+  private selfOf(a: Athlete) {
+    return this.apiMode ? a.access === 'atleta' : a.selfAccount === this.accountId();
   }
 
   /** GET /api/athletes/{id}/sessions?from=hoje */
@@ -85,6 +141,7 @@ export class AthleteAreaService {
 
   /** PUT /api/sessions/{id}/rsvp */
   setRsvp(sessionId: string, rsvp: Rsvp) {
+    this.demoOnly();
     this.update((st) => ({
       ...st,
       sessions: st.sessions.map((s) => (s.id === sessionId ? { ...s, rsvp } : s)),
@@ -105,16 +162,17 @@ export class AthleteAreaService {
   }
 
   metrics(athleteId: string) {
-    return DEMO_METRICS[athleteId] ?? [];
+    return this.apiMode ? [] : (DEMO_METRICS[athleteId] ?? []);
   }
 
   assessments(athleteId: string) {
-    return DEMO_ASSESSMENTS[athleteId] ?? [];
+    return this.apiMode ? [] : (DEMO_ASSESSMENTS[athleteId] ?? []);
   }
 
   /** Resultados no Troféu Almada em Atletismo, do mais recente para o mais antigo. GET /api/athletes/{id}/results */
   results(athleteId: string): CompetitionResult[] {
-    return DEMO_RESULTS.filter((r) => r.athleteId === athleteId).sort((a, b) => b.date.localeCompare(a.date));
+    const list = this.apiMode ? (this.resultsByAthlete()[athleteId] ?? []) : DEMO_RESULTS.filter((r) => r.athleteId === athleteId);
+    return [...list].sort((a, b) => b.date.localeCompare(a.date));
   }
 
   /**
@@ -147,11 +205,13 @@ export class AthleteAreaService {
 
   /** GET /api/guardians/me/receipts */
   receipts(athleteId: string) {
+    if (this.apiMode) return [];
     return DEMO_RECEIPTS.filter((r) => r.athleteId === athleteId).sort((a, b) => b.date.localeCompare(a.date));
   }
 
   /** POST /api/athletes/{id}/documents/{docId} — o ficheiro fica "Em análise" até validação do clube. */
   uploadDocument(athleteId: string, docId: string) {
+    this.demoOnly();
     this.patchAthlete(athleteId, (a) => ({
       ...a,
       documents: a.documents.map((d) => (d.id === docId ? { ...d, status: 'Em análise', note: undefined } : d)),
@@ -160,6 +220,7 @@ export class AthleteAreaService {
 
   /** POST /api/athletes/{id}/co-guardians — convite pessoal, uso único, expira em 7 dias. */
   inviteCoGuardian(athleteId: string, email: string): 'ok' | 'limite' | 'duplicado' {
+    this.demoOnly();
     const athlete = this.athletes().find((a) => a.id === athleteId);
     if (!athlete) return 'limite';
     const normalized = email.trim().toLowerCase();
@@ -170,11 +231,13 @@ export class AthleteAreaService {
   }
 
   revokeCoGuardian(athleteId: string, email: string) {
+    this.demoOnly();
     this.patchAthlete(athleteId, (a) => ({ ...a, coGuardians: a.coGuardians.filter((e) => e !== email) }));
   }
 
   /** POST /api/guardians/me/athletes */
   addAthlete(data: { name: string; birthDate: string; sportSlug: SportSlug; level: string }): Athlete {
+    this.demoOnly();
     const athlete: Athlete = {
       id: `atl-${Date.now()}`,
       ...data,
@@ -210,20 +273,26 @@ export class AthleteAreaService {
     return required.filter(([ok]) => !ok).map(([, label]) => label);
   }
 
-  /** «Confirmo que os dados estão corretos» — PUT /api/athletes/{id}/confirmation */
-  confirmData(athleteId: string): boolean {
+  /** «Confirmo que os dados estão corretos» — POST /athletes/{id}/confirm */
+  async confirmData(athleteId: string): Promise<boolean> {
     const a = this.athletes().find((x) => x.id === athleteId);
     if (!a || this.missingFields(a).length) return false;
+    if (this.apiMode) {
+      await this.api.post(`/athletes/${athleteId}/confirm`);
+      await this.refreshAthlete(athleteId);
+      return true;
+    }
     this.patchAthlete(athleteId, (x) => ({ ...x, confirmedAt: nowIso().slice(0, 10) }));
     return true;
   }
 
   /**
    * Guarda a ficha (e confirma-a). Alterações a dados de identificação ficam
-   * marcadas para validação da secretaria. PUT /api/athletes/{id}
+   * marcadas para validação da secretaria.
+   * API: PATCH /athletes/{id} (contactos…), POST /athletes/{id}/change-requests (identificação), POST …/confirm
    * @returns campos de identificação alterados (vazio se só mudaram contactos)
    */
-  updateAthlete(athleteId: string, data: { name: string; birthDate: string; details: AthleteDetails }): string[] {
+  async updateAthlete(athleteId: string, data: { name: string; birthDate: string; details: AthleteDetails }): Promise<string[]> {
     const a = this.athletes().find((x) => x.id === athleteId);
     if (!a) return [];
     const identity: [string, unknown, unknown][] = [
@@ -241,6 +310,13 @@ export class AthleteAreaService {
     if (data.details.gender !== a.details.gender) requested.gender = data.details.gender;
     if (data.details.idNumber !== a.details.idNumber) requested.idNumber = data.details.idNumber;
     if (data.details.taxNumber !== a.details.taxNumber) requested.taxNumber = data.details.taxNumber;
+    if (this.apiMode) {
+      await this.api.patch(`/athletes/${athleteId}`, editableFields(data.details));
+      if (Object.keys(requested).length) await this.api.post(`/athletes/${athleteId}/change-requests`, { changes: requested });
+      await this.api.post(`/athletes/${athleteId}/confirm`);
+      await this.refreshAthlete(athleteId);
+      return changed;
+    }
     this.patchAthlete(athleteId, (x) => ({
       ...x,
       // Contactos, emergência, equipamento e consentimentos: aplicados já.
@@ -302,6 +378,8 @@ export class AthleteAreaService {
   }
 
   private restore(): PersistedState {
+    // Modo API: dados pessoais nunca ficam no localStorage
+    if (this.apiMode) return { athletes: [], sessions: [] };
     if (this.isBrowser) {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -314,13 +392,126 @@ export class AthleteAreaService {
   }
 
   private persist() {
-    if (!this.isBrowser) return;
+    if (!this.isBrowser || this.apiMode) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state()));
     } catch {
       /* sem armazenamento: o estado fica só em memória */
     }
   }
+}
+
+// ------------------------------------------------------------------ modo API: conversões
+
+interface ApiAthlete {
+  id: string;
+  name: string;
+  birthDate: string;
+  gender: AthleteDetails['gender'] | null;
+  sportSlug: SportSlug;
+  category: string;
+  idNumber?: string | null;
+  idExpiry?: string | null;
+  taxNumber?: string | null;
+  email: string | null;
+  phone: string | null;
+  address?: string | null;
+  postalCode?: string | null;
+  city: string | null;
+  shirtSize: string | null;
+  shirtType: AthleteDetails['shirtType'] | null;
+  emergencyName: string | null;
+  emergencyPhone: string | null;
+  consentRgpd: boolean;
+  consentImage: boolean;
+  confirmedAt: string | null;
+  access: 'encarregado' | 'co-encarregado' | 'atleta' | 'staff' | 'treinador';
+  documents: { id: number; kind: string; status: Athlete['documents'][number]['status']; note: string | null }[];
+  pendingRequests: { id: number; changes: IdentityChanges; requestedAt: string }[];
+}
+
+interface ApiResult {
+  id: number;
+  season: string;
+  round: number;
+  race: string;
+  raceBase: string;
+  date: string;
+  category: string;
+  place: number | null;
+  time: string;
+  distanceM: number | null;
+  trophyPoints: number | null;
+}
+
+const IDENTITY_LABELS: Record<string, string> = { name: 'Nome', birthDate: 'Data de nascimento', gender: 'Género', idNumber: 'N.º CC', taxNumber: 'NIF' };
+
+export function athleteFromApi(a: ApiAthlete): Athlete {
+  const meta = Object.fromEntries(newAthleteDocuments().map((d) => [d.id, d]));
+  const changes = a.pendingRequests.reduce<IdentityChanges>((acc, r) => ({ ...acc, ...r.changes }), {});
+  const s = (v: string | null | undefined) => v ?? '';
+  return {
+    id: a.id,
+    name: a.name,
+    sportSlug: a.sportSlug,
+    level: a.category,
+    birthDate: a.birthDate,
+    access: a.access === 'atleta' || a.access === 'co-encarregado' ? a.access : 'encarregado',
+    guardians: [],
+    coGuardians: [],
+    documents: a.documents.map((d) => ({
+      id: d.kind,
+      name: meta[d.kind]?.name ?? d.kind,
+      hint: meta[d.kind]?.hint ?? '',
+      status: d.status,
+      note: d.note ?? undefined,
+    })),
+    details: {
+      ...emptyDetails(),
+      gender: a.gender ?? '',
+      idNumber: s(a.idNumber),
+      idExpiry: s(a.idExpiry),
+      taxNumber: s(a.taxNumber),
+      email: s(a.email),
+      phone: s(a.phone),
+      address: s(a.address),
+      postalCode: s(a.postalCode),
+      city: s(a.city),
+      shirtSize: s(a.shirtSize),
+      shirtType: a.shirtType ?? '',
+      emergencyName: s(a.emergencyName),
+      emergencyPhone: s(a.emergencyPhone),
+      consentRgpd: a.consentRgpd,
+      consentImage: a.consentImage,
+    },
+    confirmedAt: a.confirmedAt ?? undefined,
+    pendingReview: a.pendingRequests.length
+      ? { fields: Object.keys(changes).map((k) => IDENTITY_LABELS[k] ?? k), requestedAt: a.pendingRequests[0].requestedAt.slice(0, 10), changes }
+      : undefined,
+  };
+}
+
+function resultFromApi(athleteId: string, r: ApiResult): CompetitionResult {
+  return { ...r, id: String(r.id), athleteId };
+}
+
+/** Campos que o encarregado/atleta altera diretamente (PATCH). Os vazios com formato próprio não seguem. */
+function editableFields(d: AthleteDetails): Record<string, unknown> {
+  const out: Record<string, unknown> = {
+    phone: d.phone,
+    address: d.address,
+    city: d.city,
+    shirtSize: d.shirtSize,
+    shirtType: d.shirtType || null,
+    emergencyName: d.emergencyName,
+    emergencyPhone: d.emergencyPhone,
+    consentRgpd: d.consentRgpd,
+    consentImage: d.consentImage,
+  };
+  if (d.email) out['email'] = d.email;
+  if (d.postalCode) out['postalCode'] = d.postalCode;
+  if (d.idExpiry) out['idExpiry'] = d.idExpiry;
+  return out;
 }
 
 function initialState(): PersistedState {

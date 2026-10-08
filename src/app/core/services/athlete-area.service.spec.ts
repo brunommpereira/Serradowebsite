@@ -44,12 +44,12 @@ describe('AthleteAreaService', () => {
     expect(service.athletes().map((a) => a.id)).toEqual(['atl-4']);
   });
 
-  it('só confirma a época com a ficha completa', () => {
+  it('só confirma a época com a ficha completa', async () => {
     const tomas = service.athletes().find((a) => a.id === 'atl-1')!;
     expect(service.isConfirmed(tomas)).toBe(false);
     expect(service.missingFields(tomas)).toContain('Contacto de emergência');
-    expect(service.confirmData('atl-1')).toBe(false);
-    service.updateAthlete('atl-1', {
+    expect(await service.confirmData('atl-1')).toBe(false);
+    await service.updateAthlete('atl-1', {
       name: tomas.name,
       birthDate: tomas.birthDate,
       details: { ...tomas.details, emergencyName: 'Mãe Exemplo', emergencyPhone: '910000003' },
@@ -59,9 +59,9 @@ describe('AthleteAreaService', () => {
     expect(after.pendingReview).toBeUndefined(); // só mudaram contactos
   });
 
-  it('alterações de identificação ficam em validação pela secretaria', () => {
+  it('alterações de identificação ficam em validação pela secretaria', async () => {
     const ines = service.athletes().find((a) => a.id === 'atl-2')!;
-    const changed = service.updateAthlete('atl-2', { name: 'Inês Maria Exemplo', birthDate: ines.birthDate, details: { ...ines.details, taxNumber: '123456789' } });
+    const changed = await service.updateAthlete('atl-2', { name: 'Inês Maria Exemplo', birthDate: ines.birthDate, details: { ...ines.details, taxNumber: '123456789' } });
     expect(changed).toEqual(['Nome', 'NIF']);
     expect(service.athletes().find((a) => a.id === 'atl-2')!.pendingReview?.fields).toEqual(['Nome', 'NIF']);
   });

@@ -9,10 +9,11 @@ import { AreaSwitchComponent } from '../../shared/area-switch.component';
 import { MemberCardComponent } from '../../shared/member-card.component';
 import { PaymentStepComponent } from '../../shared/payment-step.component';
 import { MembershipPayment, PaymentStatus } from '../../core/models';
+import { ApiClient } from '../../core/api/api-client';
 
 type Section = 'dashboard' | 'dados' | 'quotas' | 'recibos' | 'cartao' | 'agregado' | 'eventos' | 'documentos' | 'notificacoes' | 'seguranca';
 
-/** Área reservada de sócio (secção 11) — modo demonstração. */
+/** Área reservada de sócio (secção 11). Com a API ligada, as quotas vêm de GET /me/quotas. */
 @Component({
   selector: 'sfc-dashboard',
   imports: [RouterLink, DatePipe, CurrencyPipe, IconComponent, MemberCardComponent, PaymentStepComponent, AreaSwitchComponent],
@@ -25,8 +26,11 @@ export class DashboardComponent {
   private readonly router = inject(Router);
   private readonly content = inject(ContentService);
 
+  /** Dados reais (API): sem pagamento online nem notificações/agregado por agora */
+  protected readonly apiMode = inject(ApiClient).enabled;
   protected readonly member = this.auth.member;
-  protected readonly payments = signal<MembershipPayment[]>(this.auth.payments());
+  protected readonly payments = signal<MembershipPayment[]>([]);
+  protected readonly paymentsError = signal<string | null>(null);
   protected readonly section = signal<Section>('dashboard');
   protected readonly paying = signal<MembershipPayment | null>(null);
 
@@ -37,7 +41,7 @@ export class DashboardComponent {
   protected readonly events = this.content.upcomingEvents().slice(0, 3);
   protected readonly documents = this.content.documents().slice(0, 4);
 
-  protected readonly menu: { id: Section; label: string; icon: string }[] = [
+  private readonly allMenu: { id: Section; label: string; icon: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: 'home' },
     { id: 'dados', label: 'Dados pessoais', icon: 'user' },
     { id: 'quotas', label: 'Quotas e pagamentos', icon: 'euro' },
@@ -50,6 +54,8 @@ export class DashboardComponent {
     { id: 'seguranca', label: 'Segurança', icon: 'shield' },
   ];
 
+  protected readonly menu = this.allMenu.filter((i) => !this.apiMode || !['agregado', 'notificacoes'].includes(i.id));
+
   protected readonly notifications = [
     { icon: 'check', text: 'Pagamento da quota de outubro recebido. Recibo R2026/0412 emitido.', date: '2026-10-02' },
     { icon: 'calendar', text: 'Inscrições abertas: Caminhada Solidária — Descobrir Património.', date: '2026-09-20' },
@@ -58,6 +64,10 @@ export class DashboardComponent {
 
   constructor() {
     inject(SeoService).set({ title: 'Área de Sócio', description: 'Área reservada de sócio do Serrado FC.', path: '/area-socio' });
+    this.auth.loadPayments().then(
+      (list) => this.payments.set(list),
+      (e: Error) => this.paymentsError.set(e.message),
+    );
   }
 
   protected statusClass(s: PaymentStatus) {
@@ -70,6 +80,7 @@ export class DashboardComponent {
   }
 
   protected pay(p: MembershipPayment) {
+    if (this.apiMode) return; // pagamento online ainda não disponível
     this.paying.set(p);
     this.section.set('quotas');
   }

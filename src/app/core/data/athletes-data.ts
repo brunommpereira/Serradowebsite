@@ -27,6 +27,8 @@ export interface Athlete {
   confirmedAt?: string;
   /** Alteração de dados de identificação à espera de validação da secretaria */
   pendingReview?: { fields: string[]; requestedAt: string; changes: IdentityChanges };
+  /** Modo API: relação da conta com o atleta (vem do backend) */
+  access?: 'encarregado' | 'co-encarregado' | 'atleta';
 }
 
 export type ShirtType = 'Normal' | 'Alças';
