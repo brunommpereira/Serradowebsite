@@ -11,17 +11,21 @@ import { CapitalizePipe } from '../../shared/capitalize.pipe';
 import { QrCodeComponent } from '../../shared/qr-code.component';
 import { PaymentMethod, PaymentStepComponent } from '../../shared/payment-step.component';
 import { NotFoundComponent } from '../not-found/not-found.component';
+import { ApiClient } from '../../core/api/api-client';
+import { OfflineNoticeComponent } from '../../shared/offline-notice.component';
 
 type Step = 'form' | 'payment' | 'done';
 
 @Component({
   selector: 'sfc-event-detail',
-  imports: [CapitalizePipe, RouterLink, DatePipe, CurrencyPipe, ReactiveFormsModule, PageHeroComponent, IconComponent, QrCodeComponent, PaymentStepComponent, NotFoundComponent],
+  imports: [CapitalizePipe, RouterLink, DatePipe, CurrencyPipe, ReactiveFormsModule, PageHeroComponent, IconComponent, QrCodeComponent, PaymentStepComponent, NotFoundComponent, OfflineNoticeComponent],
   templateUrl: './event-detail.component.html',
   styleUrl: './event-detail.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EventDetailComponent {
+  /** Ligado ao servidor: as inscrições online ainda não gravam */
+  protected readonly apiMode = inject(ApiClient).enabled;
   readonly slug = input.required<string>();
   private readonly content = inject(ContentService);
   private readonly seo = inject(SeoService);

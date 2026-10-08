@@ -152,6 +152,7 @@
           </div>
         }
 
+        @if (!apiMode) {
         <div class="alert alert--info demo">
           <sfc-icon name="info" />
           <div>
@@ -169,8 +170,11 @@
             </ul>
           </div>
         </div>
+        }
       } @else {
-        @if (resetSent()) {
+        @if (apiMode) {
+          <sfc-offline-notice title="Repor a password" text="Para definir uma nova password, contacta a secretaria: confirmamos a tua identidade e enviamos-te uma password nova." />
+        } @else if (resetSent()) {
           <p class="alert alert--success" role="status">Se o email ou n.º existir, vais receber um email com instruções para definir uma nova password.</p>
         } @else {
           <form class="form" (ngSubmit)="resetSent.set(true)">

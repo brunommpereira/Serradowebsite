@@ -5,6 +5,8 @@ import { AuthService, LinkedIdentity, LoginProvider } from '../../core/services/
 import { AthleteAreaService } from '../../core/services/athlete-area.service';
 import { SeoService } from '../../core/services/seo.service';
 import { IconComponent } from '../../shared/icon.component';
+import { OfflineNoticeComponent } from '../../shared/offline-notice.component';
+import { ApiClient } from '../../core/api/api-client';
 
 export type Profile = 'socio' | 'atleta' | 'staff';
 
@@ -27,7 +29,7 @@ const OAUTH_ERRORS: Record<string, string> = {
  */
 @Component({
   selector: 'sfc-login',
-  imports: [ReactiveFormsModule, RouterLink, IconComponent],
+  imports: [ReactiveFormsModule, RouterLink, IconComponent, OfflineNoticeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
@@ -46,6 +48,8 @@ export class LoginComponent {
   protected readonly resetSent = signal(false);
   protected readonly demos = computed(() => AuthService.DEMO.filter((d) => (this.profile() === 'staff') === d.roles.length > 0));
   protected readonly busy = signal(false);
+  /** Ligado ao servidor: sem contas de demonstração nem funcionalidades que ainda não gravam */
+  protected readonly apiMode = inject(ApiClient).enabled;
   /** Entrar com Google / Microsoft (só quando o servidor os tem configurados) */
   protected readonly providers = signal<LoginProvider[]>([]);
   protected readonly identities = signal<LinkedIdentity[]>([]);

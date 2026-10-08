@@ -60,16 +60,19 @@ Legenda: **[eu]** faz-se no servidor ou num painel · **[código]** precisa de u
 
 ## 5. Antes de abrir ao público: o que ainda é demonstração
 
-Com a API ligada, estas partes do site **ainda não gravam nada no servidor**. Têm de ser ligadas à API ou escondidas antes do lançamento.
+Com a API ligada, estas partes do site **ainda não gravam nada no servidor**. Em modo API, o site já as **esconde ou troca por um aviso** com o email, o telefone e os contactos da secretaria. Ficam a faltar só as decisões.
 
-- [ ] **Página `/entrar`:** esconder a caixa «Contas de demonstração» em modo API, porque mostra contas e passwords que não existem no servidor. **[código]**
-- [ ] **«Esqueci-me da password»:** hoje só mostra a mensagem, sem enviar nada. É preciso um serviço de email (o domínio não tem MX) e o fluxo de reposição. Até lá, a secretaria repõe as passwords. **[código] [decidir]**
-- [ ] **Registo de novos sócios** (`/socios/registo`): ligar à API (pedido para a secretaria validar) ou trocar por um contacto. **[código] [decidir]**
-- [ ] **Inscrição nas modalidades** (formulário em cada modalidade): ligar à API ou trocar por um contacto. **[código] [decidir]**
-- [ ] **Inscrição em eventos** (página de cada evento): ligar à API ou esconder o formulário. **[código]**
+- [x] **`/entrar`:** a caixa «Contas de demonstração» não aparece em modo API.
+- [x] **«Esqueci-me da password»:** em modo API, mostra um aviso para contactar a secretaria, que repõe a password.
+- [ ] **Recuperação da password por email:** precisa de um serviço de email (o domínio não tem MX) e do fluxo de reposição. **[código] [decidir]**
+- [x] **Registo de novos sócios** (`/socios/registo`): em modo API, mostra um aviso para tratar na secretaria.
+- [ ] Decidir se o registo online passa a ser um pedido que a secretaria valida. **[decidir]**
+- [x] **Inscrição nas modalidades e em eventos:** em modo API, mostra um aviso para tratar na secretaria.
+- [ ] Decidir se as inscrições online passam a gravar no servidor. **[decidir]**
 - [ ] **Área de Atletas:** «Adicionar atleta» e «Convidar co-encarregado» estão escondidos em modo API. Confirmar que é isso que se quer no arranque. **[decidir]**
-- [ ] **Pagamento de quotas:** o botão «Pagar quota» não aparece em modo API. Os pagamentos continuam pela secretaria até haver MB WAY/Multibanco. **[decidir]**
-- [ ] **Newsletter** do rodapé: ligar a um serviço (por exemplo Brevo ou Mailchimp) ou esconder. **[código] [decidir]**
+- [ ] **Pagamento de quotas e mensalidades:** o botão «Pagar quota» não aparece em modo API. Os pagamentos online (Stripe e recibos no Moloni) estão em preparação. **[código]**
+- [x] **Newsletter do rodapé:** não aparece em modo API.
+- [ ] Decidir se a newsletter usa um serviço de envio (por exemplo Brevo ou Mailchimp). **[decidir]**
 
 ## 6. Dados reais e RGPD
 
@@ -100,7 +103,7 @@ Com a API ligada, estas partes do site **ainda não gravam nada no servidor**. T
 - [ ] `sudo serrado status` está tudo verde: serviços, versão, cópia de hoje e disco.
 - [ ] **Rollback:** *Actions → Operações VPS → rollback* volta à versão anterior; depois, faz deploy de novo.
 - [ ] **Google Search Console:** domínio verificado e `https://www.serradofc.pt/sitemap.xml` submetido.
-- [ ] **Sitemap no `robots.txt`:** o `public/robots.txt` aponta para `https://serradofc.pt/sitemap.xml` (sem `www`). Corrigir para `www` ou confirmar que o redirecionamento chega. **[código]**
+- [x] **Sitemap no `robots.txt`:** já aponta para `https://www.serradofc.pt/sitemap.xml`. As áreas reservadas e o backoffice ficam fora dos motores de busca.
 
 ## 8. Operação contínua
 
