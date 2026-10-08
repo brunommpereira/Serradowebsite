@@ -210,6 +210,55 @@ O token deixa de valer se o administrador mudar a password ou deixar de gerir a 
 
 > **Imagens e RGPD:** as fotos publicadas no Facebook passam também para o site. Se alguma não puder estar no site (por exemplo, por falta de consentimento de imagem de um menor), basta despublicá-la ou trocar a capa no backoffice. Para mais controlo, usa o modo rascunho ou a hashtag.
 
+## 5d. Pagamentos online e faturas-recibo (Stripe + Moloni ON)
+
+Sócios e encarregados pagam as **quotas** (Área de Sócio) e as **mensalidades das escolas de futsal e rugby** (Área de Atletas → «Mensalidades e recibos») com **cartão, MB WAY ou Multibanco**.
+
+**O que acontece em cada pagamento:**
+1. **No site:** a pessoa escolhe o que paga e indica o **NIF**, que é obrigatório e validado.
+2. **Sessão no Stripe:** o servidor cria a sessão do **Stripe Checkout** com os valores da base de dados. O browser nunca define valores.
+3. **Confirmação:** o Stripe avisa o site por **webhook assinado**.
+   - Cartão e MB WAY: o pagamento fica registado logo.
+   - Multibanco: fica à espera até a referência ser paga.
+4. **Fatura-recibo:** em 2 minutos, o servidor emite-a no **Moloni ON**, pede ao Moloni que a **envie por email** com o PDF e guarda o **PDF no site**, para a pessoa e a secretaria descarregarem.
+5. **Se o Moloni falhar:** volta a tentar sozinho (até 6 vezes), sempre a partir do ponto onde parou. **Nunca emite dois documentos.** A verificação diária do GitHub avisa se algum ficar encravado.
+
+**Mensalidades:**
+- O valor mensal é definido por modalidade em **Backoffice → Pagamentos**.
+- No **dia 1 de cada mês**, o servidor cria a mensalidade de cada atleta dessas modalidades, a vencer no dia 8.
+- No mesmo ecrã é possível gerar um mês à mão. Repetir não duplica.
+
+### Stripe
+1. **Conta:** cria a conta do clube em **stripe.com**, como associação, com IBAN e documentos.
+2. **Métodos de pagamento:** em **Definições → Métodos de pagamento**, ativa **MB WAY** e **Multibanco** (o cartão já vem ativo).
+3. **Webhook:** em **Programadores → Webhooks → Adicionar destino**:
+   - endereço: `https://www.serradofc.pt/api/v1/payments/stripe/webhook`;
+   - eventos: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` e `checkout.session.expired`;
+   - copia o **segredo de assinatura** (`whsec_…`).
+4. **Chave da API:** em **Programadores → Chaves de API**, copia a **chave secreta**. Melhor ainda: cria uma **chave restrita** só com escrita em *Checkout Sessions* e leitura em *PaymentIntents* e *Charges*.
+5. **Teste:** começa em **modo de teste** (chaves `sk_test_…`) e só depois passa para as chaves *live*.
+
+### Moloni ON
+1. **Acesso à API:** na empresa do clube, ativa o add-on **«API Access»**. Em **Conta → API → API Keys**, cria uma API Key (formato `apik:…`).
+2. **Artigos (com o contabilista):** cria «Quota de sócio», «Mensalidade Escola de Futsal» e «Mensalidade Escola de Rugby». **O IVA ou o motivo de isenção de cada artigo é definido pelo contabilista**, e o site usa o que estiver no artigo.
+3. **Métodos de pagamento:** confirma que existem no Moloni (por exemplo, Cartão, MB WAY e Multibanco).
+
+### Ligar na VPS
+```bash
+sudo serrado payments        # pede as chaves do Stripe e do Moloni; mostra as séries, os artigos e os métodos para escolheres
+```
+- **Artigos:** são indicados como `quota:ID,futsal:ID,rugby:ID`.
+- **Métodos de pagamento:** são indicados como `card:ID,mb_way:ID,multibanco:ID`, com os IDs do Moloni.
+- **Timers:** o comando ativa os recibos (de 2 em 2 minutos) e as mensalidades (dia 1 de cada mês).
+
+**Outros comandos:**
+- `sudo serrado receipts`: emite agora os recibos em falta.
+- `sudo serrado fees 2026-11`: gera as mensalidades de novembro.
+- `sudo serrado moloni-info`: mostra as séries, os artigos e os métodos de pagamento do Moloni.
+- `sudo serrado payments off`: desliga os pagamentos.
+
+> **Testar antes de abrir:** faz um pagamento real pequeno com cada método e confirma três coisas: a quota fica «Pago», o email com a fatura-recibo chega e o PDF descarrega-se no site.
+
 ## 6. Cópias de segurança
 
 | | Onde | Quando | Quanto tempo |
@@ -248,6 +297,7 @@ sudo serrado offsite-latest /root/recuperar                  # descarrega a últ
 | `sudo serrado rollback` | Versão anterior |
 | `sudo serrado admin <email> "<nome>"` | Criar uma conta de administração ou repor a password |
 | `sudo serrado cf-ips` | Atualizar já os IPs da Cloudflare na firewall |
+| `sudo serrado payments` / `receipts` / `fees AAAA-MM` / `moloni-info` | Pagamentos online e faturas-recibo |
 | `sudo serrado facebook` / `facebook-sync` / `facebook off` | Ligar, sincronizar agora ou desligar a página de Facebook |
 | `sudo serrado oauth google` / `microsoft` | Ativar a entrada com Google ou Microsoft (`… off` para desativar) |
 

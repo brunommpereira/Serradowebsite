@@ -14,6 +14,7 @@ import { ComparisonChartComponent } from './comparison-chart.component';
 import { AthletesTabComponent } from './athletes-tab.component';
 import { AreaSwitchComponent } from '../../shared/area-switch.component';
 import { CompetitionsTabComponent } from './competitions-tab.component';
+import { PayPanelComponent } from '../../shared/pay-panel.component';
 
 export type TabId = 'agenda' | 'evolucao' | 'competicoes' | 'historico' | 'atletas' | 'recibos' | 'clube';
 
@@ -29,7 +30,7 @@ const TABS: { id: TabId; label: string; icon: string }[] = [
 
 const SEASON_START = '2026-09-01';
 /** Com a API ligada, só os separadores que já têm dados reais (agenda, métricas e recibos: brevemente) */
-const API_TABS: TabId[] = ['atletas', 'competicoes', 'clube'];
+const API_TABS: TabId[] = ['atletas', 'competicoes', 'recibos', 'clube'];
 
 /** Área de Atletas — portal do encarregado de educação (modo demonstração). */
 @Component({
@@ -47,6 +48,7 @@ const API_TABS: TabId[] = ['atletas', 'competicoes', 'clube'];
     AthletesTabComponent,
     CompetitionsTabComponent,
     AreaSwitchComponent,
+    PayPanelComponent,
   ],
   templateUrl: './athlete-area.component.html',
   styleUrl: './athlete-area.component.scss',
@@ -68,7 +70,8 @@ export class AthleteAreaComponent {
   protected readonly tabs = computed(() =>
     TABS.filter((t) => !this.area.apiMode || API_TABS.includes(t.id))
       .sort((a, b) => (this.area.apiMode ? API_TABS.indexOf(a.id) - API_TABS.indexOf(b.id) : 0))
-      .map((t) => (t.id === 'atletas' && this.role() === 'atleta' ? { ...t, label: 'Os Meus Dados', icon: 'user' } : t)),
+      .map((t) => (t.id === 'atletas' && this.role() === 'atleta' ? { ...t, label: 'Os Meus Dados', icon: 'user' } : t))
+      .map((t) => (t.id === 'recibos' && this.area.apiMode ? { ...t, label: 'Mensalidades e recibos' } : t)),
   );
   protected readonly tab = linkedSignal<TabId>(() => {
     const visible = this.tabs();

@@ -1,0 +1,9 @@
+[Unit]
+Description=Serrado FC — emitir faturas-recibo em falta (de 2 em 2 minutos)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+
+[Install]
+WantedBy=timers.target

@@ -240,6 +240,18 @@
 
     <!-- ================= RECIBOS ================= -->
     @case ('recibos') {
+      @if (area.apiMode) {
+        <div class="panel__head">
+          <div>
+            <h2 class="panel__title">Mensalidades e recibos</h2>
+            <p class="panel__lead">Paga as mensalidades das escolas online. A fatura-recibo chega ao teu email e fica aqui para descarregar.</p>
+          </div>
+          @if (account()?.member) {
+            <a routerLink="/area-socio" class="link-arrow">Quotas de sócio na Área de Sócio</a>
+          }
+        </div>
+        <sfc-pay-panel kinds="fee" returnPath="/area-atletas" />
+      } @else {
       <div class="panel__head">
         <div>
           <h2 class="panel__title">Os meus recibos</h2>
@@ -288,6 +300,7 @@
         </div>
       } @else {
         <div class="empty-state"><sfc-icon name="euro" size="32" /><p>Sem recibos emitidos para este atleta.</p></div>
+      }
       }
     }
 

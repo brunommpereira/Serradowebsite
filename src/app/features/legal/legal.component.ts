@@ -69,7 +69,13 @@ export class LegalComponent {
             'Se escolher entrar com uma conta Google ou Microsoft, recebemos desse serviço apenas o identificador da conta, o nome e o email, para a ligar à sua conta no clube (que tem de existir e ter o mesmo email). Não recebemos a password nem outros dados, e não criamos contas novas. Pode desligar a conta Google ou Microsoft a qualquer momento depois de entrar no site.',
           ],
         },
-        { h: '8. Menores', p: ['O tratamento de dados de menores de 13 anos requer o consentimento do titular das responsabilidades parentais.'] },
+        {
+          h: '8. Pagamentos online',
+          p: [
+            'Os pagamentos de quotas e mensalidades são processados pela Stripe (cartão, MB WAY e Multibanco): os dados do cartão ou do telemóvel são tratados diretamente pela Stripe e nunca passam pelo clube. As faturas-recibo são emitidas no programa de faturação Moloni (certificado pela AT) com o nome, o NIF e o email de quem paga, e enviadas por email. Estes dados são conservados pelos prazos legais de faturação.',
+          ],
+        },
+        { h: '9. Menores', p: ['O tratamento de dados de menores de 13 anos requer o consentimento do titular das responsabilidades parentais.'] },
       ],
     };
   }

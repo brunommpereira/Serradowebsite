@@ -72,6 +72,44 @@ class FacebookConfig:
     tag: str
 
 
+def _pairs(value: str) -> dict[str, int]:
+    """«quota:12,futsal:34» → {"quota": 12, "futsal": 34} (ignora entradas mal formadas)."""
+    out: dict[str, int] = {}
+    for item in value.split(","):
+        key, _, num = item.strip().partition(":")
+        if key and num.strip().isdigit():
+            out[key.strip()] = int(num)
+    return out
+
+
+@dataclass
+class PaymentsConfig:
+    """Pagamentos online (Stripe) e faturas-recibo (Moloni ON). Só ficam ativos com as chaves definidas."""
+
+    stripe_secret_key: str
+    stripe_webhook_secret: str
+    stripe_api_version: str
+    # Métodos no Stripe Checkout (cartão, MB WAY e Multibanco)
+    methods: list[str]
+    moloni_api_key: str
+    moloni_company_id: int
+    moloni_document_set_id: int
+    # Artigo do Moloni por tipo: «quota» e uma entrada por modalidade das escolas (futsal, rugby…)
+    moloni_products: dict[str, int]
+    # Método de pagamento do Moloni para cada método do Stripe
+    moloni_payment_methods: dict[str, int]
+    moloni_country_id: int
+    moloni_language_id: int
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self.stripe_secret_key and self.stripe_webhook_secret)
+
+    @property
+    def receipts_enabled(self) -> bool:
+        return bool(self.moloni_api_key and self.moloni_company_id and self.moloni_document_set_id)
+
+
 @dataclass
 class Config:
     production: bool
@@ -98,6 +136,7 @@ class Config:
     version: str
     oauth: OAuthConfig = field(repr=False)
     facebook: FacebookConfig = field(repr=False)
+    payments: PaymentsConfig = field(repr=False)
 
 
 config = Config(
@@ -127,6 +166,19 @@ config = Config(
         graph_version=env.get("FACEBOOK_GRAPH_VERSION", "v25.0"),
         mode="draft" if env.get("FACEBOOK_SYNC_MODE") == "draft" else "publish",
         tag=env.get("FACEBOOK_SYNC_TAG", "").strip().lstrip("#").lower(),
+    ),
+    payments=PaymentsConfig(
+        stripe_secret_key=env.get("STRIPE_SECRET_KEY", ""),
+        stripe_webhook_secret=env.get("STRIPE_WEBHOOK_SECRET", ""),
+        stripe_api_version=env.get("STRIPE_API_VERSION", "2025-10-29.clover"),
+        methods=[m.strip() for m in env.get("PAYMENT_METHODS", "card,mb_way,multibanco").split(",") if m.strip()],
+        moloni_api_key=env.get("MOLONI_API_KEY", ""),
+        moloni_company_id=int(env.get("MOLONI_COMPANY_ID", "0") or 0),
+        moloni_document_set_id=int(env.get("MOLONI_DOCUMENT_SET_ID", "0") or 0),
+        moloni_products=_pairs(env.get("MOLONI_PRODUCTS", "")),
+        moloni_payment_methods=_pairs(env.get("MOLONI_PAYMENT_METHODS", "")),
+        moloni_country_id=int(env.get("MOLONI_COUNTRY_ID", "1") or 1),
+        moloni_language_id=int(env.get("MOLONI_LANGUAGE_ID", "1") or 1),
     ),
 )
 

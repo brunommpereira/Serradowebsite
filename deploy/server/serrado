@@ -16,6 +16,11 @@
 #   serrado facebook                  liga a página de Facebook (publicações → notícias, eventos → eventos)
 #   serrado facebook off              desliga
 #   serrado facebook-sync             sincroniza agora
+#   serrado payments                  liga os pagamentos online (Stripe) e as faturas-recibo (Moloni ON)
+#   serrado payments off              desliga
+#   serrado moloni-info               empresas, séries, artigos e métodos de pagamento do Moloni (para configurar)
+#   serrado receipts                  emite agora as faturas-recibo em falta
+#   serrado fees [AAAA-MM]            cria as mensalidades das escolas do mês
 #
 # O GitHub Actions só pode correr deploy, rollback, backup e status (ver serrado-ssh-gate).
 set -euo pipefail
@@ -178,6 +183,8 @@ cmd_status() {
   echo "last_offsite_hours=$(age_h "$BACKUP_DIR/.last-offsite")"
   echo "disk_used_pct=$(df --output=pcent / | tail -1 | tr -dc 0-9)"
   echo "tls_mode=$([ -f "$ETC/cloudflare" ] && echo cloudflare || echo letsencrypt)"
+  # Faturas-recibo que falharam 6 vezes (o Moloni recusou): a verificação diária avisa
+  echo "receipts_stuck=$(as_postgres psql -d "$DB_NAME" -tAc "select count(*) from payments where status = 'paid' and receipt_status = 'failed' and receipt_attempts >= 6" 2>/dev/null || echo 0)"
 }
 
 cmd_cf_ips() {
@@ -257,6 +264,48 @@ cmd_facebook_sync() {
   (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.facebook sync)
 }
 
+pay_py() { (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.payments "$@"); }
+
+cmd_payments() {
+  if [ "${1:-}" = off ]; then
+    sed -i '/^STRIPE_/d; /^MOLONI_/d; /^PAYMENT_METHODS=/d' "$ETC/serrado.env"
+    $SYSTEMCTL disable --now serrado-receipts.timer serrado-fees.timer 2>/dev/null || true
+    $SYSTEMCTL restart serrado-backend serrado-middleware
+    echo '✔ Pagamentos online desligados'
+    return
+  fi
+  local sk wh mk company set products methods
+  echo '— Stripe (Programadores → Chaves de API e Webhooks)'
+  read -rsp 'Chave secreta (sk_live_… ou rk_live_…; não aparece no ecrã): ' sk; echo
+  read -rsp 'Segredo do webhook (whsec_…): ' wh; echo
+  [[ $sk =~ ^(sk|rk)_(live|test)_[A-Za-z0-9]{10,200}$ ]] || die 'Chave do Stripe inválida'
+  [[ $wh =~ ^whsec_[A-Za-z0-9]{10,200}$ ]] || die 'Segredo do webhook inválido'
+  set_env STRIPE_SECRET_KEY "$sk"
+  set_env STRIPE_WEBHOOK_SECRET "$wh"
+  echo '— Moloni ON (Conta → API → API Keys; a empresa precisa do add-on «API Access»)'
+  read -rsp 'API Key (apik:…): ' mk; echo
+  [[ $mk =~ ^apik:[A-Za-z0-9-]{8,80}:[A-Za-z0-9]{8,200}$ ]] || die 'API Key do Moloni inválida'
+  set_env MOLONI_API_KEY "$mk"
+  read -rp 'ID da empresa (vazio = mostrar as empresas e sair): ' company
+  if [ -z "$company" ]; then $SYSTEMCTL restart serrado-backend; pay_py moloni-info; return; fi
+  [[ $company =~ ^[0-9]{1,10}$ ]] || die 'ID da empresa inválido'
+  set_env MOLONI_COMPANY_ID "$company"
+  pay_py moloni-info || die 'O Moloni recusou a API Key ou a empresa.'
+  read -rp 'ID da série para as faturas-recibo: ' set
+  read -rp 'Artigos (ex.: quota:123,futsal:456,rugby:789): ' products
+  read -rp 'Métodos de pagamento (ex.: card:1,mb_way:2,multibanco:3): ' methods
+  [[ $set =~ ^[0-9]{1,10}$ ]] || die 'Série inválida'
+  [[ $products =~ ^[a-z0-9-]+:[0-9]+(,[a-z0-9-]+:[0-9]+)*$ && $products == *quota:* ]] || die 'Artigos inválidos (tem de ter pelo menos quota:ID)'
+  [[ $methods =~ ^[a-z_]+:[0-9]+(,[a-z_]+:[0-9]+)*$ ]] || die 'Métodos inválidos'
+  set_env MOLONI_DOCUMENT_SET_ID "$set"
+  set_env MOLONI_PRODUCTS "$products"
+  set_env MOLONI_PAYMENT_METHODS "$methods"
+  $SYSTEMCTL restart serrado-backend serrado-middleware
+  $SYSTEMCTL enable --now serrado-receipts.timer serrado-fees.timer
+  echo "✔ Pagamentos ligados. Endereço do webhook a registar no Stripe:"
+  echo "  $(grep '^PUBLIC_URL=' "$ETC/serrado.env" | cut -d= -f2-)/api/v1/payments/stripe/webhook"
+}
+
 case "${1:-}" in
   deploy) shift; cmd_deploy "$@" ;;
   rollback) cmd_rollback ;;
@@ -266,10 +315,14 @@ case "${1:-}" in
   status) cmd_status ;;
   admin) shift; [ $# -eq 2 ] || die 'Uso: serrado admin <email> "<nome>"'; (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.db.create_admin "$1" "$2") ;;
   content) (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.db.content) ;;
-  logs) journalctl -u serrado-middleware -u serrado-backend -u serrado-facebook -u caddy -n "${2:-100}" --no-pager ;;
+  logs) journalctl -u serrado-middleware -u serrado-backend -u serrado-facebook -u serrado-receipts -u serrado-fees -u caddy -n "${2:-100}" --no-pager ;;
   cf-ips) cmd_cf_ips ;;
   oauth) shift; cmd_oauth "$@" ;;
   facebook) shift; cmd_facebook "$@" ;;
   facebook-sync) cmd_facebook_sync ;;
-  *) sed -n '2,20p' "$0"; exit 1 ;;
+  payments) shift; cmd_payments "$@" ;;
+  moloni-info) pay_py moloni-info ;;
+  receipts) pay_py receipts ;;
+  fees) shift; [[ -z ${1:-} || $1 =~ ^[0-9]{4}-(0[1-9]|1[0-2])$ ]] || die 'Uso: serrado fees [AAAA-MM]'; pay_py generate-fees "$@" ;;
+  *) sed -n '2,25p' "$0"; exit 1 ;;
 esac

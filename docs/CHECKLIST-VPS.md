@@ -58,6 +58,14 @@ Legenda: **[eu]** faz-se no servidor ou num painel · **[código]** precisa de u
   - decidir entre publicar logo ou rascunho, e se usam uma hashtag de controlo. **[eu] [decidir]**
   - Confirmar em `sudo serrado logs` se a Meta deixa ler os eventos. Se não deixar, só entram as publicações.
 
+- [ ] **Pagamentos online** (`DEPLOY-VPS.md`, 5d): **[eu]**
+  - conta Stripe do clube com MB WAY e Multibanco ativos;
+  - webhook com os 4 eventos;
+  - Moloni ON com o add-on «API Access», a API Key e os artigos criados **com o contabilista** (IVA/isenção);
+  - `sudo serrado payments`;
+  - primeiro em modo de teste. Depois, um pagamento real com cada método: quota «Pago», email com o recibo e PDF no site.
+- [ ] **Valores das mensalidades:** futsal e rugby definidos em **Backoffice → Pagamentos**. **[decidir]**
+
 ## 5. Antes de abrir ao público: o que ainda é demonstração
 
 Com a API ligada, estas partes do site **ainda não gravam nada no servidor**. Em modo API, o site já as **esconde ou troca por um aviso** com o email, o telefone e os contactos da secretaria. Ficam a faltar só as decisões.
@@ -70,7 +78,7 @@ Com a API ligada, estas partes do site **ainda não gravam nada no servidor**. E
 - [x] **Inscrição nas modalidades e em eventos:** em modo API, mostra um aviso para tratar na secretaria.
 - [ ] Decidir se as inscrições online passam a gravar no servidor. **[decidir]**
 - [ ] **Área de Atletas:** «Adicionar atleta» e «Convidar co-encarregado» estão escondidos em modo API. Confirmar que é isso que se quer no arranque. **[decidir]**
-- [ ] **Pagamento de quotas e mensalidades:** o botão «Pagar quota» não aparece em modo API. Os pagamentos online (Stripe e recibos no Moloni) estão em preparação. **[código]**
+- [x] **Pagamento de quotas e mensalidades:** feito com o Stripe (cartão, MB WAY e Multibanco) e faturas-recibo no Moloni ON. Falta configurar (ver a secção 4).
 - [x] **Newsletter do rodapé:** não aparece em modo API.
 - [ ] Decidir se a newsletter usa um serviço de envio (por exemplo Brevo ou Mailchimp). **[decidir]**
 
@@ -115,6 +123,7 @@ Com a API ligada, estas partes do site **ainda não gravam nada no servidor**. E
 | Quando mudar alguém na direção | Retirar os papéis no backoffice a quem sai. Se essa pessoa for admin da página de Facebook, gerar um token novo. |
 | A cada 24 meses | Renovar o secret da Microsoft (se usado). |
 | A cada cerca de 2 anos | Atualizar `FACEBOOK_GRAPH_VERSION` quando a Meta retirar a versão em uso. |
+| Quando a verificação diária avisar de recibos encravados | **Backoffice → Pagamentos**: ver o erro do Moloni e carregar em «Tentar outra vez». |
 | Atualizações do sistema | As de segurança instalam-se sozinhas. De vez em quando, `sudo apt upgrade` e reiniciar num horário calmo. |
 | A cada 15 anos | Renovar o certificado de origem da Cloudflare. |
 | Renovação anual | Domínio `serradofc.pt` no dominios.pt e plano da VPS. **Com renovação automática e um cartão válido.** |

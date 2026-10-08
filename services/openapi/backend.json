@@ -3707,6 +3707,441 @@
           }
         }
       }
+    },
+    "/internal/v1/charges": {
+      "get": {
+        "tags": [
+          "Pagamentos"
+        ],
+        "summary": "O que a conta pode pagar (quotas e mensalidades) e os pagamentos feitos",
+        "operationId": "charges_internal_v1_charges_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Charges Internal V1 Charges Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/payments": {
+      "post": {
+        "tags": [
+          "Pagamentos"
+        ],
+        "summary": "Começa um pagamento: devolve o endereço do Stripe Checkout",
+        "operationId": "create_internal_v1_payments_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Create Internal V1 Payments Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Backoffice · Pagamentos"
+        ],
+        "summary": "Pagamentos online e estado dos recibos",
+        "operationId": "payments_internal_v1_payments_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "open",
+                    "paid",
+                    "failed",
+                    "expired"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Payments Internal V1 Payments Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/payments/stripe-webhook": {
+      "post": {
+        "tags": [
+          "Pagamentos"
+        ],
+        "summary": "Evento do Stripe (corpo original + assinatura), reencaminhado pelo middleware",
+        "operationId": "webhook_internal_v1_payments_stripe_webhook_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Webhook Internal V1 Payments Stripe Webhook Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/payments/{id}/receipt": {
+      "get": {
+        "tags": [
+          "Pagamentos"
+        ],
+        "summary": "PDF da fatura-recibo (quem pagou, a secretaria ou admin)",
+        "operationId": "receipt_internal_v1_payments__id__receipt_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Receipt Internal V1 Payments  Id  Receipt Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/fee-plans": {
+      "get": {
+        "tags": [
+          "Backoffice · Pagamentos"
+        ],
+        "summary": "Valor mensal por modalidade",
+        "operationId": "fee_plans_internal_v1_fee_plans_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Fee Plans Internal V1 Fee Plans Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/fee-plans/{sport}": {
+      "put": {
+        "tags": [
+          "Backoffice · Pagamentos"
+        ],
+        "summary": "Define o valor mensal de uma modalidade",
+        "operationId": "set_fee_plan_internal_v1_fee_plans__sport__put",
+        "parameters": [
+          {
+            "name": "sport",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$",
+              "title": "Sport"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeePlan"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Set Fee Plan Internal V1 Fee Plans  Sport  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/fees/generate": {
+      "post": {
+        "tags": [
+          "Backoffice · Pagamentos"
+        ],
+        "summary": "Gera as mensalidades de um mês (não duplica)",
+        "operationId": "generate_internal_v1_fees_generate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Generate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Generate Internal V1 Fees Generate Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/fees": {
+      "get": {
+        "tags": [
+          "Backoffice · Pagamentos"
+        ],
+        "summary": "Mensalidades de um mês",
+        "operationId": "fees_internal_v1_fees_get",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Fees Internal V1 Fees Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/payments/{id}/retry-receipt": {
+      "post": {
+        "tags": [
+          "Backoffice · Pagamentos"
+        ],
+        "summary": "Volta a tentar emitir o recibo (continua de onde parou)",
+        "operationId": "retry_internal_v1_payments__id__retry_receipt_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Retry Internal V1 Payments  Id  Retry Receipt Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4023,6 +4458,40 @@
         ],
         "title": "ExternalIdentity"
       },
+      "FeePlan": {
+        "properties": {
+          "amount": {
+            "type": "number",
+            "exclusiveMaximum": 1000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Amount"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount"
+        ],
+        "title": "FeePlan"
+      },
+      "Generate": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+            "title": "Month"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month"
+        ],
+        "title": "Generate"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -4252,6 +4721,62 @@
           "category"
         ],
         "title": "PartnersBody"
+      },
+      "PayBody": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PayItem"
+            },
+            "type": "array",
+            "maxItems": 24,
+            "minItems": 1,
+            "title": "Items"
+          },
+          "nif": {
+            "type": "string",
+            "pattern": "^\\d{9}$",
+            "title": "Nif"
+          },
+          "returnPath": {
+            "type": "string",
+            "maxLength": 40,
+            "title": "Returnpath",
+            "default": "/area-socio"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "nif"
+        ],
+        "title": "PayBody",
+        "description": "Só se escolhe o QUE pagar; os valores vêm da base de dados."
+      },
+      "PayItem": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "quota",
+              "fee"
+            ],
+            "title": "Kind"
+          },
+          "id": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "id"
+        ],
+        "title": "PayItem"
       },
       "ResultRow": {
         "properties": {
@@ -4539,6 +5064,26 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WebhookBody": {
+        "properties": {
+          "payload": {
+            "type": "string",
+            "maxLength": 500000,
+            "title": "Payload"
+          },
+          "signature": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Signature"
+          }
+        },
+        "type": "object",
+        "required": [
+          "payload",
+          "signature"
+        ],
+        "title": "WebhookBody"
       }
     }
   }

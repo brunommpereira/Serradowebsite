@@ -59,6 +59,12 @@ export const ADMIN_ROUTES: Routes = [
         data: { roles: ['secretaria'] },
         loadComponent: () => import('./pages/results-import.page').then((m) => m.ResultsImportPage),
       },
+      {
+        path: 'pagamentos',
+        canActivate: [staffGuard],
+        data: { roles: ['secretaria'] },
+        loadComponent: () => import('./pages/payments.page').then((m) => m.PaymentsPage),
+      },
       { path: 'utilizadores', canActivate: [staffGuard], data: { roles: ['admin'] }, loadComponent: () => import('./pages/users.page').then((m) => m.UsersPage) },
       { path: 'auditoria', loadComponent: () => import('./pages/audit.page').then((m) => m.AuditPage) },
     ],
