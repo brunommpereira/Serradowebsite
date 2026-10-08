@@ -10,6 +10,20 @@ export async function meRoutes(app: FastifyInstance) {
     return app.backend.call('GET', `/users/${s.sub}`, { actor: s });
   });
 
+  app.get('/me/identities', { schema: { tags: ['Sessão'], summary: 'Contas Google/Microsoft ligadas a esta conta' } }, async (req) => {
+    const s = await app.session(req);
+    return app.backend.call('GET', `/users/${s.sub}/identities`, { actor: s });
+  });
+
+  app.delete(
+    '/me/identities/:provider',
+    { schema: { tags: ['Sessão'], summary: 'Desligar uma conta Google/Microsoft', params: { type: 'object', properties: { provider: { type: 'string', pattern: '^[a-z0-9-]{1,32}$' } } } } },
+    async (req) => {
+      const s = await app.session(req);
+      return app.backend.call('DELETE', `/users/${s.sub}/identities/${(req.params as { provider: string }).provider}`, { actor: s });
+    },
+  );
+
   app.get('/me/member', { schema: { tags: ['Área de Sócio'], summary: 'Os meus dados de sócio' } }, async (req) => {
     const s = await app.session(req);
     const me = await app.backend.call<{ member: { memberNumber: string } | null }>('GET', `/users/${s.sub}`, { actor: s });

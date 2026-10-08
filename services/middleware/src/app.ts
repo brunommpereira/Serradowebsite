@@ -6,7 +6,9 @@ import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { config } from '../../shared/config.ts';
+import { createHmac } from 'node:crypto';
 import { BackendClient, BackendError, type Session } from './backend-client.ts';
+import { configuredProviders, type OAuthProvider } from './oauth.ts';
 import { TtlCache } from './cache.ts';
 import { authRoutes } from './routes/auth.ts';
 import { contentRoutes } from './routes/content.ts';
@@ -19,6 +21,8 @@ declare module 'fastify' {
   interface FastifyInstance {
     backend: BackendClient;
     cache: TtlCache;
+    /** Fornecedores de entrada externos ativos (Google, Microsoft…) */
+    oauth: Map<string, OAuthProvider>;
     /** Exige sessão; devolve o utilizador. */
     session(req: FastifyRequest): Promise<Session>;
     /** Exige sessão com um dos papéis (admin passa sempre). */
@@ -48,10 +52,11 @@ class ApiError extends Error {
  * Autenticação, permissões por papel, validação, rate limit, CORS, cache e
  * agregação. Não acede à base de dados: fala com o backend.
  */
-export async function buildMiddleware(opts: { backend?: BackendClient; logger?: boolean } = {}) {
+export async function buildMiddleware(opts: { backend?: BackendClient; logger?: boolean; oauth?: Map<string, OAuthProvider> } = {}) {
   const app = Fastify({ logger: opts.logger ?? false, trustProxy: config.trustProxy, ajv: { customOptions: { removeAdditional: false, coerceTypes: true } } });
   app.decorate('backend', opts.backend ?? new BackendClient());
   app.decorate('cache', new TtlCache());
+  app.decorate('oauth', opts.oauth ?? configuredProviders());
 
   await app.register(cors, {
     origin: (origin, cb) => cb(null, !origin || config.corsOrigins.includes(origin)),
@@ -59,7 +64,8 @@ export async function buildMiddleware(opts: { backend?: BackendClient; logger?: 
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['content-type', 'x-requested-with', 'authorization'],
   });
-  await app.register(cookie);
+  // Cookies assinados: só o cookie temporário da entrada com Google/Microsoft (state, nonce, PKCE)
+  await app.register(cookie, { secret: createHmac('sha256', config.jwtSecret).update('sfc-oauth-cookie').digest('hex') });
   await app.register(jwt, { secret: config.jwtSecret, cookie: { cookieName: SESSION_COOKIE, signed: false }, sign: { expiresIn: `${config.sessionHours}h` } });
   // Limite por IP em toda a API (proteção contra abuso); login e carregamentos têm limites mais apertados
   await app.register(rateLimit, { global: true, max: config.rateLimitMax, timeWindow: '1 minute', allowList: (req) => req.url === '/api/health' });

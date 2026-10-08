@@ -47,6 +47,19 @@ interface ApiQuota {
   status: 'Pago' | 'Pendente' | 'Em atraso';
 }
 
+/** Fornecedor de entrada externo (Google, Microsoft…), quando configurado no servidor. */
+export interface LoginProvider {
+  id: string;
+  name: string;
+}
+
+/** Conta externa ligada à conta do clube. */
+export interface LinkedIdentity {
+  provider: string;
+  email: string | null;
+  linkedAt: string;
+}
+
 /** Perfil devolvido pelo middleware (GET /me, POST /auth/login). */
 interface ApiProfile {
   id: string;
@@ -106,6 +119,35 @@ export class AuthService {
     this.session.set(null);
     this.persist(null);
     if (this.api.enabled) this.api.post('/auth/logout').catch(() => undefined);
+  }
+
+  /** Fornecedores de entrada ativos no servidor (vazio no modo demonstração). */
+  async loadProviders(): Promise<LoginProvider[]> {
+    if (!this.api.enabled || !this.isBrowser) return [];
+    try {
+      return await this.api.get<LoginProvider[]>('/auth/providers');
+    } catch {
+      return [];
+    }
+  }
+
+  /** Endereço que começa a entrada com um fornecedor (navegação completa, não XHR). */
+  providerUrl(provider: string, voltar: string) {
+    return `${this.api.baseUrl}/auth/oauth/${encodeURIComponent(provider)}?voltar=${encodeURIComponent(voltar)}`;
+  }
+
+  /** Contas Google/Microsoft ligadas a esta conta. */
+  async loadIdentities(): Promise<LinkedIdentity[]> {
+    if (!this.api.enabled || !this.isLoggedIn()) return [];
+    try {
+      return await this.api.get<LinkedIdentity[]>('/me/identities');
+    } catch {
+      return [];
+    }
+  }
+
+  unlinkIdentity(provider: string) {
+    return this.api.delete(`/me/identities/${encodeURIComponent(provider)}`);
   }
 
   /** Modo API: recupera a sessão a partir do cookie httpOnly (GET /me). */

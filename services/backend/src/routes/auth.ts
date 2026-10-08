@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { DUMMY_HASH, verifyPassword } from '../../../shared/password.ts';
 import { ROLES } from '../../../shared/config.ts';
 import { tx } from '../../../shared/db.ts';
-import { audit, forbidden, notFound, requireRole } from '../core.ts';
+import { audit, forbidden, HttpError, notFound, requireRole } from '../core.ts';
 
 const user = {
   type: 'object',
@@ -64,6 +64,90 @@ export async function authRoutes(app: FastifyInstance) {
       return loadProfile(app, rows[0].id);
     },
   );
+
+  app.post(
+    '/auth/oauth',
+    {
+      schema: {
+        tags: ['Sessão'],
+        summary: 'Entrada com uma conta externa (Google, Microsoft…) já validada pelo middleware',
+        description:
+          'Procura a conta ligada a (provider, subject). Na primeira vez, liga-a à conta do clube com o mesmo email, ' +
+          'só se o fornecedor garantir que o email está verificado. Não cria contas novas.',
+        body: {
+          type: 'object',
+          required: ['provider', 'subject', 'email', 'emailVerified'],
+          properties: {
+            provider: { type: 'string', pattern: '^[a-z0-9-]{1,32}$' },
+            subject: { type: 'string', minLength: 1, maxLength: 255 },
+            email: { type: ['string', 'null'], maxLength: 200 },
+            emailVerified: { type: 'boolean' },
+          },
+          additionalProperties: false,
+        },
+        response: { 200: user },
+      },
+    },
+    async (req) => {
+      const { provider, subject, email, emailVerified } = req.body as { provider: string; subject: string; email: string | null; emailVerified: boolean };
+      const userId = await tx(app.pool, async (c) => {
+        const linked = await c.query('select i.user_id, u.disabled from user_identities i join users u on u.id = i.user_id where i.provider = $1 and i.subject = $2', [provider, subject]);
+        if (linked.rows[0]) {
+          if (linked.rows[0].disabled) return null;
+          await c.query('update user_identities set last_used_at = now() where provider = $1 and subject = $2', [provider, subject]);
+          return linked.rows[0].user_id as string;
+        }
+        // Primeira entrada com esta conta: só com email verificado pelo fornecedor e igual ao da conta do clube
+        if (!emailVerified || !email) return null;
+        const found = await c.query('select id from users where email = $1 and not disabled', [email.trim().toLowerCase()]);
+        const id = found.rows[0]?.id as string | undefined;
+        if (!id) return null;
+        const other = await c.query('select 1 from user_identities where user_id = $1 and provider = $2', [id, provider]);
+        if (other.rows[0]) throw new HttpError(409, 'other_identity_linked', 'Esta conta do clube já está ligada a outra conta deste fornecedor');
+        await c.query('insert into user_identities (provider, subject, user_id, email, last_used_at) values ($1, $2, $3, $4, now())', [provider, subject, id, email.trim().toLowerCase()]);
+        await audit(c, { id, roles: [] }, 'users.identity.link', 'users', id, { provider });
+        return id;
+      });
+      // Mesma resposta para «não existe» e «desativada»: não revela que contas existem
+      if (!userId) throw new HttpError(403, 'no_account', 'Não há nenhuma conta do clube associada a este email');
+      await app.pool.query('update users set last_login_at = now() where id = $1', [userId]);
+      return loadProfile(app, userId);
+    },
+  );
+
+  const identityParams = { type: 'object', properties: { id: { type: 'string', format: 'uuid' }, provider: { type: 'string', pattern: '^[a-z0-9-]{1,32}$' } } } as const;
+
+  app.get(
+    '/users/:id/identities',
+    {
+      schema: {
+        tags: ['Sessão'],
+        summary: 'Contas externas ligadas (o próprio ou admin)',
+        params: identityParams,
+        response: { 200: { type: 'array', items: { type: 'object', properties: { provider: { type: 'string' }, email: { type: ['string', 'null'] }, linkedAt: { type: 'string' }, lastUsedAt: { type: ['string', 'null'] } } } } },
+      },
+    },
+    async (req) => {
+      const { id } = req.params as { id: string };
+      if (req.actor.id !== id && !req.actor.roles.includes('admin')) throw forbidden();
+      const { rows } = await app.pool.query(
+        `select provider, email, linked_at as "linkedAt", last_used_at as "lastUsedAt" from user_identities where user_id = $1 order by provider`,
+        [id],
+      );
+      return rows;
+    },
+  );
+
+  app.delete('/users/:id/identities/:provider', { schema: { tags: ['Sessão'], summary: 'Desligar uma conta externa (o próprio ou admin)', params: identityParams } }, async (req) => {
+    const { id, provider } = req.params as { id: string; provider: string };
+    if (req.actor.id !== id && !req.actor.roles.includes('admin')) throw forbidden();
+    await tx(app.pool, async (c) => {
+      const r = await c.query('delete from user_identities where user_id = $1 and provider = $2', [id, provider]);
+      if (!r.rowCount) throw notFound('Ligação');
+      await audit(c, req.actor, 'users.identity.unlink', 'users', id, { provider });
+    });
+    return { ok: true };
+  });
 
   app.get('/users/:id', { schema: { tags: ['Sessão'], summary: 'Perfil de um utilizador', params: { type: 'object', properties: { id: { type: 'string', format: 'uuid' } } }, response: { 200: user } } }, async (req) => {
     const { id } = req.params as { id: string };

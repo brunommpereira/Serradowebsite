@@ -39,6 +39,18 @@ export const config = {
   sessionSameSite: (['strict', 'lax', 'none'].includes(env['SESSION_SAMESITE'] ?? '') ? env['SESSION_SAMESITE'] : 'strict') as 'strict' | 'lax' | 'none',
   /** Pedidos por minuto e por IP em toda a API pública (o login e o carregamento de imagens têm limites próprios) */
   rateLimitMax: Number(env['RATE_LIMIT_MAX'] ?? 300),
+  /**
+   * Entrada com Google / Microsoft (OpenIDConnect). Cada fornecedor fica ativo quando tem
+   * CLIENT_ID e CLIENT_SECRET e há PUBLIC_URL (o endereço do site, onde corre a API em /api).
+   */
+  oauth: {
+    /** Ex.: https://www.serradofc.pt — o endereço de retorno é {PUBLIC_URL}/api/v1/auth/oauth/{fornecedor}/callback */
+    publicUrl: (env['PUBLIC_URL'] ?? '').replace(/\/+$/, ''),
+    /** Onde está o front, para onde a pessoa volta depois de entrar (omissão: PUBLIC_URL) */
+    siteUrl: (env['SITE_URL'] ?? env['PUBLIC_URL'] ?? '').replace(/\/+$/, ''),
+    google: { clientId: env['GOOGLE_CLIENT_ID'] ?? '', clientSecret: env['GOOGLE_CLIENT_SECRET'] ?? '' },
+    microsoft: { clientId: env['MICROSOFT_CLIENT_ID'] ?? '', clientSecret: env['MICROSOFT_CLIENT_SECRET'] ?? '' },
+  },
   /** Versão instalada (ficheiro REVISION do artefacto de deploy); o deploy confirma que é esta que responde */
   version: readVersion(),
 };

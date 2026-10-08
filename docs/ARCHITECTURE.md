@@ -106,6 +106,13 @@ Ou tudo junto: `docker compose up --build`.
   - JWT de 8 horas em cookie `httpOnly`, `Secure` e `SameSite=Strict`, porque o site e a API estão no mesmo domínio;
   - o token nunca é devolvido no corpo da resposta, por isso o JavaScript nunca lhe chega.
 - **CSRF:** todos os pedidos que alteram dados, incluindo o login, precisam do cabeçalho `X-Requested-With`. O CORS só aceita as origens do site.
+- **Entrar com Google / Microsoft (OpenID Connect):**
+  - fluxo *authorization code* com PKCE (S256), `state` e `nonce`, feito no middleware com `openid-client`. O `id_token` é validado (assinatura, emissor, audiência, validade e nonce);
+  - o `state`, o `nonce` e o PKCE ficam num cookie assinado, `httpOnly` e `SameSite=Lax`, que dura 10 minutos e só vale para `/api/v1/auth/oauth`;
+  - **não se criam contas**. Na primeira entrada, a conta externa liga-se à conta do clube com o mesmo email, e só se o fornecedor garantir que o email está verificado. Depois disso, a ligação é feita pelo identificador da conta externa (`sub`) e fica em `user_identities`;
+  - na Microsoft só entram contas pessoais. Nas contas de empresa o email não é verificado (falha conhecida como «nOAuth»);
+  - o destino depois de entrar só pode ser um caminho do próprio site;
+  - cada pessoa vê e desliga as contas ligadas em /entrar. As ligações ficam registadas no `audit_log`.
 - **Passwords:** guardadas com `scrypt` e salt. O login responde à mesma velocidade quer a conta exista quer não.
 - **Rate limit:**
   - 300 pedidos/minuto por IP em toda a API (`RATE_LIMIT_MAX`);

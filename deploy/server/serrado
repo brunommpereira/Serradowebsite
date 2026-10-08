@@ -11,6 +11,8 @@
 #   serrado content                   carrega o conteúdo inicial do site (só com o CMS vazio)
 #   serrado logs [n]                  últimas linhas dos registos
 #   serrado cf-ips                    atualiza a firewall e o Caddy com os IPs da Cloudflare
+#   serrado oauth google|microsoft    ativa «Continuar com Google/Microsoft» (pede o Client ID e o secret)
+#   serrado oauth google|microsoft off  desativa
 #
 # O GitHub Actions só pode correr deploy, rollback, backup e status (ver serrado-ssh-gate).
 set -euo pipefail
@@ -187,6 +189,26 @@ cmd_cf_ips() {
   echo "✔ $(echo "$all" | wc -l) redes da Cloudflare autorizadas nas portas 80/443"
 }
 
+cmd_oauth() {
+  local provider="${1:-}" key id secret
+  case "$provider" in google | microsoft) ;; *) die 'Uso: serrado oauth google|microsoft [off]' ;; esac
+  key=${provider^^}
+  if [ "${2:-}" = off ]; then
+    sed -i "/^${key}_CLIENT_\(ID\|SECRET\)=/d" "$ETC/serrado.env"
+    $SYSTEMCTL restart serrado-middleware
+    echo "✔ Entrada com $provider desativada"
+    return
+  fi
+  read -rp 'Client ID: ' id
+  read -rsp 'Client secret (não aparece no ecrã): ' secret; echo
+  [[ "$id" =~ ^[A-Za-z0-9._~+/=-]{8,300}$ && "$secret" =~ ^[A-Za-z0-9._~+/=-]{8,300}$ ]] || die 'Client ID ou secret inválido'
+  sed -i "/^${key}_CLIENT_\(ID\|SECRET\)=/d" "$ETC/serrado.env"
+  printf '%s\n' "${key}_CLIENT_ID=$id" "${key}_CLIENT_SECRET=$secret" >> "$ETC/serrado.env"
+  $SYSTEMCTL restart serrado-middleware
+  echo "✔ Entrada com $provider ativada. Endereço de retorno a registar no fornecedor:"
+  echo "  $(grep '^PUBLIC_URL=' "$ETC/serrado.env" | cut -d= -f2-)/api/v1/auth/oauth/$provider/callback"
+}
+
 case "${1:-}" in
   deploy) shift; cmd_deploy "$@" ;;
   rollback) cmd_rollback ;;
@@ -198,5 +220,6 @@ case "${1:-}" in
   content) (cd "$ROOT/current/services" && as_app node db/seed/content.ts) ;;
   logs) journalctl -u serrado-middleware -u serrado-backend -u caddy -n "${2:-100}" --no-pager ;;
   cf-ips) cmd_cf_ips ;;
-  *) sed -n '2,15p' "$0"; exit 1 ;;
+  oauth) shift; cmd_oauth "$@" ;;
+  *) sed -n '2,17p' "$0"; exit 1 ;;
 esac

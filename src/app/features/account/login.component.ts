@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { AuthService } from '../../core/services/auth.service';
+import { AuthService, LinkedIdentity, LoginProvider } from '../../core/services/auth.service';
 import { AthleteAreaService } from '../../core/services/athlete-area.service';
 import { SeoService } from '../../core/services/seo.service';
 import { IconComponent } from '../../shared/icon.component';
@@ -9,6 +9,16 @@ import { IconComponent } from '../../shared/icon.component';
 export type Profile = 'socio' | 'atleta' | 'staff';
 
 const AREA: Record<Profile, string> = { socio: '/area-socio', atleta: '/area-atletas', staff: '/admin' };
+
+/** Resultado da entrada com Google/Microsoft (?erro= posto pelo middleware) */
+const OAUTH_ERRORS: Record<string, string> = {
+  'sem-conta': 'Não encontrámos nenhuma conta do clube com esse email. Entra com o email e a password que a secretaria te deu, ou fala connosco.',
+  'outra-conta': 'A tua conta do clube já está ligada a outra conta deste fornecedor. Entra com essa conta ou com a password.',
+  cancelado: 'A entrada foi cancelada.',
+  expirou: 'A entrada demorou demasiado tempo. Tenta outra vez.',
+  indisponivel: 'Este serviço de entrada não está disponível de momento. Usa o email e a password.',
+  falhou: 'Não foi possível confirmar a entrada. Tenta outra vez.',
+};
 
 /**
  * Ponto de acesso único à área reservada (/entrar).
@@ -36,6 +46,13 @@ export class LoginComponent {
   protected readonly resetSent = signal(false);
   protected readonly demos = computed(() => AuthService.DEMO.filter((d) => (this.profile() === 'staff') === d.roles.length > 0));
   protected readonly busy = signal(false);
+  /** Entrar com Google / Microsoft (só quando o servidor os tem configurados) */
+  protected readonly providers = signal<LoginProvider[]>([]);
+  protected readonly identities = signal<LinkedIdentity[]>([]);
+  protected readonly oauthError = computed(() => {
+    const code = this.params.get('erro');
+    return code ? (OAUTH_ERRORS[code] ?? OAUTH_ERRORS['falhou']) : null;
+  });
 
   /** Quantos atletas a conta acompanha (educandos e/ou o próprio). */
   protected readonly athleteCount = computed(() => this.area.athletes().length);
@@ -54,6 +71,26 @@ export class LoginComponent {
     inject(SeoService).set({ title: 'Entrar', description: 'Entra na área reservada do Serrado FC: Área de Sócio e Área de Atletas.', path: '/entrar' });
     // Veio de uma página protegida e já tem acesso: segue diretamente
     if (this.voltar && this.canOpen(this.profile())) this.router.navigateByUrl(this.voltar);
+    this.auth.loadProviders().then((p) => this.providers.set(p));
+    this.refreshIdentities();
+  }
+
+  /** Entrar com um fornecedor: volta diretamente à área escolhida (ou à página pedida). */
+  providerHref(p: LoginProvider) {
+    return this.auth.providerUrl(p.id, this.voltar ?? AREA[this.profile()]);
+  }
+
+  providerName(id: string) {
+    return this.providers().find((p) => p.id === id)?.name ?? id;
+  }
+
+  async unlink(provider: string) {
+    await this.auth.unlinkIdentity(provider).catch(() => undefined);
+    this.refreshIdentities();
+  }
+
+  private refreshIdentities() {
+    this.auth.loadIdentities().then((list) => this.identities.set(list));
   }
 
   setProfile(p: Profile) {
@@ -76,6 +113,7 @@ export class LoginComponent {
       return;
     }
     this.error.set(false);
+    this.refreshIdentities();
     // Conta sem perfil de sócio a tentar entrar como sócio: fica no hub com a explicação
     if (this.canOpen(this.profile())) this.open(this.profile());
   }
@@ -87,6 +125,7 @@ export class LoginComponent {
 
   logout() {
     this.auth.logout();
+    this.identities.set([]);
     this.form.reset();
   }
 

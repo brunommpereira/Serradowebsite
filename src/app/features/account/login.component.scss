@@ -206,3 +206,67 @@ h1 {
     }
   }
 }
+
+/* Entrar com Google / Microsoft */
+.oauth {
+  margin-top: 1rem;
+}
+.oauth__or {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    border-top: 1px solid var(--color-line);
+  }
+}
+.oauth__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  margin-top: 0.5rem;
+  border: 1.5px solid var(--color-line);
+  border-radius: var(--radius-s);
+  background: #fff;
+  color: var(--color-text);
+  font-weight: 600;
+  text-decoration: none;
+  &:hover {
+    border-color: var(--color-muted);
+  }
+}
+.oauth__hint {
+  margin-top: 0.5rem;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+/* Contas ligadas (hub) */
+.linked {
+  margin-top: 1.25rem;
+  text-align: left;
+  h2 {
+    font-size: 1rem;
+    margin-bottom: 0.3rem;
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    border-top: 1px solid var(--color-line);
+    padding: 0.2rem 0;
+    overflow-wrap: anywhere;
+  }
+}
