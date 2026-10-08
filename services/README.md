@@ -22,7 +22,7 @@ uv run python -m serrado.db.migrate       # aplica serrado/db/migrations/*.sql (
 uv run python -m serrado.db.seed          # dados de demonstração (APAGA o conteúdo!)
 uv run python -m serrado.backend.server   # http://localhost:4100/internal/docs
 uv run python -m serrado.middleware.server  # http://localhost:4000/api/docs
-uv run pytest                             # 74 testes de integração com PostgreSQL real
+uv run pytest                             # 75 testes de integração com PostgreSQL real
 uv run ruff check serrado tests && uv run ruff format --check serrado tests
 uv run mypy                               # tipos
 uv run python -m serrado.openapi          # regenera openapi/backend.json e openapi/middleware.json

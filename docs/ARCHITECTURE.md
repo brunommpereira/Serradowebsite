@@ -104,6 +104,7 @@ Ou tudo junto: `docker compose up --build`.
 
 - **Sessão:**
   - JWT de 8 horas em cookie `httpOnly`, `Secure` e `SameSite=Strict`, porque o site e a API estão no mesmo domínio;
+  - o JWT leva emissor (`iss`) e audiência (`aud`), e só é aceite com os dois certos. Um token assinado com o mesmo segredo para outro fim não abre sessão;
   - o token nunca é devolvido no corpo da resposta, por isso o JavaScript nunca lhe chega.
 - **CSRF:** todos os pedidos que alteram dados, incluindo o login, precisam do cabeçalho `X-Requested-With`. O CORS só aceita as origens do site.
 - **Entrar com Google / Microsoft (OpenID Connect):**

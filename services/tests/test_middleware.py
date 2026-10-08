@@ -61,6 +61,33 @@ async def test_bearer_token_tambem_serve(mw):
     assert (await mw.client().get("/api/v1/me", headers={"authorization": f"Bearer {forged}"})).status_code == 401
 
 
+async def test_sessao_exige_emissor_e_audiencia(mw):
+    import time
+
+    import jwt
+
+    from serrado.config import config
+    from serrado.middleware.session import JWT_AUDIENCE, JWT_ISSUER
+
+    c = await mw.login("joao@exemplo.pt", "atleta2026")
+    token = c.cookies.get("sfc_session")
+    claims = jwt.decode(token, options={"verify_signature": False})
+    assert (claims["iss"], claims["aud"]) == (JWT_ISSUER, JWT_AUDIENCE)
+
+    now = int(time.time())
+    base = {"sub": claims["sub"], "name": "x", "roles": [], "iat": now, "exp": now + 600}
+
+    async def status(payload: dict) -> int:
+        forged = jwt.encode(payload, config.jwt_secret, algorithm="HS256")  # assinatura válida, outro fim
+        return (await mw.client().get("/api/v1/me", headers={"authorization": f"Bearer {forged}"})).status_code
+
+    assert await status({**base, "iss": JWT_ISSUER, "aud": JWT_AUDIENCE}) == 200
+    assert await status({**base, "iss": JWT_ISSUER, "aud": "outra-api"}) == 401
+    assert await status({**base, "iss": "outro-emissor", "aud": JWT_AUDIENCE}) == 401
+    assert await status(base) == 401  # sem iss nem aud (como as sessões antigas)
+    assert await status({**base, "iss": JWT_ISSUER}) == 401
+
+
 async def test_rate_limit_no_login(mw):
     c = mw.client("10.0.0.9")
     last = 0
