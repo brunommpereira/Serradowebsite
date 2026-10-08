@@ -1,5 +1,7 @@
 # Pôr o Serrado FC numa VPS (OVHcloud ou Hostinger) com Cloudflare e GitHub Actions
 
+Lista para ir marcando no lançamento e na manutenção: [`CHECKLIST-VPS.md`](CHECKLIST-VPS.md).
+
 Instalação nativa, sem Docker: PostgreSQL, cópias de segurança, os serviços em Python e o Caddy correm diretamente no Ubuntu. O GitHub Actions faz o resto: constrói, instala, verifica e volta atrás se for preciso.
 
 ```
