@@ -97,7 +97,12 @@ O `ContentService` é o único ponto de acesso aos dados. Ao lado de cada métod
 
 Ver [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) e [`services/README.md`](services/README.md). Sem `apiBaseUrl` (o caso do GitHub Pages), o front corre em **modo demonstração**: as edições do CMS ficam só no browser. Com a API configurada, tudo passa pelo middleware até ao PostgreSQL.
 
-**Produção numa VPS** (por exemplo Hostinger KVM 1): site, API e base de dados no mesmo servidor, com HTTPS, cópias de segurança diárias e deploy automático. Ver [`docs/DEPLOY-VPS.md`](docs/DEPLOY-VPS.md).
+**Produção numa VPS** (OVHcloud VPS-1 ou Hostinger KVM 1):
+
+- **Instalação nativa, sem Docker:** PostgreSQL, Node.js e Caddy no Ubuntu.
+- **Cloudflare:** à frente do site, e as portas 80/443 só aceitam a Cloudflare.
+- **Cópias de segurança:** diárias, com cópia externa cifrada.
+- **GitHub Actions:** faz o deploy, o rollback e a verificação diária. Ver [`docs/DEPLOY-VPS.md`](docs/DEPLOY-VPS.md).
 
 Ferramentas de dados: [`tools/trofeu-almada/`](tools/trofeu-almada/README.md).
 

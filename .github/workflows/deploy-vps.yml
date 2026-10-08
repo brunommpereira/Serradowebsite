@@ -1,7 +1,9 @@
 name: Deploy VPS
 
-# Atualiza a VPS depois de o CI passar no main. Fica inativo até se configurar
-# a variável VPS_HOST e o segredo VPS_SSH_KEY (ver docs/DEPLOY-VPS.md, passo 6).
+# Depois de o CI passar no main: constrói o site e os serviços aqui no GitHub e envia
+# um único artefacto para a VPS. Na VPS, o comando «serrado deploy» faz uma cópia da BD,
+# corre as migrações, ativa a versão nova e volta à anterior se não responder.
+# Fica inativo até haver a variável VPS_HOST (ver docs/DEPLOY-VPS.md).
 on:
   workflow_run:
     workflows: [CI]
@@ -16,22 +18,83 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
 jobs:
-  deploy:
+  build:
+    name: Construir o artefacto
     if: vars.VPS_HOST != '' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
-    environment:
-      name: vps
-      url: https://${{ vars.SITE_DOMAIN || vars.VPS_HOST }}
     steps:
-      - name: Atualizar a VPS por SSH
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Site (modo API, mesmo endereço que a API)
+        run: |
+          node scripts/set-api-url.mjs /api/v1
+          npx ng build
+          SITE_URL="https://${{ vars.SITE_DOMAIN }}" node scripts/postbuild.mjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/package-lock.json
+      - name: Serviços (só dependências de produção)
+        working-directory: services
+        run: npm ci --omit=dev
+      - name: Artefacto
+        run: |
+          mkdir -p release/services/backend release/services/middleware
+          cp -r dist/serrado-fc/browser release/web
+          cp -r services/package.json services/package-lock.json services/node_modules services/shared services/db release/services/
+          cp -r services/backend/src release/services/backend/src
+          cp -r services/middleware/src release/services/middleware/src
+          rm -rf release/services/db/test
+          echo "$SHA" > release/REVISION
+          tar -czf release.tgz -C release .
+          ls -lh release.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: release.tgz
+          retention-days: 30
+
+  deploy:
+    name: Instalar na VPS
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://${{ vars.SITE_DOMAIN }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+      - name: Chave SSH (utilizador deploy, limitado ao serrado-ssh-gate)
         env:
           SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
-          HOST: ${{ vars.VPS_HOST }}
-          SSH_USER: ${{ vars.VPS_USER || 'deploy' }}
         run: |
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-          ssh -o StrictHostKeyChecking=yes "$SSH_USER@$HOST" 'sudo /opt/serrado/deploy/update.sh'
+      - name: Enviar e ativar
+        env:
+          HOST: ${{ vars.VPS_HOST }}
+        run: |
+          SUM=$(sha256sum release.tgz | cut -d' ' -f1)
+          ssh -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 "deploy@$HOST" "deploy $SHA $SUM" < release.tgz
+      - name: Verificar o site
+        if: vars.SITE_DOMAIN != ''
+        run: |
+          for _ in $(seq 10); do
+            curl -fsS "https://${{ vars.SITE_DOMAIN }}/api/health" && exit 0
+            sleep 6
+          done
+          exit 1

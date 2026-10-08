@@ -1,0 +1,7 @@
+[Unit]
+Description=Serrado FC — cópia de segurança da base de dados
+After=postgresql.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/serrado backup daily

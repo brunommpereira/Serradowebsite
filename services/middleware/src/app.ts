@@ -49,7 +49,7 @@ class ApiError extends Error {
  * agregação. Não acede à base de dados: fala com o backend.
  */
 export async function buildMiddleware(opts: { backend?: BackendClient; logger?: boolean } = {}) {
-  const app = Fastify({ logger: opts.logger ?? false, trustProxy: true, ajv: { customOptions: { removeAdditional: false, coerceTypes: true } } });
+  const app = Fastify({ logger: opts.logger ?? false, trustProxy: config.trustProxy, ajv: { customOptions: { removeAdditional: false, coerceTypes: true } } });
   app.decorate('backend', opts.backend ?? new BackendClient());
   app.decorate('cache', new TtlCache());
 
@@ -103,7 +103,7 @@ export async function buildMiddleware(opts: { backend?: BackendClient; logger?: 
     return reply.status(err.statusCode && err.statusCode < 500 ? err.statusCode : 500).send({ error: 'internal', message: 'Erro interno' });
   });
 
-  app.get('/api/health', { schema: { hide: true } }, async () => ({ ok: true }));
+  app.get('/api/health', { schema: { hide: true } }, async () => ({ ok: true, version: config.version }));
 
   await app.register(
     async (v1) => {

@@ -1,0 +1,58 @@
+name: Operações VPS
+
+# Manual (Actions → Operações VPS → Run workflow): estado, cópia de segurança agora ou voltar à versão anterior.
+# Todos os dias às 07:17 UTC verifica o servidor e falha (o GitHub envia email) se:
+#  - um serviço ou a API estiver em baixo;
+#  - a última cópia da BD tiver mais de 26 horas;
+#  - o disco estiver acima de 85%.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Operação
+        type: choice
+        options: [status, backup, rollback]
+        default: status
+  schedule:
+    - cron: '17 7 * * *'
+
+concurrency:
+  group: vps
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ops:
+    if: vars.VPS_HOST != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chave SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: ${{ inputs.action || 'status' }}
+        env:
+          HOST: ${{ vars.VPS_HOST }}
+          ACTION: ${{ inputs.action || 'status' }}
+        run: ssh -o StrictHostKeyChecking=yes "deploy@$HOST" "$ACTION" | tee out.txt
+      - name: Verificar
+        if: (inputs.action || 'status') == 'status'
+        run: |
+          get() { grep "^$1=" out.txt | cut -d= -f2; }
+          fail=0
+          for s in serrado-backend serrado-middleware caddy postgresql; do
+            [ "$(get $s)" = active ] || { echo "::error::Serviço $s: $(get $s)"; fail=1; }
+          done
+          [ "$(get api)" = ok ] || { echo '::error::A API não responde'; fail=1; }
+          b=$(get last_backup_hours)
+          if [ "$b" = never ] || [ "$b" -gt 26 ]; then echo "::error::Última cópia da BD: há ${b} horas"; fail=1; fi
+          o=$(get last_offsite_hours)
+          if [ "$o" = never ] || [ "$o" -gt 26 ]; then echo "::warning::Cópia externa: ${o} (configurar /etc/serrado/backup.env)"; fi
+          [ "$(get disk_used_pct)" -lt 85 ] || { echo "::error::Disco a $(get disk_used_pct)%"; fail=1; }
+          exit $fail

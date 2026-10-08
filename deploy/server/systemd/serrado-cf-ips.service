@@ -1,0 +1,8 @@
+[Unit]
+Description=Serrado FC — atualiza os IPs da Cloudflare (firewall e Caddy)
+After=network-online.target
+ConditionPathExists=/etc/serrado/cloudflare
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/serrado cf-ips

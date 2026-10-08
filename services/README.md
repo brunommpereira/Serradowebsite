@@ -50,6 +50,8 @@ Também se pode subir tudo com Docker: `docker compose up --build` na raiz (incl
 | `JWT_SECRET` | middleware | Segredo da sessão (32 caracteres ou mais) |
 | `BACKEND_URL` | middleware | Endereço interno do backend |
 | `CORS_ORIGINS` | middleware | Origens do site, por exemplo `https://www.serradofc.pt` |
+| `HOST` | backend, middleware | Endereço onde escutam (`0.0.0.0` em Docker; `127.0.0.1` no servidor) |
+| `TRUST_PROXY` | middleware | Proxies de confiança para o IP do cliente (`loopback` no servidor, atrás do Caddy) |
 | `NODE_ENV=production` | todos | Torna obrigatórias as variáveis acima e ativa os cookies `Secure` |
 
 ## Importar dados reais
@@ -61,9 +63,14 @@ Também se pode subir tudo com Docker: `docker compose up --build` na raiz (incl
 
 ## Pôr em produção
 
-**Numa VPS** (a opção escolhida para começar): [`docs/DEPLOY-VPS.md`](../docs/DEPLOY-VPS.md). Um só comando instala tudo, com `deploy/docker-compose.prod.yml`: Caddy com HTTPS, site e API no mesmo endereço, backend e PostgreSQL só na rede interna, e cópias de segurança diárias.
+**Numa VPS** (a opção escolhida para começar): [`docs/DEPLOY-VPS.md`](../docs/DEPLOY-VPS.md).
 
-Criar a primeira conta de administração (`npm run db:create-admin -- email "Nome"`) e carregar o conteúdo inicial do site, sem dados pessoais (`npm run db:content`).
+- **Instalação nativa, sem Docker** (`deploy/server/`): PostgreSQL 16 só local, serviços systemd, Caddy e Cloudflare.
+- **Cópias de segurança:** pg_dump e restic cifrado.
+- **Deploy:** orquestrado pelo GitHub Actions, com verificação da versão e rollback automático.
+- **Docker:** o `docker-compose.yml` fica só para desenvolvimento.
+
+Criar a primeira conta de administração (`npm run db:create-admin -- email "Nome"`; no servidor: `sudo serrado admin …`) e carregar o conteúdo inicial do site, sem dados pessoais (`npm run db:content`).
 
 Outras opções:
 

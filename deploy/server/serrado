@@ -1,0 +1,202 @@
+#!/usr/bin/env bash
+# Serrado FC — comando de operação do servidor (instalado em /usr/local/sbin/serrado pelo bootstrap.sh).
+#
+#   serrado status                    estado dos serviços, versão e cópias de segurança
+#   serrado deploy <sha> <sha256>     instala uma versão (artefacto .tar.gz no stdin), migra a BD e troca
+#   serrado rollback                  volta à versão anterior
+#   serrado backup                    cópia da base de dados agora (local + externa, se configurada)
+#   serrado restore <ficheiro.dump>   repõe uma cópia (pede confirmação)
+#   serrado offsite-latest <pasta>    descarrega a cópia externa mais recente (restic)
+#   serrado admin <email> "<nome>"    cria/repõe uma conta de administração
+#   serrado content                   carrega o conteúdo inicial do site (só com o CMS vazio)
+#   serrado logs [n]                  últimas linhas dos registos
+#   serrado cf-ips                    atualiza a firewall e o Caddy com os IPs da Cloudflare
+#
+# O GitHub Actions só pode correr deploy, rollback, backup e status (ver serrado-ssh-gate).
+set -euo pipefail
+
+ROOT=${SERRADO_ROOT:-/opt/serrado}
+ETC=${SERRADO_ETC:-/etc/serrado}
+BACKUP_DIR=${SERRADO_BACKUP_DIR:-/var/backups/serrado}
+SYSTEMCTL=${SERRADO_SYSTEMCTL:-systemctl}
+APP_USER=${SERRADO_USER:-serrado}
+DB_NAME=${SERRADO_DB:-serrado}
+KEEP_RELEASES=5
+KEEP_LOCAL_DAYS=14
+SERVICES=(serrado-backend serrado-middleware)
+
+die() { echo "✘ $*" >&2; exit 1; }
+info() { echo "→ $*"; }
+[ "$(id -u)" = 0 ] || [ -n "${SERRADO_TEST:-}" ] || die 'Corre com sudo.'
+
+# Corre como o utilizador da aplicação, com as variáveis de /etc/serrado/serrado.env
+as_app() { runuser -u "$APP_USER" -- bash -c 'set -a; . "$0"; set +a; exec "$@"' "$ETC/serrado.env" "$@"; }
+as_postgres() { runuser -u postgres -- "$@"; }
+current_release() { if [ -L "$ROOT/current" ]; then basename "$(readlink "$ROOT/current")"; else echo none; fi; }
+
+# A API responde e é a versão esperada (e não um processo antigo que ainda esteja de pé)
+health() {
+  local want=${1:-} port=${MIDDLEWARE_PORT:-4000}
+  for _ in $(seq 30); do
+    if curl -fsS "http://127.0.0.1:$port/api/health" 2>/dev/null | grep -q "\"version\":\"${want}"; then return 0; fi
+    sleep 2
+  done
+  return 1
+}
+
+switch_to() {
+  local target=$1
+  ln -sfn "$ROOT/releases/$target" "$ROOT/current.new"
+  mv -Tf "$ROOT/current.new" "$ROOT/current"
+  for s in "${SERVICES[@]}"; do $SYSTEMCTL restart "$s"; done
+}
+
+cmd_deploy() {
+  local sha=${1:-} sum=${2:-}
+  [[ $sha =~ ^[0-9a-f]{7,40}$ ]] || die 'Versão (sha) inválida.'
+  [[ $sum =~ ^[0-9a-f]{64}$ ]] || die 'Checksum sha256 inválido.'
+  mkdir -p "$ROOT/releases"
+  local tmp="$ROOT/releases/.incoming-$sha.tgz" dir="$ROOT/releases/$sha"
+  info "A receber a versão $sha"
+  cat > "$tmp"
+  echo "$sum  $tmp" | sha256sum -c --quiet - || { rm -f "$tmp"; die 'O artefacto chegou corrompido (sha256 diferente).'; }
+  rm -rf "$dir.tmp" && mkdir -p "$dir.tmp"
+  tar -xzf "$tmp" -C "$dir.tmp" --no-same-owner --no-same-permissions
+  rm -f "$tmp"
+  [ -f "$dir.tmp/services/package.json" ] && [ -f "$dir.tmp/web/index.html" ] || { rm -rf "$dir.tmp"; die 'Artefacto incompleto.'; }
+  echo "$sha" > "$dir.tmp/REVISION"
+  chmod -R u=rwX,go=rX "$dir.tmp"
+  rm -rf "$dir" && mv "$dir.tmp" "$dir"
+
+  local previous; previous=$(current_release)
+  if [ "$previous" = "$sha" ]; then info 'Esta versão já está ativa: só reinicio.'; fi
+
+  # Cópia antes de migrar (se a BD já tiver dados)
+  if as_postgres psql -d "$DB_NAME" -tAc "select to_regclass('public.schema_migrations')" 2>/dev/null | grep -q schema_migrations; then
+    cmd_backup pre-deploy
+  fi
+  info 'Migrações da base de dados'
+  (cd "$dir/services" && as_app node db/migrate.ts)
+
+  info "A ativar $sha (anterior: $previous)"
+  switch_to "$sha"
+  if ! health "$sha"; then
+    echo "✘ A nova versão não respondeu. A voltar a $previous." >&2
+    if [ "$previous" != none ] && [ "$previous" != "$sha" ]; then switch_to "$previous"; fi
+    journalctl -u serrado-middleware -u serrado-backend -n 40 --no-pager 2>/dev/null || true
+    exit 1
+  fi
+  [ "$previous" != none ] && [ "$previous" != "$sha" ] && echo "$previous" > "$ROOT/previous"
+  # Limpeza: mantém as últimas versões (nunca a atual nem a anterior)
+  local keep_prev; keep_prev=$(cat "$ROOT/previous" 2>/dev/null || true)
+  find "$ROOT/releases" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -printf '%T@ %f\n' | sort -rn | cut -d' ' -f2 | tail -n +$((KEEP_RELEASES + 1)) | while read -r old; do
+    [ "$old" = "$sha" ] || [ "$old" = "$keep_prev" ] || rm -rf "${ROOT:?}/releases/$old"
+  done
+  echo "✔ Versão $sha ativa"
+}
+
+cmd_rollback() {
+  local prev; prev=$(cat "$ROOT/previous" 2>/dev/null || true)
+  [ -n "$prev" ] && [ -d "$ROOT/releases/$prev" ] || die 'Não há versão anterior guardada.'
+  local cur; cur=$(current_release)
+  info "A voltar de $cur para $prev (as migrações da BD não são revertidas)"
+  switch_to "$prev"
+  health "$prev" || die 'A versão anterior também não respondeu. Ver: serrado logs'
+  echo "$cur" > "$ROOT/previous"
+  echo "✔ Versão $prev ativa"
+}
+
+cmd_backup() {
+  local tag=${1:-daily}
+  mkdir -p "$BACKUP_DIR" && chmod 700 "$BACKUP_DIR"
+  local file
+  file="$BACKUP_DIR/serrado-$(date +%Y%m%d-%H%M%S)-$tag.dump"
+  info "Cópia da base de dados ($tag)"
+  (umask 077 && as_postgres pg_dump -Fc -d "$DB_NAME" > "$file.tmp")
+  mv "$file.tmp" "$file"
+  find "$BACKUP_DIR" -name 'serrado-*.dump' -mtime +"$KEEP_LOCAL_DAYS" -delete
+  date +%s > "$BACKUP_DIR/.last-local"
+  echo "✔ $file ($(du -h "$file" | cut -f1))"
+
+  # Cópia externa cifrada (restic → Cloudflare R2, OVH Object Storage, Backblaze…)
+  if [ -f "$ETC/backup.env" ] && grep -q '^RESTIC_REPOSITORY=.\+' "$ETC/backup.env"; then
+    set -a; . "$ETC/backup.env"; set +a
+    restic cat config >/dev/null 2>&1 || restic init
+    restic backup --quiet --tag "$tag" --host serrado "$file"
+    restic forget --quiet --host serrado --keep-daily 14 --keep-weekly 8 --keep-monthly 12 --prune
+    date +%s > "$BACKUP_DIR/.last-offsite"
+    echo '✔ Cópia externa (cifrada) enviada'
+  else
+    echo '! Sem cópia externa configurada (ver /etc/serrado/backup.env)'
+  fi
+}
+
+cmd_restore() {
+  local file=${1:-}
+  [ -f "$file" ] || die "Ficheiro não encontrado: $file"
+  if [ -z "${SERRADO_YES:-}" ]; then
+    read -r -p "Repor $file por cima da base de dados atual? Escreve REPOR: " ok
+    [ "$ok" = REPOR ] || die 'Cancelado.'
+  fi
+  cmd_backup pre-restore
+  for s in "${SERVICES[@]}"; do $SYSTEMCTL stop "$s"; done
+  as_postgres pg_restore --clean --if-exists --no-owner --role="$APP_USER" -d "$DB_NAME" < "$file"
+  for s in "${SERVICES[@]}"; do $SYSTEMCTL start "$s"; done
+  health "$(current_release)" && echo '✔ Reposto'
+}
+
+cmd_offsite_latest() {
+  local out=${1:-/root/serrado-offsite}
+  set -a; . "$ETC/backup.env"; set +a
+  mkdir -p "$out" && chmod 700 "$out"
+  restic restore latest --host serrado --target "$out"
+  find "$out" -name '*.dump' | sort | tail -1
+}
+
+cmd_status() {
+  local now; now=$(date +%s)
+  age_h() { [ -f "$1" ] && echo $(( (now - $(cat "$1")) / 3600 )) || echo never; }
+  echo "release=$(current_release)"
+  echo "previous=$(cat "$ROOT/previous" 2>/dev/null || echo none)"
+  for s in "${SERVICES[@]}" caddy postgresql; do echo "$s=$($SYSTEMCTL is-active "$s" 2>/dev/null || true)"; done
+  echo "api=$(curl -fsS -o /dev/null -w ok "http://127.0.0.1:${MIDDLEWARE_PORT:-4000}/api/health" 2>/dev/null || echo down)"
+  echo "last_backup_hours=$(age_h "$BACKUP_DIR/.last-local")"
+  echo "last_offsite_hours=$(age_h "$BACKUP_DIR/.last-offsite")"
+  echo "disk_used_pct=$(df --output=pcent / | tail -1 | tr -dc 0-9)"
+  echo "tls_mode=$([ -f "$ETC/cloudflare" ] && echo cloudflare || echo letsencrypt)"
+}
+
+cmd_cf_ips() {
+  [ -f "$ETC/cloudflare" ] || die 'Só no modo Cloudflare (bootstrap.sh --cloudflare).'
+  local v4 v6 all
+  v4=$(curl -fsS https://www.cloudflare.com/ips-v4) && v6=$(curl -fsS https://www.cloudflare.com/ips-v6) || die 'Não consegui obter os IPs da Cloudflare.'
+  all=$(printf '%s\n%s\n' "$v4" "$v6" | grep -E '^[0-9a-fA-F:.]+/[0-9]+$')
+  [ "$(echo "$all" | wc -l)" -ge 10 ] || die 'Lista de IPs da Cloudflare inesperada.'
+  # Caddy: o IP real do visitante vem do cabeçalho Cf-Connecting-IP, mas só destes endereços
+  echo "trusted_proxies static $(echo "$all" | tr '\n' ' ')" > /etc/caddy/cloudflare-ips.caddy
+  # Firewall: 80/443 só a partir da Cloudflare (as regras antigas são substituídas)
+  local n
+  while n=$(ufw status numbered | grep -E 'cloudflare$' | head -1 | sed -E 's/^\[ *([0-9]+)\].*/\1/' || true); [ -n "$n" ]; do
+    ufw --force delete "$n" >/dev/null
+  done
+  while read -r net; do
+    ufw allow proto tcp from "$net" to any port 80,443 comment cloudflare >/dev/null
+    ufw allow proto udp from "$net" to any port 443 comment cloudflare >/dev/null
+  done <<< "$all"
+  $SYSTEMCTL reload caddy 2>/dev/null || true
+  echo "✔ $(echo "$all" | wc -l) redes da Cloudflare autorizadas nas portas 80/443"
+}
+
+case "${1:-}" in
+  deploy) shift; cmd_deploy "$@" ;;
+  rollback) cmd_rollback ;;
+  backup) shift; cmd_backup "${1:-daily}" ;;
+  restore) shift; cmd_restore "$@" ;;
+  offsite-latest) shift; cmd_offsite_latest "$@" ;;
+  status) cmd_status ;;
+  admin) shift; [ $# -eq 2 ] || die 'Uso: serrado admin <email> "<nome>"'; (cd "$ROOT/current/services" && as_app node db/create-admin.ts "$1" "$2") ;;
+  content) (cd "$ROOT/current/services" && as_app node db/seed/content.ts) ;;
+  logs) journalctl -u serrado-middleware -u serrado-backend -u caddy -n "${2:-100}" --no-pager ;;
+  cf-ips) cmd_cf_ips ;;
+  *) sed -n '2,15p' "$0"; exit 1 ;;
+esac

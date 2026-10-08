@@ -32,7 +32,7 @@ Três camadas com responsabilidades separadas, e uma base de dados.
 | Opção | Notas |
 |---|---|
 | Postgres gerido (Supabase, Neon, Azure Database for PostgreSQL, AWS RDS) | Recomendado: backups automáticos e TLS. O plano gratuito chega para começar. |
-| Servidor do clube / VPS com Docker | `docker compose up` (ver `docker-compose.yml`). Os backups ficam a cargo do clube. |
+| VPS (OVHcloud, Hostinger…) | PostgreSQL 16 nativo e só local, com cópias diárias e cópia externa cifrada (restic). Ver [`DEPLOY-VPS.md`](DEPLOY-VPS.md). **É a opção escolhida.** |
 
 Tabelas principais (ver `services/db/migrations`):
 

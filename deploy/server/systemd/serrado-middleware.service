@@ -1,0 +1,36 @@
+[Unit]
+Description=Serrado FC — middleware (API pública /api/v1, 127.0.0.1:4000)
+After=network-online.target postgresql.service serrado-backend.service
+Wants=postgresql.service
+# Só arranca depois do primeiro deploy
+ConditionPathExists=/opt/serrado/current/services/package.json
+
+[Service]
+User=serrado
+Group=serrado
+EnvironmentFile=/etc/serrado/serrado.env
+Environment=MIDDLEWARE_PORT=4000
+WorkingDirectory=/opt/serrado/current/services
+ExecStart=/usr/bin/node middleware/src/server.ts
+Restart=on-failure
+RestartSec=3
+MemoryMax=700M
+# Isolamento: sem escrita no disco, sem privilégios, só rede IP e o socket do PostgreSQL
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

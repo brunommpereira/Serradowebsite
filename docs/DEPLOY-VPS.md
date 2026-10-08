@@ -1,165 +1,188 @@
-# Pôr o Serrado FC numa VPS (Hostinger KVM 1)
+# Pôr o Serrado FC numa VPS (OVHcloud ou Hostinger) com Cloudflare e GitHub Actions
 
-Guia para instalar o site, o backoffice e a base de dados numa VPS. Foi escrito para a Hostinger KVM 1, mas serve para qualquer VPS com Ubuntu.
+Instalação nativa, sem Docker: PostgreSQL, cópias de segurança, Node.js e Caddy correm diretamente no Ubuntu. O GitHub Actions faz o resto: constrói, instala, verifica e volta atrás se for preciso.
 
 ```
-Internet ──HTTPS──► Caddy (site + certificado)
-                      ├─ /        → site Angular
-                      └─ /api/*   → middleware ──► backend ──► PostgreSQL
-                                    (rede interna do Docker; só o Caddy tem portas abertas)
+Visitante ──HTTPS──► Cloudflare (DNS, proteção, cache)
+                          │  só os IPs da Cloudflare passam na firewall
+                          ▼
+VPS Ubuntu 24.04 ── Caddy :443 (certificado de origem da Cloudflare)
+                     ├─ /        → site (ficheiros estáticos)
+                     └─ /api/*   → middleware 127.0.0.1:4000 → backend 127.0.0.1:4100
+                                                                      │ socket local
+                                                               PostgreSQL 16 (sem porta de rede)
+                     cópias: pg_dump diário (14 dias) + restic cifrado → Cloudflare R2
+
+GitHub Actions ──SSH (utilizador «deploy», só 4 comandos)──► serrado deploy | rollback | backup | status
 ```
 
-- **Mesmo endereço para tudo:** o site e a API ficam no mesmo endereço, por isso o login funciona em todos os browsers, incluindo Safari e iPhone.
-- **Firewall:** só as portas 22 (SSH), 80 e 443 ficam abertas.
-- **Manutenção automática:** HTTPS, atualizações de segurança e cópias da base de dados são automáticos.
-- **GitHub Pages:** o site no GitHub Pages continua igual, em modo demonstração.
+### Portas
 
-## 1. Comprar a VPS
-
-Em hostinger.pt, escolher **VPS → KVM 1**.
-
-| Opção | Escolher |
+| Porta | Quem pode entrar |
 |---|---|
-| Período | 1 mês para experimentar. É mais caro por mês do que 12 ou 24 meses, mas não obriga a ficar |
-| Localização do servidor | **Europa** (por exemplo França, Países Baixos ou Lituânia). Obrigatório por causa do RGPD |
-| Sistema operativo | **Ubuntu 24.04** (simples ou “with Docker”, os dois servem) |
-| Painel de controlo | Nenhum |
-| Password de root | Uma password forte, guardada num gestor de passwords |
-| Chave SSH | Opcional, mas recomendada (passo 7) |
+| 22 (SSH) | Toda a gente, mas só com chave. Tem limite de tentativas e fail2ban |
+| 80 / 443 | **Só a Cloudflare** (a lista de IPs é atualizada todas as semanas). Sem Cloudflare: toda a gente |
+| 4000, 4100 | Ninguém de fora: só escutam em 127.0.0.1 |
+| 5432 | Ninguém de fora: o PostgreSQL só aceita ligações locais |
 
-Quando a VPS estiver pronta, anota o **IP** que aparece no hPanel (por exemplo `82.25.1.2`).
+## 1. Escolher a VPS
 
-## 2. Entrar na VPS
+| | OVHcloud VPS-1 (recomendada) | Hostinger KVM 1 |
+|---|---|---|
+| Onde | ovhcloud.com/pt → VPS → VPS-1 | hostinger.pt → VPS → KVM 1 |
+| Localização | **França ou Alemanha** (UE, RGPD) | **Europa** |
+| Sistema | **Ubuntu 24.04** | **Ubuntu 24.04** (sem painel) |
+| Utilizador | `ubuntu` (com sudo) | `root` |
+| Chave SSH | Junta a tua chave pública ao encomendar | Junta a tua chave pública ao criar |
 
-No computador, abrir um terminal (PowerShell no Windows, Terminal no Mac) e correr:
+Para criar uma chave no computador: `ssh-keygen -t ed25519`. A chave pública é o ficheiro `~/.ssh/id_ed25519.pub`.
+
+## 2. Domínio e Cloudflare
+
+Sem domínio também funciona para testar, com um endereço `<IP>.sslip.io`, mas sem Cloudflare. Nesse caso salta para o passo 3.
+
+1. Na Cloudflare: **Add a site**, plano **Free**. Na loja onde compraste o domínio, troca os nameservers pelos dois que a Cloudflare indicar.
+2. **DNS:**
+   - `A  www  → IP da VPS`, com a nuvem **laranja** (proxied);
+   - opcionalmente, `A  @  → IP da VPS`, também laranja, com uma *Redirect Rule* de `serradofc.pt` para `https://www.serradofc.pt`.
+3. **SSL/TLS → Overview:** modo **Full (strict)**.
+4. **SSL/TLS → Origin Server → Create Certificate:**
+   - escolhe RSA e mantém os nomes `serradofc.pt` e `*.serradofc.pt`, com 15 anos;
+   - guarda o **certificado** e a **chave privada**, que vais precisar no passo 3.
+5. **SSL/TLS → Edge Certificates:** liga *Always Use HTTPS* e define *Minimum TLS* 1.2.
+6. **Security → WAF → Rate limiting rules** (o plano grátis tem 1 regra): `URI Path equals /api/v1/auth/login` → bloquear durante 10 s ao fim de 10 pedidos em 10 s por IP.
+
+Não é preciso configurar a cache:
+- as imagens (`/api/v1/media/…`) e os ficheiros do site já dizem ao browser e à Cloudflare quanto tempo guardar;
+- as respostas JSON da API não ficam na cache da Cloudflare.
+
+## 3. Preparar o servidor (uma vez)
+
+No computador, cria a chave que o GitHub Actions vai usar:
 
 ```bash
-ssh root@82.25.1.2
+ssh-keygen -t ed25519 -f serrado-deploy -N "" -C github-actions
 ```
 
-Alternativa: no hPanel, **VPS → Terminal do browser**.
-
-## 3. Instalar (um único comando, demora 10 a 15 minutos)
+Na VPS (`ssh ubuntu@IP` na OVH, `ssh root@IP` na Hostinger):
 
 ```bash
-git clone https://github.com/brunommpereira/Serradowebsite.git /opt/serrado
-bash /opt/serrado/deploy/install.sh --admin-email direcao@serradofc.pt --admin-name "Direção" --content
+sudo apt-get update && sudo apt-get install -y git
+git clone --depth 1 https://github.com/brunommpereira/Serradowebsite.git /tmp/serrado
+
+# Só com Cloudflare: colar o certificado e a chave de origem (passo 2.4)
+sudo mkdir -p /etc/serrado/tls
+sudo nano /etc/serrado/tls/origin.pem     # colar o certificado
+sudo nano /etc/serrado/tls/origin.key     # colar a chave privada
+
+sudo bash /tmp/serrado/deploy/server/bootstrap.sh \
+  --domain www.serradofc.pt --cloudflare \
+  --deploy-key "CONTEÚDO DE serrado-deploy.pub"
 ```
 
-O script faz o seguinte:
-1. Atualiza o sistema e ativa as atualizações de segurança automáticas.
-2. Instala o Docker, a firewall (ufw) e o fail2ban.
-3. Gera os segredos (password da base de dados, tokens) em `/opt/serrado/deploy/.env`. Este ficheiro nunca vai para o GitHub.
-4. Constrói e arranca tudo, e aplica as migrações da base de dados.
-5. Com `--content`, carrega o conteúdo inicial do site (notícias, eventos e parceiros de exemplo), que depois se edita no backoffice.
-6. Cria a conta de administração e **mostra a password uma única vez**. Guarda-a.
-7. Agenda uma cópia da base de dados todos os dias às 03:30.
+Sem domínio, basta `sudo bash /tmp/serrado/deploy/server/bootstrap.sh --deploy-key "…"`.
 
-No fim mostra o endereço, por exemplo **https://82-25-1-2.sslip.io**. O `sslip.io` é um serviço gratuito que transforma o IP num nome com certificado HTTPS. Serve para testar enquanto não houver domínio.
+O bootstrap demora cerca de 5 minutos e faz o seguinte:
+1. **Pacotes:** atualiza o sistema e instala o PostgreSQL 16, o Node.js 22, o Caddy, o restic, o ufw e o fail2ban, com atualizações de segurança automáticas.
+2. **Base de dados:** cria a base `serrado`, só local. A aplicação liga-se pelo socket como utilizador do sistema `serrado`, sem password guardada.
+3. **Segredos:** gera-os em `/etc/serrado/serrado.env`, que fica só no servidor.
+4. **Serviços:** instala os do systemd, com isolamento (sem escrita no disco e sem privilégios), e o comando `serrado`.
+5. **Firewall:** configura-a como na tabela das portas acima.
+6. **Utilizador `deploy`:** cria-o para o GitHub Actions. Só pode correr `status`, `backup`, `rollback` e `deploy`.
+7. **SSH:** desliga o login por password, se já entras com chave.
+8. **No fim:** mostra os valores a pôr no GitHub e a **password das cópias externas**. Guarda-a num gestor de passwords.
 
-## 4. Experimentar
+## 4. Ligar o GitHub Actions
 
-- **Site:** `https://<endereço>/`
-- **Backoffice:** `https://<endereço>/entrar` → «Equipa do clube? Entrar no backoffice», com o email e a password do passo 3.
-- **Criar as contas da equipa:** em **Backoffice → Utilizadores**, atribuir os papéis (editor, secretaria, treinador).
+Em **GitHub → Settings → Secrets and variables → Actions**:
 
-### O que já funciona com dados reais e o que falta
+| Tipo | Nome | Valor |
+|---|---|---|
+| Variable | `VPS_HOST` | IP da VPS |
+| Variable | `SITE_DOMAIN` | `www.serradofc.pt` (ou o endereço sslip.io) |
+| Secret | `VPS_SSH_KEY` | Conteúdo do ficheiro `serrado-deploy` (chave **privada**) |
+| Secret | `VPS_KNOWN_HOSTS` | A linha `IP ssh-ed25519 …` que o bootstrap mostrou |
 
-| | Estado |
+A partir daqui, **cada merge no `main`** com o CI verde corre o workflow **Deploy VPS**:
+1. **Construção:** o site e os serviços são construídos no GitHub (a VPS não compila nada) e seguem para a VPS num único artefacto, com verificação sha256.
+2. **Na VPS:** é feita uma cópia da BD, correm as migrações, a versão nova é ativada e confirma-se que **é a versão nova** que responde.
+3. **Se não responder:** volta sozinha à versão anterior e o workflow falha.
+
+O primeiro deploy pode ser lançado à mão: **Actions → Deploy VPS → Run workflow**.
+
+### Operações pelo GitHub (Actions → Operações VPS → Run workflow)
+- `status`: serviços, versão ativa, idade das cópias, disco.
+- `backup`: cópia da base de dados agora.
+- `rollback`: volta à versão anterior. As migrações da BD não são revertidas.
+
+Também **todos os dias às 07:17 UTC** o workflow verifica o servidor e **falha (o GitHub envia email)** se:
+- algum serviço estiver em baixo;
+- a última cópia tiver mais de 26 horas;
+- o disco estiver acima de 85%.
+
+## 5. Primeira conta e conteúdo
+
+Depois do primeiro deploy, na VPS:
+
+```bash
+sudo serrado admin direcao@serradofc.pt "Direção"    # mostra a password uma única vez
+sudo serrado content                                  # opcional: notícias, eventos e parceiros iniciais
+```
+
+As restantes contas da equipa criam-se no backoffice: **Utilizadores**.
+
+## 6. Cópias de segurança
+
+| | Onde | Quando | Quanto tempo |
+|---|---|---|---|
+| Local | `/var/backups/serrado` (pg_dump, inclui as imagens do CMS) | Todos os dias às 03:30, antes de cada deploy e antes de cada restauro | 14 dias |
+| Externa, cifrada | restic → Cloudflare R2 (ou OVH Object Storage, Backblaze…) | Logo a seguir à cópia local | 14 diárias, 8 semanais, 12 mensais |
+| OVH | Cópia automática da VPS, incluída no plano, no mesmo datacenter | Diária | 7 dias |
+
+### Ativar a cópia externa (Cloudflare R2, grátis até 10 GB)
+
+1. **Na Cloudflare:** em **R2**, cria o *bucket* `serrado-backups`. Depois, em **Manage R2 API Tokens**, cria um token com *Object Read & Write* só para esse bucket.
+2. **Na VPS:** `sudo nano /etc/serrado/backup.env` e preenche:
+   ```
+   RESTIC_REPOSITORY=s3:https://<ID-DA-CONTA>.r2.cloudflarestorage.com/serrado-backups
+   AWS_ACCESS_KEY_ID=<access key do token>
+   AWS_SECRET_ACCESS_KEY=<secret do token>
+   ```
+   A `RESTIC_PASSWORD` já lá está. É ela que cifra as cópias: **sem ela não se recuperam**.
+3. **Testar:** `sudo serrado backup`. Deve aparecer «Cópia externa (cifrada) enviada».
+
+### Repor
+
+```bash
+ls -lh /var/backups/serrado                                  # cópias locais
+sudo serrado restore /var/backups/serrado/serrado-AAAAMMDD-HHMMSS-daily.dump
+sudo serrado offsite-latest /root/recuperar                  # descarrega a última cópia externa
+```
+
+## Comandos no servidor
+
+| Comando | O quê |
 |---|---|
-| Site público (notícias, eventos, parceiros, páginas) | ✅ Vem do CMS e da base de dados |
-| Backoffice: CMS, validações, importação de resultados, utilizadores, auditoria | ✅ Real |
-| Atletas na base de dados (importação, ficha, permissões por papel) | ✅ Real (ver «Importar atletas») |
-| **Área de Sócio e Área de Atletas** (o que sócios e encarregados veem) | ⚠️ Ainda mostram dados de demonstração. Ligá-las à API é a próxima fase |
+| `sudo serrado status` | Estado geral |
+| `sudo serrado logs` | Últimos registos (middleware, backend, Caddy) |
+| `sudo serrado backup` | Cópia agora |
+| `sudo serrado rollback` | Versão anterior |
+| `sudo serrado admin <email> "<nome>"` | Criar uma conta de administração ou repor a password |
+| `sudo serrado cf-ips` | Atualizar já os IPs da Cloudflare na firewall |
 
-## 5. Domínio próprio (quando houver)
+Para mudar o domínio ou passar a usar a Cloudflare, volta a correr o `bootstrap.sh` com as novas opções. Os dados e os segredos mantêm-se.
 
-1. Comprar o domínio, por exemplo `serradofc.pt`.
-2. No DNS do domínio, criar um registo **A**: `www` → IP da VPS. Opcionalmente, outro **A** para `@` com o mesmo IP.
-3. Na VPS:
-   ```bash
-   bash /opt/serrado/deploy/install.sh --domain www.serradofc.pt
-   ```
-   O certificado HTTPS é emitido automaticamente em menos de um minuto.
+## Segurança
 
-## 6. Deploy automático a cada merge (opcional)
-
-Assim, cada merge no `main` com o CI verde atualiza a VPS sozinho.
-
-1. No computador, criar uma chave só para isto:
-   ```bash
-   ssh-keygen -t ed25519 -f serrado-deploy -N "" -C "github-actions"
-   ```
-2. Na VPS, criar o utilizador `deploy`, que só pode correr o `update.sh`:
-   ```bash
-   bash /opt/serrado/deploy/install.sh --deploy-key "CONTEÚDO DE serrado-deploy.pub"
-   ssh-keyscan -t ed25519 localhost | sed "s/^localhost/82.25.1.2/"   # copia o resultado
-   ```
-3. No GitHub, em **Settings → Secrets and variables → Actions**:
-   - **Variables:**
-     - `VPS_HOST` = IP da VPS
-     - `SITE_DOMAIN` = endereço do site (opcional)
-   - **Secrets:**
-     - `VPS_SSH_KEY` = conteúdo do ficheiro `serrado-deploy` (a chave privada)
-     - `VPS_KNOWN_HOSTS` = a linha copiada no ponto 2
-
-Sem `VPS_HOST` configurado, o workflow **Deploy VPS** fica inativo.
-
-## 7. Segurança recomendada
-
-Depois de entrares com uma chave SSH, desliga o login por password:
-
-```bash
-sed -i 's/^#\?PasswordAuthentication .*/PasswordAuthentication no/' /etc/ssh/sshd_config && systemctl restart ssh
-```
-
-Cuidados a ter:
-- Não partilhar o `/opt/serrado/deploy/.env`.
-- Não abrir mais portas na firewall.
-- Usar uma password forte e única na conta de administração.
-
-## Operação do dia a dia
-
-Todos os comandos correm na VPS, como root. Para encurtar:
-
-```bash
-alias dc='docker compose -f /opt/serrado/deploy/docker-compose.prod.yml --env-file /opt/serrado/deploy/.env'
-```
-
-| Tarefa | Comando |
-|---|---|
-| Estado dos serviços | `dc ps` |
-| Ver erros | `dc logs --tail 100 middleware backend` |
-| Atualizar para o último `main` | `/opt/serrado/deploy/update.sh` |
-| Reiniciar | `dc restart` |
-| Nova conta de administração, ou repor a password | `dc run --rm migrate node db/create-admin.ts email@serradofc.pt "Nome"` |
-| Cópia de segurança agora | `/opt/serrado/deploy/backup.sh` |
-| Listar cópias | `ls -lh /var/backups/serrado` |
-
-### Repor uma cópia de segurança
-
-```bash
-dc exec -T db pg_restore -U serrado -d serrado --clean --if-exists < /var/backups/serrado/serrado-AAAAMMDD-HHMM.dump
-```
-
-As cópias incluem as imagens do CMS, que estão na base de dados. As cópias diárias ficam **dentro** da VPS, guardadas durante 14 dias. Ativa também os backups da Hostinger (snapshots), que ficam fora da VPS. De vez em quando descarrega uma cópia para o computador do clube:
-
-```bash
-scp root@82.25.1.2:/var/backups/serrado/serrado-*.dump .
-```
-
-### Importar atletas
-
-Usar o `athletes.csv` gerado por `tools/trofeu-almada/consolidate.py --import-dir`:
-
-```bash
-dc exec -T db psql -U serrado -d serrado -c "\copy athletes (code,name,gender,birth_date,id_number,tax_number,email,phone,address,sport_slug,category,shirt_size) from stdin csv header" < athletes.csv
-```
-
-Os resultados do Troféu de Almada importam-se no backoffice: **Resultados → Importar**.
+- **Separação de serviços:** a aplicação corre como utilizador `serrado`, sem privilégios e com o disco só de leitura.
+- **Rede:** o PostgreSQL e as APIs não têm portas de rede abertas.
+- **Utilizador `deploy`:** a chave do GitHub não dá acesso a uma shell. Só corre os 4 comandos do `serrado-ssh-gate`.
+- **IP dos visitantes:** com Cloudflare, o IP real (para o limite de tentativas de login) só é aceite quando o pedido vem dos IPs da Cloudflare.
+- **Camada extra:** na OVH também podes ativar o *Network Firewall* no painel, com as mesmas regras.
+- **Fechar também a porta 22:** é possível com um *Cloudflare Tunnel*, mas obriga o GitHub Actions a entrar através do Cloudflare Access. Fica como melhoria futura.
 
 ## RGPD
 
-- **Período de experiência:** se o clube decidir não continuar, **apaga a VPS** no hPanel. Isso destrói o disco e os dados.
-- **Dados reais:** só importar dados reais de atletas e sócios com a VPS num datacenter da UE.
-- **Contrato com a Hostinger:** guardar o contrato de tratamento de dados (DPA) da Hostinger. Está nos termos do serviço.
+- **Dados na UE:** escolhe um datacenter na UE. A OVH e a Hostinger têm contrato de tratamento de dados (DPA).
+- **Cópias externas:** são cifradas antes de sair do servidor. A Cloudflare só guarda dados ilegíveis.
+- **Fim da experiência:** se o clube desistir, apaga a VPS no painel e o bucket R2.

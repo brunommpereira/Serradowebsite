@@ -51,4 +51,3 @@ tools/trofeu-almada/out/
 tools/trofeu-almada/node_modules/
 *.xlsx
 services/node_modules/
-deploy/.env
