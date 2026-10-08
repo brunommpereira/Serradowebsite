@@ -102,7 +102,7 @@ Ver [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) e [`services/README.md`](serv
 - **Instalação nativa, sem Docker:** PostgreSQL, Python e Caddy no Ubuntu.
 - **Cloudflare:** à frente do site, e as portas 80/443 só aceitam a Cloudflare.
 - **Cópias de segurança:** diárias, com cópia externa cifrada.
-- **GitHub Actions:** faz o deploy, o rollback e a verificação diária. Ver [`docs/DEPLOY-VPS.md`](docs/DEPLOY-VPS.md).
+- **GitHub Actions:** faz o deploy, o rollback e a verificação diária. Ver [`docs/DEPLOY-VPS.md`](docs/DEPLOY-VPS.md) e a lista de verificação [`docs/CHECKLIST-VPS.md`](docs/CHECKLIST-VPS.md).
 
 Ferramentas de dados: [`tools/trofeu-almada/`](tools/trofeu-almada/README.md).
 

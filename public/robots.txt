@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /area-socio
+Disallow: /area-atletas
+Disallow: /admin
 
-Sitemap: https://serradofc.pt/sitemap.xml
+Sitemap: https://www.serradofc.pt/sitemap.xml

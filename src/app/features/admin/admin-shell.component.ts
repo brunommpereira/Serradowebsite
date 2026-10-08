@@ -33,6 +33,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
       { label: 'Atletas', link: '/admin/atletas', icon: 'users', roles: ['secretaria', 'treinador'] },
       { label: 'Validações', link: '/admin/validacoes', icon: 'check', roles: ['secretaria'] },
       { label: 'Resultados', link: '/admin/resultados', icon: 'trophy', roles: ['secretaria'] },
+      { label: 'Pagamentos', link: '/admin/pagamentos', icon: 'euro', roles: ['secretaria'] },
     ],
   },
   {

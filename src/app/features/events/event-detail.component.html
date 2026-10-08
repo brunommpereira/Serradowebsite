@@ -39,6 +39,10 @@
       </div>
 
       <aside id="inscricao" class="reg card" aria-labelledby="h-reg">
+        @if (apiMode) {
+          <h2 id="h-reg" class="reg__title">Inscrições</h2>
+          <sfc-offline-notice title="Inscrição no evento" text="As inscrições neste evento fazem-se, para já, na secretaria do clube ou no próprio dia, até esgotar." />
+        } @else {
         @switch (step()) {
           @case ('form') {
             <h2 id="h-reg" class="reg__title">Inscrever-me</h2>
@@ -151,6 +155,7 @@
               </div>
             }
           }
+        }
         }
       </aside>
     </div>

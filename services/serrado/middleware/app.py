@@ -18,7 +18,7 @@ from .backend_client import BackendClient, BackendError
 from .cache import TtlCache
 from .net import RateLimiter, client_ip, compile_trust
 from .oauth import OAuthProvider, configured_providers
-from .routes import admin, auth, content, me
+from .routes import admin, auth, content, me, payments
 from .session import SESSION_COOKIE, session, sign_session, staff
 
 # Limites por rota (por minuto e por IP); as restantes partilham o limite global (RATE_LIMIT_MAX)
@@ -27,7 +27,11 @@ ROUTE_LIMITS: list[tuple[str, re.Pattern[str], str, int]] = [
     ("POST", re.compile(r"^/api/v1/admin/media$"), "media-upload", 30),
     ("GET", re.compile(r"^/api/v1/auth/oauth/[^/]+$"), "oauth-start", 20),
     ("GET", re.compile(r"^/api/v1/auth/oauth/[^/]+/callback$"), "oauth-callback", 20),
+    ("POST", re.compile(r"^/api/v1/me/payments$"), "payments", 10),
+    ("POST", re.compile(r"^/api/v1/payments/stripe/webhook$"), "stripe-webhook", 600),
 ]
+# Sem cookie de sessão nem X-Requested-With: autenticados pela assinatura do Stripe
+CSRF_EXEMPT = ("/api/v1/payments/stripe/webhook",)
 
 
 def _body_limit(method: str, path: str) -> int:
@@ -78,7 +82,11 @@ def build_middleware(*, backend_client: BackendClient | None = None, oauth: dict
                 return error(429, "rate_limited", "Demasiadas tentativas. Tenta novamente daqui a pouco.")
         # CSRF: pedidos que alteram dados com cookie de sessão têm de trazer X-Requested-With
         # (cabeçalho personalizado → obriga a preflight CORS, que só aceita as origens do site).
-        if req.method not in ("GET", "HEAD", "OPTIONS") and not req.headers.get("authorization", "").startswith("Bearer "):
+        if (
+            req.method not in ("GET", "HEAD", "OPTIONS")
+            and path not in CSRF_EXEMPT
+            and not req.headers.get("authorization", "").startswith("Bearer ")
+        ):
             if req.headers.get("x-requested-with") != "XMLHttpRequest":
                 return error(403, "csrf", "Cabeçalho X-Requested-With em falta")
         return await call_next(req)
@@ -88,7 +96,7 @@ def build_middleware(*, backend_client: BackendClient | None = None, oauth: dict
         return {"ok": True, "version": config.version}
 
     v1 = APIRouter(prefix="/api/v1")
-    for module in (auth, content, me):
+    for module in (auth, content, me, payments):
         module.register(v1)
     admin_router = APIRouter(prefix="/admin")
     admin.register(admin_router)

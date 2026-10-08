@@ -1,0 +1,10 @@
+[Unit]
+Description=Serrado FC — sincronização com a página de Facebook (de 15 em 15 minutos)
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

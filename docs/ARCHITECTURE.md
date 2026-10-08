@@ -53,6 +53,25 @@ Tabelas principais (ver `services/serrado/db/migrations`):
   - as imagens ficam na tabela `cms_media` e entram nas cópias de segurança;
   - uma imagem em uso não pode ser apagada.
 
+## Pagamentos online e faturas-recibo
+
+`services/serrado/payments/` trata das quotas de sócio e das mensalidades das escolas (tabelas `fee_plans`, `athlete_fees`, `payments` e `payment_items`):
+- **O browser só escolhe o que paga e indica o NIF.** O backend confirma que cada item pertence à conta e não está pago nem em pagamento. Depois cria a sessão do **Stripe Checkout** com os valores da base de dados.
+- **Webhook do Stripe:** o middleware recebe-o em `/api/v1/payments/stripe/webhook`, sem sessão nem CSRF, e passa o corpo original ao backend. O backend confirma a assinatura HMAC (janela de 5 minutos) e o valor, e só então marca como pago. O mesmo evento repetido não muda nada.
+- **Multibanco:** os itens ficam bloqueados enquanto a referência estiver por pagar. Ficam livres quando a sessão expira ou o pagamento falha.
+- **Faturas-recibo no Moloni ON (GraphQL):** um timer emite a fatura-recibo fechada (cliente pelo NIF), pede o envio por email e guarda o PDF.
+  - Cada passo fica registado antes do seguinte, por isso uma nova tentativa nunca emite dois documentos.
+  - As chaves do Stripe e do Moloni só existem no backend e no worker. O middleware não as conhece.
+
+## Página de Facebook
+
+`services/serrado/facebook.py` lê a página do clube na Graph API da Meta, de 15 em 15 minutos (timer do systemd na VPS):
+- **publicações → notícias** e **eventos → eventos**, publicados logo ou em rascunho (`FACEBOOK_SYNC_MODE`);
+- a tabela `cms_external` liga cada publicação ou evento à entrada do CMS: evita duplicados e permite atualizar, sem pisar as edições feitas no backoffice;
+- as fotos entram na biblioteca de imagens (o tipo é confirmado pelo conteúdo, até 5 MB);
+- as escritas ficam no `audit_log` com `via: facebook`;
+- o token da página só existe no servidor e nunca aparece nas mensagens de erro.
+
 ## APIs
 
 - **Middleware (pública):** `services/openapi/middleware.json`, com documentação interativa em `/api/docs`.
@@ -104,6 +123,7 @@ Ou tudo junto: `docker compose up --build`.
 
 - **Sessão:**
   - JWT de 8 horas em cookie `httpOnly`, `Secure` e `SameSite=Strict`, porque o site e a API estão no mesmo domínio;
+  - o JWT leva emissor (`iss`) e audiência (`aud`), e só é aceite com os dois certos. Um token assinado com o mesmo segredo para outro fim não abre sessão;
   - o token nunca é devolvido no corpo da resposta, por isso o JavaScript nunca lhe chega.
 - **CSRF:** todos os pedidos que alteram dados, incluindo o login, precisam do cabeçalho `X-Requested-With`. O CORS só aceita as origens do site.
 - **Entrar com Google / Microsoft (OpenID Connect):**

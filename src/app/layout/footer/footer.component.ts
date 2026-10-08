@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../../shared/icon.component';
 import { ContentService } from '../../core/services/content.service';
+import { ApiClient } from '../../core/api/api-client';
 
 @Component({
   selector: 'sfc-footer',
@@ -10,6 +11,7 @@ import { ContentService } from '../../core/services/content.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './footer.component.scss',
   template: `
+    @if (!apiMode) {
     <section class="newsletter">
       <div class="container newsletter__inner">
         <div>
@@ -30,6 +32,7 @@ import { ContentService } from '../../core/services/content.service';
         }
       </div>
     </section>
+    }
 
     <footer class="footer">
       <div class="container footer__grid">
@@ -91,6 +94,8 @@ import { ContentService } from '../../core/services/content.service';
   `,
 })
 export class FooterComponent {
+  /** Ligado ao servidor: a newsletter ainda não tem serviço de envio, por isso não aparece */
+  protected readonly apiMode = inject(ApiClient).enabled;
   protected readonly club = inject(ContentService).club;
   protected readonly year = new Date().getFullYear();
   protected email = '';

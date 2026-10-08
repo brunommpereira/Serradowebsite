@@ -3,14 +3,18 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Sport } from '../../core/models';
 import { PHONE_PATTERN } from '../../core/validators';
+import { ApiClient } from '../../core/api/api-client';
+import { OfflineNoticeComponent } from '../../shared/offline-notice.component';
 
 /** Pedido de inscrição de atleta numa modalidade. */
 @Component({
   selector: 'sfc-inscription-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, OfflineNoticeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (sent()) {
+    @if (apiMode) {
+      <sfc-offline-notice title="Inscrição na modalidade" text="As inscrições fazem-se, para já, na secretaria do clube ou com o treinador. Fala connosco para marcar um treino experimental." />
+    } @else if (sent()) {
       <div class="alert alert--success" role="status">
         <div>
           <p><strong>Pedido enviado!</strong> Referência {{ sent() }}.</p>
@@ -74,6 +78,7 @@ import { PHONE_PATTERN } from '../../core/validators';
 })
 export class InscriptionFormComponent {
   readonly sport = input.required<Sport>();
+  protected readonly apiMode = inject(ApiClient).enabled;
   private readonly fb = inject(FormBuilder).nonNullable;
   protected readonly sent = signal<string | null>(null);
 

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ContentService } from '../../core/services/content.service';
 import { SeoService } from '../../core/services/seo.service';
@@ -10,13 +10,14 @@ import { MemberCardComponent } from '../../shared/member-card.component';
 import { PaymentStepComponent } from '../../shared/payment-step.component';
 import { MembershipPayment, PaymentStatus } from '../../core/models';
 import { ApiClient } from '../../core/api/api-client';
+import { PayPanelComponent } from '../../shared/pay-panel.component';
 
 type Section = 'dashboard' | 'dados' | 'quotas' | 'recibos' | 'cartao' | 'agregado' | 'eventos' | 'documentos' | 'notificacoes' | 'seguranca';
 
 /** Área reservada de sócio (secção 11). Com a API ligada, as quotas vêm de GET /me/quotas. */
 @Component({
   selector: 'sfc-dashboard',
-  imports: [RouterLink, DatePipe, CurrencyPipe, IconComponent, MemberCardComponent, PaymentStepComponent, AreaSwitchComponent],
+  imports: [RouterLink, DatePipe, CurrencyPipe, IconComponent, MemberCardComponent, PaymentStepComponent, AreaSwitchComponent, PayPanelComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,7 +32,8 @@ export class DashboardComponent {
   protected readonly member = this.auth.member;
   protected readonly payments = signal<MembershipPayment[]>([]);
   protected readonly paymentsError = signal<string | null>(null);
-  protected readonly section = signal<Section>('dashboard');
+  /** Regresso do Stripe (?pagamento=ok|cancelado): abre logo «Quotas e pagamentos» */
+  protected readonly section = signal<Section>(inject(ActivatedRoute).snapshot.queryParamMap.has('pagamento') ? 'quotas' : 'dashboard');
   protected readonly paying = signal<MembershipPayment | null>(null);
 
   protected readonly current = computed(() => this.payments().find((p) => p.status !== 'Pago') ?? this.payments()[0]);
@@ -54,7 +56,8 @@ export class DashboardComponent {
     { id: 'seguranca', label: 'Segurança', icon: 'shield' },
   ];
 
-  protected readonly menu = this.allMenu.filter((i) => !this.apiMode || !['agregado', 'notificacoes'].includes(i.id));
+  // Modo API: os recibos estão em «Quotas e pagamentos» (faturas-recibo do Moloni)
+  protected readonly menu = this.allMenu.filter((i) => !this.apiMode || !['agregado', 'notificacoes', 'recibos'].includes(i.id));
 
   protected readonly notifications = [
     { icon: 'check', text: 'Pagamento da quota de outubro recebido. Recibo R2026/0412 emitido.', date: '2026-10-02' },
@@ -80,7 +83,10 @@ export class DashboardComponent {
   }
 
   protected pay(p: MembershipPayment) {
-    if (this.apiMode) return; // pagamento online ainda não disponível
+    if (this.apiMode) {
+      this.section.set('quotas'); // pagamento online: painel com o Stripe
+      return;
+    }
     this.paying.set(p);
     this.section.set('quotas');
   }

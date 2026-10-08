@@ -11,11 +11,23 @@ from .backend_client import Session
 
 SESSION_COOKIE = "sfc_session"
 JWT_ALGORITHM = "HS256"
+# Quem emite a sessão e para quem ela serve: um token assinado com o mesmo segredo
+# mas para outro fim (outro emissor ou outra audiência) não abre uma sessão
+JWT_ISSUER = "serrado-fc/middleware"
+JWT_AUDIENCE = "serrado-fc/api"
 
 
 def sign_session(user_id: str, name: str, roles: list[str]) -> str:
     now = int(time.time())
-    payload = {"sub": user_id, "name": name, "roles": roles, "iat": now, "exp": now + int(config.session_hours * 3600)}
+    payload = {
+        "iss": JWT_ISSUER,
+        "aud": JWT_AUDIENCE,
+        "sub": user_id,
+        "name": name,
+        "roles": roles,
+        "iat": now,
+        "exp": now + int(config.session_hours * 3600),
+    }
     return jwt.encode(payload, config.jwt_secret, algorithm=JWT_ALGORITHM)
 
 
@@ -26,7 +38,14 @@ async def session(req: Request) -> Session:
     if not token and header.startswith("Bearer "):
         token = header[7:]
     try:
-        payload = jwt.decode(token or "", config.jwt_secret, algorithms=[JWT_ALGORITHM], options={"require": ["exp", "sub"]})
+        payload = jwt.decode(
+            token or "",
+            config.jwt_secret,
+            algorithms=[JWT_ALGORITHM],
+            issuer=JWT_ISSUER,
+            audience=JWT_AUDIENCE,
+            options={"require": ["iss", "aud", "exp", "iat", "sub"]},
+        )
         return Session(sub=str(payload["sub"]), name=str(payload.get("name", "")), roles=[str(r) for r in payload.get("roles", [])])
     except jwt.PyJWTError:
         raise HttpError(401, "unauthenticated", "Sessão inválida ou expirada") from None
