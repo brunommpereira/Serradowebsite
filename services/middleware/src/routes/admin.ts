@@ -32,7 +32,7 @@ export async function adminRoutes(app: FastifyInstance) {
     const s = await app.staff(req, 'editor');
     return app.backend.call('GET', '/cms/media', { actor: s, query: req.query as Record<string, unknown> });
   });
-  app.post('/media', { bodyLimit: 8 * 1024 * 1024, schema: { tags: mediaTags, summary: 'Carrega uma imagem (base64; o browser reduz e converte antes)', body: { type: 'object' } } }, async (req, reply) => {
+  app.post('/media', { bodyLimit: 8 * 1024 * 1024, config: { rateLimit: { max: 30, timeWindow: '1 minute' } }, schema: { tags: mediaTags, summary: 'Carrega uma imagem (base64; o browser reduz e converte antes)', body: { type: 'object' } } }, async (req, reply) => {
     const s = await app.staff(req, 'editor');
     return reply.status(201).send(await app.backend.call('POST', '/cms/media', { actor: s, body: req.body }));
   });

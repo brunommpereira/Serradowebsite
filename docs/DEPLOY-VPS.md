@@ -50,6 +50,7 @@ Sem domínio também funciona para testar, com um endereço `<IP>.sslip.io`, mas
    - escolhe RSA e mantém os nomes `serradofc.pt` e `*.serradofc.pt`, com 15 anos;
    - guarda o **certificado** e a **chave privada**, que vais precisar no passo 3.
 5. **SSL/TLS → Edge Certificates:** liga *Always Use HTTPS* e define *Minimum TLS* 1.2.
+   - **Não ligues** o *Rocket Loader* (Speed → Optimization), a *Email Address Obfuscation* (Scrape Shield) nem a injeção automática do *Web Analytics*. Todos eles alteram ou acrescentam scripts nas páginas, e a Content-Security-Policy do site bloqueia-os.
 6. **Security → WAF → Rate limiting rules** (o plano grátis tem 1 regra): `URI Path equals /api/v1/auth/login` → bloquear durante 10 s ao fim de 10 pedidos em 10 s por IP.
 
 Não é preciso configurar a cache:

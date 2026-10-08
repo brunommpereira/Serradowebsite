@@ -47,12 +47,21 @@ export async function buildBackend(pool: Pool, opts: { logger?: boolean } = {}) 
       return;
     }
     if (!tokenOk(req.headers.authorization)) throw new HttpError(401, 'invalid_service_token', 'Token de serviço inválido');
+    // O middleware diz QUEM é; os papéis (e se a conta está ativa) vêm sempre da base de dados,
+    // para que uma conta desativada ou um papel retirado deixem de valer logo, mesmo com sessão aberta
     const id = String(req.headers['x-actor-id'] ?? '');
-    const roles = String(req.headers['x-actor-roles'] ?? '')
-      .split(',')
-      .map((r) => r.trim())
-      .filter((r): r is Role => (ROLES as readonly string[]).includes(r));
-    (req as { actor: unknown }).actor = { id: UUID.test(id) ? id : null, roles };
+    if (!UUID.test(id)) {
+      (req as { actor: unknown }).actor = { id: null, roles: [] };
+      return;
+    }
+    const { rows } = await pool.query(
+      `select coalesce(array_agg(r.role) filter (where r.role is not null), '{}') as roles
+         from users u left join user_roles r on r.user_id = u.id where u.id = $1 and not u.disabled group by u.id`,
+      [id],
+    );
+    if (!rows[0]) throw new HttpError(401, 'session_revoked', 'A sessão já não é válida. Entra de novo.');
+    const roles = (rows[0].roles as string[]).filter((r): r is Role => (ROLES as readonly string[]).includes(r));
+    (req as { actor: unknown }).actor = { id, roles };
   });
 
   app.setErrorHandler((err: FastifyError & { code?: string }, req, reply) => {

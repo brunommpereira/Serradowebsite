@@ -158,6 +158,10 @@ $TLS
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# Os scripts são limitados pela CSP de cada página (meta com hashes, gerada no build);
+		# aqui fica o resto: de onde vêm estilos, fontes, imagens e frames, e quem pode embutir o site
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; frame-src https://www.openstreetmap.org; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
+		Cross-Origin-Opener-Policy "same-origin"
 		-Server
 	}
 

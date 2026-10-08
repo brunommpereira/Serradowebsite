@@ -30,17 +30,17 @@ export async function authRoutes(app: FastifyInstance) {
       reply.setCookie(SESSION_COOKIE, token, {
         path: '/',
         httpOnly: true,
-        secure: config.production,
-        // Site (GitHub Pages) e API em domínios diferentes → em produção é preciso SameSite=None + Secure
-        sameSite: config.production ? 'none' : 'lax',
+        secure: config.production || config.sessionSameSite === 'none',
+        sameSite: config.sessionSameSite,
         maxAge: config.sessionHours * 3600,
       });
-      return { ...profile, token: req.headers['x-want-token'] === '1' ? token : undefined };
+      // O token só vai no cookie httpOnly: nunca fica acessível ao JavaScript da página
+      return profile;
     },
   );
 
   app.post('/auth/logout', { schema: { tags, summary: 'Terminar sessão' } }, async (_req, reply) => {
-    reply.clearCookie(SESSION_COOKIE, { path: '/' });
+    reply.clearCookie(SESSION_COOKIE, { path: '/', httpOnly: true, secure: config.production || config.sessionSameSite === 'none', sameSite: config.sessionSameSite });
     return { ok: true };
   });
 }
