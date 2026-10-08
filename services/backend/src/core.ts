@@ -2,7 +2,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Client, Pool } from '../../shared/db.ts';
 import type { Role } from '../../shared/config.ts';
 
-/** Quem faz o pedido (enviado pelo middleware em X-Actor-Id / X-Actor-Roles). */
+/** Quem faz o pedido: o middleware envia o id (X-Actor-Id); os papéis vêm da base de dados. */
 export interface Actor {
   id: string | null;
   roles: Role[];

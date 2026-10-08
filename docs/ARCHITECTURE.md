@@ -102,8 +102,23 @@ Ou tudo junto: `docker compose up --build`.
 
 ## Segurança
 
-- **Sessão:** JWT de curta duração em cookie `httpOnly`, `Secure` e `SameSite=Lax`. Para pedidos que alteram dados, o middleware exige o cabeçalho `X-Requested-With` como proteção CSRF.
-- **Passwords:** guardadas com `scrypt` e salt. O login tem rate limit e responde à mesma velocidade quer a conta exista quer não.
-- **Backend privado:** acessível só com `SERVICE_TOKEN`, e o middleware envia o utilizador autenticado em cabeçalhos de contexto (`X-Actor-Id`, `X-Actor-Roles`), que o backend só aceita acompanhados desse token.
+- **Sessão:**
+  - JWT de 8 horas em cookie `httpOnly`, `Secure` e `SameSite=Strict`, porque o site e a API estão no mesmo domínio;
+  - o token nunca é devolvido no corpo da resposta, por isso o JavaScript nunca lhe chega.
+- **CSRF:** todos os pedidos que alteram dados, incluindo o login, precisam do cabeçalho `X-Requested-With`. O CORS só aceita as origens do site.
+- **Passwords:** guardadas com `scrypt` e salt. O login responde à mesma velocidade quer a conta exista quer não.
+- **Rate limit:**
+  - 300 pedidos/minuto por IP em toda a API (`RATE_LIMIT_MAX`);
+  - 10/minuto no login e 30/minuto no carregamento de imagens;
+  - na Cloudflare, uma regra extra para o login.
+- **Backend privado:**
+  - só aceita pedidos com o `SERVICE_TOKEN`, e o middleware indica qual é o utilizador (`X-Actor-Id`);
+  - os **papéis vêm sempre da base de dados**, a cada pedido. Uma conta desativada ou um papel retirado deixam de valer logo, mesmo com sessão aberta (a resposta passa a ser 401 `session_revoked`).
+- **Segredos:** em produção, `SERVICE_TOKEN` e `JWT_SECRET` são obrigatórios e têm pelo menos 32 caracteres. Os serviços recusam arrancar sem eles.
+- **XSS e CSP:**
+  - o HTML do CMS é limpo no backend (`sanitize-html`) e outra vez pelo Angular;
+  - cada página tem uma **Content-Security-Policy** com os hashes dos scripts embutidos, gerada em `scripts/postbuild.mjs`. Um script injetado não corre;
+  - o Caddy acrescenta a política para estilos, fontes, imagens e frames, mais `frame-ancestors 'none'`.
+- **Dependências:** o Dependabot propõe atualizações todas as semanas (`.github/dependabot.yml`) e o `npm audit` das dependências de produção está limpo.
 - **Auditoria:** todas as escritas ficam registadas em `audit_log` (quem, o quê, quando).
 - **Dados de identificação:** nome, nascimento, CC e NIF só mudam através de pedidos aprovados pela secretaria. Um trigger na base de dados garante isto.

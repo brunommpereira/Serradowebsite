@@ -1,0 +1,28 @@
+# Atualizações de dependências (pedidos de alteração automáticos, uma vez por semana).
+# As de segurança chegam assim que há correção. O CI corre em cada uma antes do merge.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      angular:
+        patterns: ['@angular/*', '@angular-devkit/*', '@schematics/angular']
+      tiptap:
+        patterns: ['@tiptap/*']
+  - package-ecosystem: npm
+    directory: /services
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      fastify:
+        patterns: ['fastify', '@fastify/*']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

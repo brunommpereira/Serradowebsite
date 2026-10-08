@@ -61,7 +61,8 @@ export async function buildMiddleware(opts: { backend?: BackendClient; logger?: 
   });
   await app.register(cookie);
   await app.register(jwt, { secret: config.jwtSecret, cookie: { cookieName: SESSION_COOKIE, signed: false }, sign: { expiresIn: `${config.sessionHours}h` } });
-  await app.register(rateLimit, { global: false });
+  // Limite por IP em toda a API (proteção contra abuso); login e carregamentos têm limites mais apertados
+  await app.register(rateLimit, { global: true, max: config.rateLimitMax, timeWindow: '1 minute', allowList: (req) => req.url === '/api/health' });
   await app.register(swagger, {
     openapi: {
       info: { title: 'Serrado FC — Middleware (API pública)', version: '1.0.0', description: 'API consumida pelo front. Sessão por cookie httpOnly (sfc_session) ou Authorization: Bearer.' },
@@ -76,7 +77,6 @@ export async function buildMiddleware(opts: { backend?: BackendClient; logger?: 
   app.addHook('onRequest', async (req) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return;
     if (req.headers.authorization?.startsWith('Bearer ')) return;
-    if (req.url.startsWith('/api/v1/auth/login')) return; // ainda sem sessão
     if (req.headers['x-requested-with'] !== 'XMLHttpRequest') throw new ApiError(403, 'csrf', 'Cabeçalho X-Requested-With em falta');
   });
 

@@ -32,7 +32,7 @@ const XHR = { 'x-requested-with': 'XMLHttpRequest' };
 let ip = 0;
 async function login(user: string, password: string) {
   // IP diferente por login (o rate limit é por IP)
-  const r = await mw.inject({ method: 'POST', url: '/api/v1/auth/login', payload: { login: user, password }, remoteAddress: `10.1.0.${++ip}` });
+  const r = await mw.inject({ method: 'POST', url: '/api/v1/auth/login', payload: { login: user, password }, headers: XHR, remoteAddress: `10.1.0.${++ip}` });
   assert.equal(r.statusCode, 200, r.body);
   const c = r.cookies.find((c) => c.name === SESSION_COOKIE)!;
   return { cookie: `${SESSION_COOKIE}=${c.value}`, raw: c, body: r.json() };
@@ -46,14 +46,22 @@ describe('sessão', () => {
   test('login define cookie httpOnly e /me devolve o perfil', async () => {
     const s = await login('socio@exemplo.pt', 'serrado1978');
     assert.equal(s.raw.httpOnly, true);
+    assert.equal(s.raw.sameSite, 'Strict');
     assert.equal(s.body.member.memberNumber, '00482');
+    assert.equal(s.body.token, undefined); // o token nunca vai no corpo da resposta
     const me = await as(s.cookie, 'GET', '/me');
     assert.equal(me.json().athletes.length, 2);
   });
 
   test('sem sessão → 401; credenciais erradas → 401', async () => {
     assert.equal((await mw.inject({ method: 'GET', url: '/api/v1/me' })).statusCode, 401);
-    assert.equal((await mw.inject({ method: 'POST', url: '/api/v1/auth/login', payload: { login: 'socio@exemplo.pt', password: 'nao' } })).statusCode, 401);
+    assert.equal((await mw.inject({ method: 'POST', url: '/api/v1/auth/login', payload: { login: 'socio@exemplo.pt', password: 'nao' }, headers: XHR, remoteAddress: '10.2.0.1' })).statusCode, 401);
+  });
+
+  test('CSRF: login sem X-Requested-With → 403 (impede iniciar sessão a partir de outro site)', async () => {
+    const r = await mw.inject({ method: 'POST', url: '/api/v1/auth/login', payload: { login: 'socio@exemplo.pt', password: 'serrado1978' }, remoteAddress: '10.2.0.2' });
+    assert.equal(r.statusCode, 403);
+    assert.equal(r.cookies.length, 0);
   });
 
   test('CSRF: escrita com cookie mas sem X-Requested-With → 403', async () => {
@@ -65,9 +73,29 @@ describe('sessão', () => {
   test('rate limit no login', async () => {
     let last = 0;
     for (let i = 0; i < 12; i++) {
-      last = (await mw.inject({ method: 'POST', url: '/api/v1/auth/login', payload: { login: 'x@x.pt', password: 'x' }, remoteAddress: '10.0.0.9' })).statusCode;
+      last = (await mw.inject({ method: 'POST', url: '/api/v1/auth/login', payload: { login: 'x@x.pt', password: 'x' }, headers: XHR, remoteAddress: '10.0.0.9' })).statusCode;
     }
     assert.equal(last, 429);
+  });
+
+  test('rate limit em toda a API (por IP)', async () => {
+    let last = 0;
+    for (let i = 0; i < 305; i++) last = (await mw.inject({ method: 'GET', url: '/api/v1/content/partners', remoteAddress: '10.3.0.1' })).statusCode;
+    assert.equal(last, 429);
+    // outro IP não é afetado
+    assert.equal((await mw.inject({ method: 'GET', url: '/api/v1/content/partners', remoteAddress: '10.3.0.2' })).statusCode, 200);
+  });
+
+  test('conta desativada ou papel retirado deixam de valer logo, mesmo com sessão aberta', async () => {
+    const s = await login('treinador@serradofc.pt', 'treinador2026');
+    assert.equal((await as(s.cookie, 'GET', '/admin/athletes')).statusCode, 200);
+    await pool.query(`delete from user_roles where user_id = (select id from users where email = 'treinador@serradofc.pt')`);
+    const afterRole = await as(s.cookie, 'GET', '/admin/athletes');
+    assert.equal(afterRole.statusCode, 403);
+    await pool.query(`update users set disabled = true where email = 'treinador@serradofc.pt'`);
+    assert.equal((await as(s.cookie, 'GET', '/me')).statusCode, 401);
+    await pool.query(`update users set disabled = false where email = 'treinador@serradofc.pt'`);
+    await pool.query(`insert into user_roles select id, 'treinador' from users where email = 'treinador@serradofc.pt'`);
   });
 
   test('CORS: só as origens do site', async () => {
