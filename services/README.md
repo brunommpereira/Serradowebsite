@@ -2,28 +2,33 @@
 
 Separação de responsabilidades e diagrama em [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md).
 
+Python 3.12+ com **FastAPI** (os dois serviços), **psycopg 3** (PostgreSQL, SQL direto), **nh3** (limpeza do HTML do CMS), **PyJWT** (sessão e `id_token` da Google/Microsoft) e **httpx**. Dependências geridas com [uv](https://docs.astral.sh/uv/) (`pyproject.toml` + `uv.lock`).
+
 | Pasta | O que é | Porta |
 |---|---|---|
-| `middleware/` | **API pública** `/api/v1`, consumida pelo front: sessão, papéis, validação, rate limit, CORS, cache e agregação | 4000 (`/api/docs`) |
-| `backend/` | **API interna** `/internal/v1`, com as regras de negócio e o acesso à base de dados. Só aceita pedidos do middleware | 4100 (`/internal/docs`, só em dev) |
-| `db/` | Migrações SQL (PostgreSQL 16) e seed de demonstração | 5432 |
-| `shared/` | Configuração, hash de passwords, ligação à BD e validações (NIF, CC…) | — |
-
-Usa Node 22.18 ou superior. O TypeScript corre diretamente, sem build, porque o Node remove os tipos. Dependências: Fastify, `pg` e `@fastify/*` (cookie, cors, jwt, rate-limit, swagger).
+| `serrado/middleware/` | **API pública** `/api/v1`, consumida pelo front: sessão, papéis, validação, rate limit, CORS, cache, agregação e entrada com Google/Microsoft | 4000 (`/api/docs`) |
+| `serrado/backend/` | **API interna** `/internal/v1`, com as regras de negócio e o acesso à base de dados. Só aceita pedidos do middleware | 4100 (`/internal/docs`, só em dev) |
+| `serrado/db/` | Migrações SQL (`migrations/`, PostgreSQL 16), seed de demonstração, conteúdo inicial e conta de administração | 5432 |
+| `serrado/*.py` | Configuração, passwords (scrypt), limpeza de HTML e validações (NIF, CC…) | — |
+| `tests/` | Testes de integração (pytest) contra PostgreSQL real | — |
+| `openapi/` | Contratos das duas APIs (gerados) | — |
 
 ## Desenvolvimento
 
 ```bash
 docker compose -f ../docker-compose.yml -f ../docker-compose.dev.yml up -d db   # PostgreSQL em localhost:5432
-npm ci
-npm run db:migrate          # aplica db/migrations/*.sql (cada uma numa transação)
-npm run db:seed             # dados de demonstração (APAGA o conteúdo!)
-npm run backend             # http://localhost:4100/internal/docs
-npm run middleware          # http://localhost:4000/api/docs
-npm test                    # 63 testes de integração com PostgreSQL real
-npm run typecheck
-npm run openapi             # regenera backend/openapi.json e middleware/openapi.json
+uv sync                                   # cria .venv com as dependências (inclui as de desenvolvimento)
+uv run python -m serrado.db.migrate       # aplica serrado/db/migrations/*.sql (cada uma numa transação)
+uv run python -m serrado.db.seed          # dados de demonstração (APAGA o conteúdo!)
+uv run python -m serrado.backend.server   # http://localhost:4100/internal/docs
+uv run python -m serrado.middleware.server  # http://localhost:4000/api/docs
+uv run pytest                             # 74 testes de integração com PostgreSQL real
+uv run ruff check serrado tests && uv run ruff format --check serrado tests
+uv run mypy                               # tipos
+uv run python -m serrado.openapi          # regenera openapi/backend.json e openapi/middleware.json
 ```
+
+Os testes criam bases de dados próprias a partir de `TEST_DATABASE_URL` (por omissão `postgresql://serrado:serrado@localhost:5432/serrado_test`).
 
 Para ligar o front: em `src/app/core/api/api.config.ts`, `API_BASE_URL_VALUE = 'http://localhost:4000/api/v1'`, e depois `npm start` na raiz.
 
@@ -45,7 +50,7 @@ Também se pode subir tudo com Docker: `docker compose up --build` na raiz (incl
 
 | Variável | Serviço | Notas |
 |---|---|---|
-| `DATABASE_URL` | backend, migrações | `postgres://user:pass@host:5432/db` (usar TLS em produção) |
+| `DATABASE_URL` | backend, migrações | `postgresql://user:pass@host:5432/db` (no servidor, pelo socket local e sem password) |
 | `SERVICE_TOKEN` | backend + middleware | Segredo longo e aleatório, partilhado pelos dois serviços (32 caracteres ou mais, obrigatório em produção) |
 | `JWT_SECRET` | middleware | Segredo da sessão (32 caracteres ou mais, obrigatório em produção) |
 | `BACKEND_URL` | middleware | Endereço interno do backend |
@@ -58,7 +63,7 @@ Também se pode subir tudo com Docker: `docker compose up --build` na raiz (incl
 | `SITE_URL` | middleware | Para onde se volta depois de entrar com Google/Microsoft (por omissão `PUBLIC_URL`) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | middleware | Ativam «Continuar com Google» (ver docs/DEPLOY-VPS.md) |
 | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` | middleware | Ativam «Continuar com Microsoft» (só contas pessoais) |
-| `NODE_ENV=production` | todos | Torna obrigatórias as variáveis acima e ativa os cookies `Secure` |
+| `APP_ENV=production` | todos | Torna obrigatórias as variáveis acima, ativa os cookies `Secure` e esconde `/internal/docs` |
 
 ## Importar dados reais
 
@@ -71,12 +76,13 @@ Também se pode subir tudo com Docker: `docker compose up --build` na raiz (incl
 
 **Numa VPS** (a opção escolhida para começar): [`docs/DEPLOY-VPS.md`](../docs/DEPLOY-VPS.md).
 
-- **Instalação nativa, sem Docker** (`deploy/server/`): PostgreSQL 16 só local, serviços systemd, Caddy e Cloudflare.
+- **Instalação nativa, sem Docker** (`deploy/server/`): PostgreSQL 16 só local, Python 3.12, serviços systemd, Caddy e Cloudflare.
+- **Dependências:** cada versão leva as bibliotecas já descarregadas no GitHub Actions (com hashes); a VPS instala-as num ambiente próprio da versão, sem aceder ao PyPI.
 - **Cópias de segurança:** pg_dump e restic cifrado.
 - **Deploy:** orquestrado pelo GitHub Actions, com verificação da versão e rollback automático.
 - **Docker:** o `docker-compose.yml` fica só para desenvolvimento.
 
-Criar a primeira conta de administração (`npm run db:create-admin -- email "Nome"`; no servidor: `sudo serrado admin …`) e carregar o conteúdo inicial do site, sem dados pessoais (`npm run db:content`).
+Criar a primeira conta de administração (`uv run python -m serrado.db.create_admin email "Nome"`; no servidor: `sudo serrado admin …`) e carregar o conteúdo inicial do site, sem dados pessoais (`python -m serrado.db.content`; no servidor: `sudo serrado content`).
 
 Outras opções:
 

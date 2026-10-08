@@ -1,6 +1,6 @@
 /**
  * CMS — tipos de conteúdo e campos editáveis. Espelha o backend
- * (services/backend/src/routes/cms.ts): o editor do backoffice é gerado
+ * (services/serrado/backend/routes/cms.py): o editor do backoffice é gerado
  * a partir destas definições.
  */
 export type CmsType = 'news' | 'events' | 'pages' | 'partners';

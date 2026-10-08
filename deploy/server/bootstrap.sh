@@ -9,7 +9,7 @@
 #                  Antes, guardar o certificado e a chave em /etc/serrado/tls/origin.pem e origin.key
 #   --deploy-key   chave SSH pública do GitHub Actions: cria o utilizador «deploy», limitado ao serrado-ssh-gate
 #
-# Instala, sem Docker: PostgreSQL 16, Node.js 22, Caddy, restic, ufw, fail2ban e atualizações automáticas.
+# Instala, sem Docker: PostgreSQL 16, Python 3.12, Caddy, restic, ufw, fail2ban e atualizações automáticas.
 set -euo pipefail
 
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -45,12 +45,11 @@ apt-get upgrade -yq
 apt-get install -yq curl ca-certificates gnupg git jq ufw fail2ban unattended-upgrades postgresql restic
 dpkg-reconfigure -f noninteractive unattended-upgrades
 
-step 'Node.js 22 (NodeSource)'
-if ! node -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a===22&&b>=18||a>22?0:1)' 2>/dev/null; then
-  curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-  apt-get install -yq nodejs
-fi
-node --version
+step 'Python 3 (serviços: middleware e backend)'
+# O Ubuntu 24.04 traz o Python 3.12. As bibliotecas chegam já empacotadas em cada versão (sem acesso ao PyPI)
+apt-get install -yq python3 python3-venv
+python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)' || die "É preciso Python 3.12 ou superior (encontrei $(python3 --version))."
+python3 --version
 
 step 'Caddy (servidor web e HTTPS)'
 if ! command -v caddy >/dev/null; then
@@ -93,7 +92,7 @@ fi
 if [ ! -f "$ETC/serrado.env" ]; then
   umask 027
   cat > "$ETC/serrado.env" <<EOF
-NODE_ENV=production
+APP_ENV=production
 HOST=127.0.0.1
 TRUST_PROXY=loopback
 SITE_DOMAIN=$DOMAIN

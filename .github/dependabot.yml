@@ -13,15 +13,15 @@ updates:
         patterns: ['@angular/*', '@angular-devkit/*', '@schematics/angular']
       tiptap:
         patterns: ['@tiptap/*']
-  - package-ecosystem: npm
+  - package-ecosystem: uv
     directory: /services
     schedule:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
     groups:
-      fastify:
-        patterns: ['fastify', '@fastify/*']
+      fastapi:
+        patterns: ['fastapi', 'starlette', 'pydantic*', 'uvicorn']
   - package-ecosystem: github-actions
     directory: /
     schedule:

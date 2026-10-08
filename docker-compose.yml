@@ -1,7 +1,7 @@
 # Serrado FC Digital — base de dados + backend (privado) + middleware (público).
 # Desenvolvimento:  docker compose up --build   →  API em http://localhost:4000/api/docs
 # Produção: definir SERVICE_TOKEN, JWT_SECRET, POSTGRES_PASSWORD e CORS_ORIGINS num .env
-# (e NODE_ENV=production), não carregar o seed de demonstração e pôr o middleware atrás de HTTPS.
+# (e APP_ENV=production), não carregar o seed de demonstração e pôr o middleware atrás de HTTPS.
 name: serrado
 
 services:
@@ -22,10 +22,10 @@ services:
 
   migrate:
     build: ./services
-    command: ['sh', '-c', 'node db/migrate.ts && if [ "$$DEMO_SEED" = "1" ]; then node db/seed/seed.ts; fi']
+    command: ['sh', '-c', 'python -m serrado.db.migrate && if [ "$$DEMO_SEED" = "1" ]; then python -m serrado.db.seed; fi']
     environment: &env
-      NODE_ENV: ${NODE_ENV:-development}
-      DATABASE_URL: postgres://serrado:${POSTGRES_PASSWORD:-serrado}@db:5432/serrado
+      APP_ENV: ${APP_ENV:-development}
+      DATABASE_URL: postgresql://serrado:${POSTGRES_PASSWORD:-serrado}@db:5432/serrado
       SERVICE_TOKEN: ${SERVICE_TOKEN:-dev-service-token-change-me}
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-me-please-32chars}
       DEMO_SEED: ${DEMO_SEED:-1}
@@ -35,7 +35,7 @@ services:
 
   backend:
     build: ./services
-    command: ['node', 'backend/src/server.ts']
+    command: ['python', '-m', 'serrado.backend.server']
     environment: *env
     # Só na rede interna: nunca publicar a porta 4100
     expose: ['4100']
@@ -43,13 +43,13 @@ services:
       migrate:
         condition: service_completed_successfully
     healthcheck:
-      test: ['CMD-SHELL', 'wget -qO- http://localhost:4100/internal/health || exit 1']
+      test: ['CMD', 'python', '-c', 'import urllib.request; urllib.request.urlopen("http://localhost:4100/internal/health")']
       interval: 5s
       retries: 10
 
   middleware:
     build: ./services
-    command: ['node', 'middleware/src/server.ts']
+    command: ['python', '-m', 'serrado.middleware.server']
     environment:
       <<: *env
       BACKEND_URL: http://backend:4100

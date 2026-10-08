@@ -65,10 +65,19 @@ cmd_deploy() {
   rm -rf "$dir.tmp" && mkdir -p "$dir.tmp"
   tar -xzf "$tmp" -C "$dir.tmp" --no-same-owner --no-same-permissions
   rm -f "$tmp"
-  [ -f "$dir.tmp/services/package.json" ] && [ -f "$dir.tmp/web/index.html" ] || { rm -rf "$dir.tmp"; die 'Artefacto incompleto.'; }
+  [ -f "$dir.tmp/services/pyproject.toml" ] && [ -f "$dir.tmp/services/requirements.txt" ] && [ -d "$dir.tmp/services/wheels" ] && [ -f "$dir.tmp/web/index.html" ] \
+    || { rm -rf "$dir.tmp"; die 'Artefacto incompleto.'; }
   echo "$sha" > "$dir.tmp/REVISION"
-  chmod -R u=rwX,go=rX "$dir.tmp"
   rm -rf "$dir" && mv "$dir.tmp" "$dir"
+  # Ambiente Python da versão: só as bibliotecas que vieram no artefacto, conferidas pelos hashes (sem acesso ao PyPI)
+  info 'Dependências Python'
+  if ! { python3 -m venv "$dir/services/.venv" \
+      && "$dir/services/.venv/bin/pip" install -q --no-index --find-links "$dir/services/wheels" --require-hashes -r "$dir/services/requirements.txt" \
+      && "$dir/services/.venv/bin/python" -m compileall -q "$dir/services/serrado"; }; then
+    rm -rf "$dir"; die 'Não consegui instalar as dependências Python desta versão.'
+  fi
+  rm -rf "$dir/services/wheels"
+  chmod -R u=rwX,go=rX "$dir"
 
   local previous; previous=$(current_release)
   if [ "$previous" = "$sha" ]; then info 'Esta versão já está ativa: só reinicio.'; fi
@@ -78,7 +87,7 @@ cmd_deploy() {
     cmd_backup pre-deploy
   fi
   info 'Migrações da base de dados'
-  (cd "$dir/services" && as_app node db/migrate.ts)
+  (cd "$dir/services" && as_app .venv/bin/python -m serrado.db.migrate)
 
   info "A ativar $sha (anterior: $previous)"
   switch_to "$sha"
@@ -216,8 +225,8 @@ case "${1:-}" in
   restore) shift; cmd_restore "$@" ;;
   offsite-latest) shift; cmd_offsite_latest "$@" ;;
   status) cmd_status ;;
-  admin) shift; [ $# -eq 2 ] || die 'Uso: serrado admin <email> "<nome>"'; (cd "$ROOT/current/services" && as_app node db/create-admin.ts "$1" "$2") ;;
-  content) (cd "$ROOT/current/services" && as_app node db/seed/content.ts) ;;
+  admin) shift; [ $# -eq 2 ] || die 'Uso: serrado admin <email> "<nome>"'; (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.db.create_admin "$1" "$2") ;;
+  content) (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.db.content) ;;
   logs) journalctl -u serrado-middleware -u serrado-backend -u caddy -n "${2:-100}" --no-pager ;;
   cf-ips) cmd_cf_ips ;;
   oauth) shift; cmd_oauth "$@" ;;
