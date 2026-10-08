@@ -11,7 +11,7 @@
       </p>
     }
   </div>
-  @if (profile() === 'encarregado' && !adding()) {
+  @if (profile() === 'encarregado' && !adding() && !area.apiMode) {
     <button type="button" class="btn btn--primary" (click)="openAdd()">
       <sfc-icon name="users" size="18" />Adicionar atleta
     </button>
@@ -125,7 +125,7 @@
               <strong>{{
                 bad.length === 1 ? '1 documento rejeitado' : bad.length + ' documentos rejeitados'
               }}</strong>
-              — {{ bad[0].name }}{{ bad[0].note ? ': ' + bad[0].note : '' }}. Volta a carregar para
+              — {{ bad[0].name }}{{ bad[0].note ? ': ' + bad[0].note : '' }}. {{ area.apiMode ? 'Entrega-o de novo na secretaria' : 'Volta a carregar' }} para
               continuar a inscrição.
             </p>
           </div>
@@ -142,7 +142,7 @@
           [attr.aria-controls]="'doclist-' + a.id"
           (click)="toggleDocs(a.id)"
         >
-          {{ docsOpen()[a.id] ? 'Esconder estados' : 'Ver estados e carregar documentos' }}
+          {{ docsOpen()[a.id] ? 'Esconder estados' : area.apiMode ? 'Ver estados dos documentos' : 'Ver estados e carregar documentos' }}
           <sfc-icon name="chevron" size="18" [class.rot]="docsOpen()[a.id]" />
         </button>
         @if (docsOpen()[a.id]) {
@@ -158,7 +158,7 @@
                 <span class="badge" [class]="'badge badge--' + statusClass(d.status)">{{
                   d.status
                 }}</span>
-                @if (d.status === 'Em falta' || d.status === 'Rejeitado') {
+                @if (!area.apiMode && (d.status === 'Em falta' || d.status === 'Rejeitado')) {
                   <label class="btn btn--outline btn--sm upload">
                     <sfc-icon name="share" size="16" />{{
                       d.status === 'Rejeitado' ? 'Substituir' : 'Carregar'
@@ -179,15 +179,22 @@
               <sfc-icon name="warning" size="16" />{{ uploadError()!.message }}
             </p>
           }
-          <p class="caption">
-            PDF, JPG ou PNG até {{ maxFileMb }} MB. Os documentos ficam «Em análise» até serem
-            validados pela secretaria.
-          </p>
+          @if (area.apiMode) {
+            <p class="caption">
+              Por agora, os documentos entregam-se na secretaria do clube. O carregamento online fica
+              disponível brevemente.
+            </p>
+          } @else {
+            <p class="caption">
+              PDF, JPG ou PNG até {{ maxFileMb }} MB. Os documentos ficam «Em análise» até serem
+              validados pela secretaria.
+            </p>
+          }
         }
       </section>
 
       <!-- Partilhar acesso (só para educandos; o atleta adulto gere o seu próprio acesso) -->
-      @if (!area.isSelf(a.id)) {
+      @if (!area.isSelf(a.id) && !area.apiMode) {
         <section class="block" [attr.aria-labelledby]="'share-' + a.id">
           <div class="block__head">
             <h4 [id]="'share-' + a.id"><sfc-icon name="users" size="18" />Partilhar acesso</h4>
@@ -245,7 +252,7 @@
   }
 </div>
 
-@if (profile() === 'encarregado') {
+@if (profile() === 'encarregado' && !area.apiMode) {
   <section class="howto card" aria-labelledby="howto-title">
     <h3 id="howto-title" class="h-s">Como completar a inscrição</h3>
     <ol class="steps">

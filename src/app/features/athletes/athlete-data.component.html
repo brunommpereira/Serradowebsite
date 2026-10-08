@@ -12,8 +12,8 @@
   </div>
 
   @if (message(); as m) {
-    <p class="alert" [class.alert--success]="m.kind === 'ok'" [class.alert--info]="m.kind === 'info'" role="status">
-      <sfc-icon [name]="m.kind === 'ok' ? 'check' : 'info'" size="18" /><span>{{ m.text }}</span>
+    <p class="alert" [class.alert--success]="m.kind === 'ok'" [class.alert--info]="m.kind === 'info'" [class.alert--warning]="m.kind === 'erro'" [attr.role]="m.kind === 'erro' ? 'alert' : 'status'">
+      <sfc-icon [name]="m.kind === 'ok' ? 'check' : m.kind === 'erro' ? 'warning' : 'info'" size="18" /><span>{{ m.text }}</span>
     </p>
   }
 
@@ -28,7 +28,7 @@
           <p class="confirm__missing"><sfc-icon name="warning" size="16" />Em falta: {{ missing().join(', ') }}.</p>
         }
         <div class="actions">
-          <button type="button" class="btn btn--primary btn--sm" [disabled]="missing().length > 0" (click)="confirm()">
+          <button type="button" class="btn btn--primary btn--sm" [disabled]="missing().length > 0 || busy()" (click)="confirm()">
             <sfc-icon name="check" size="16" />Está tudo correto
           </button>
           <button type="button" class="btn btn--outline btn--sm" (click)="startEdit()">Alterar dados</button>
@@ -223,7 +223,7 @@
         <p class="alert alert--warning" role="alert">Há {{ errorCount() }} {{ errorCount() === 1 ? 'campo' : 'campos' }} por corrigir.</p>
       }
       <div class="actions">
-        <button type="submit" class="btn btn--primary btn--sm">Guardar e confirmar</button>
+        <button type="submit" class="btn btn--primary btn--sm" [disabled]="busy()">{{ busy() ? 'A guardar…' : 'Guardar e confirmar' }}</button>
         <button type="button" class="btn btn--outline btn--sm" (click)="cancel()">Cancelar</button>
       </div>
     </form>

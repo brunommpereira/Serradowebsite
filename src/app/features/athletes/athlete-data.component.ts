@@ -66,7 +66,8 @@ export class AthleteDataComponent {
   protected draft!: Draft;
   protected readonly errors = signal<Record<string, string>>({});
   protected readonly errorCount = computed(() => Object.keys(this.errors()).length);
-  protected readonly message = signal<{ kind: 'ok' | 'info'; text: string } | null>(null);
+  protected readonly message = signal<{ kind: 'ok' | 'info' | 'erro'; text: string } | null>(null);
+  protected readonly busy = signal(false);
 
   /** «12345678» → «••••5678» */
   protected mask(v: string) {
@@ -85,13 +86,20 @@ export class AthleteDataComponent {
     this.errors.set({});
   }
 
-  confirm() {
-    if (this.area.confirmData(this.athlete().id)) {
-      this.message.set({ kind: 'ok', text: `Obrigado! Dados confirmados para a época ${this.season}.` });
+  async confirm() {
+    this.busy.set(true);
+    try {
+      if (await this.area.confirmData(this.athlete().id)) {
+        this.message.set({ kind: 'ok', text: `Obrigado! Dados confirmados para a época ${this.season}.` });
+      }
+    } catch (e) {
+      this.message.set({ kind: 'erro', text: (e as Error).message });
+    } finally {
+      this.busy.set(false);
     }
   }
 
-  save() {
+  async save() {
     const errors = this.validate(this.draft);
     this.errors.set(errors);
     if (Object.keys(errors).length) {
@@ -100,11 +108,21 @@ export class AthleteDataComponent {
       return;
     }
     const d = this.draft.details;
-    const changed = this.area.updateAthlete(this.athlete().id, {
-      name: this.draft.name.trim(),
-      birthDate: this.draft.birthDate,
-      details: { ...d, email: d.email.trim(), phone: d.phone.replace(/\s/g, ''), emergencyPhone: d.emergencyPhone.replace(/\s/g, '') },
-    });
+    this.busy.set(true);
+    let changed: string[];
+    try {
+      changed = await this.area.updateAthlete(this.athlete().id, {
+        name: this.draft.name.trim(),
+        birthDate: this.draft.birthDate,
+        details: { ...d, email: d.email.trim(), phone: d.phone.replace(/\s/g, ''), emergencyPhone: d.emergencyPhone.replace(/\s/g, '') },
+      });
+    } catch (e) {
+      // O formulário continua aberto, com o que foi escrito
+      this.message.set({ kind: 'erro', text: `Não foi possível guardar: ${(e as Error).message}` });
+      return;
+    } finally {
+      this.busy.set(false);
+    }
     this.editing.set(false);
     this.message.set(
       changed.length

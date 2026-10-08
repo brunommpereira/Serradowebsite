@@ -28,6 +28,8 @@ const TABS: { id: TabId; label: string; icon: string }[] = [
 ];
 
 const SEASON_START = '2026-09-01';
+/** Com a API ligada, só os separadores que já têm dados reais (agenda, métricas e recibos: brevemente) */
+const API_TABS: TabId[] = ['atletas', 'competicoes', 'clube'];
 
 /** Área de Atletas — portal do encarregado de educação (modo demonstração). */
 @Component({
@@ -64,9 +66,14 @@ export class AthleteAreaComponent {
   protected readonly role = this.area.role;
   /** No perfil «Atleta» o separador de gestão de educandos passa a «Os Meus Dados». */
   protected readonly tabs = computed(() =>
-    TABS.map((t) => (t.id === 'atletas' && this.role() === 'atleta' ? { ...t, label: 'Os Meus Dados', icon: 'user' } : t)),
+    TABS.filter((t) => !this.area.apiMode || API_TABS.includes(t.id))
+      .sort((a, b) => (this.area.apiMode ? API_TABS.indexOf(a.id) - API_TABS.indexOf(b.id) : 0))
+      .map((t) => (t.id === 'atletas' && this.role() === 'atleta' ? { ...t, label: 'Os Meus Dados', icon: 'user' } : t)),
   );
-  protected readonly tab = linkedSignal<TabId>(() => (TABS.some((t) => t.id === this.separador()) ? (this.separador() as TabId) : 'agenda'));
+  protected readonly tab = linkedSignal<TabId>(() => {
+    const visible = this.tabs();
+    return visible.some((t) => t.id === this.separador()) ? (this.separador() as TabId) : visible[0].id;
+  });
   protected readonly athleteId = linkedSignal<string>(() => {
     const list = this.area.athletes();
     return list.find((a) => a.id === this.atleta())?.id ?? list[0]?.id ?? '';
@@ -124,11 +131,12 @@ export class AthleteAreaComponent {
 
   /** Setas esquerda/direita, Home e End navegam entre separadores (padrão WAI-ARIA tabs). */
   onTabKey(event: KeyboardEvent, index: number) {
-    const keys: Record<string, number> = { ArrowRight: index + 1, ArrowLeft: index - 1, Home: 0, End: TABS.length - 1 };
+    const tabs = this.tabs();
+    const keys: Record<string, number> = { ArrowRight: index + 1, ArrowLeft: index - 1, Home: 0, End: tabs.length - 1 };
     if (!(event.key in keys)) return;
     event.preventDefault();
-    const next = (keys[event.key] + TABS.length) % TABS.length;
-    this.selectTab(TABS[next].id);
+    const next = (keys[event.key] + tabs.length) % tabs.length;
+    this.selectTab(tabs[next].id);
     this.tabButtons()[next]?.nativeElement.focus();
   }
 

@@ -1,4 +1,6 @@
-<div class="demo-bar">Modo demonstração · atletas, sessões e recibos são fictícios</div>
+@if (!area.apiMode) {
+  <div class="demo-bar">Modo demonstração · atletas, sessões e recibos são fictícios</div>
+}
 
 <header class="hero">
   <div class="container hero__inner">
@@ -60,8 +62,20 @@
   </div>
 </nav>
 
-<section class="container panel" role="tabpanel" [id]="'panel-' + tab()" [attr.aria-labelledby]="'tab-' + tab()" tabindex="0">
+@if (area.loadError(); as err) {
+  <div class="container">
+    <p class="alert alert--warning" style="margin-top: 1rem; flex-wrap: wrap" role="alert">
+      <sfc-icon name="warning" size="18" /><span>Não foi possível carregar os teus atletas: {{ err }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="area.load()">Tentar de novo</button>
+    </p>
+  </div>
+}
+
+<section class="container panel" role="tabpanel" [id]="'panel-' + tab()" [attr.aria-labelledby]="'tab-' + tab()" tabindex="0" [attr.aria-busy]="area.loading()">
   @let a = athlete();
+  @if (area.loading() && !a) {
+    <p class="panel__lead" role="status">A carregar…</p>
+  }
   @switch (tab()) {
     <!-- ================= AGENDA ================= -->
     @case ('agenda') {
@@ -332,6 +346,10 @@
   <div class="empty-state">
     <sfc-icon name="users" size="32" />
     <p>Ainda não tens atletas associados.</p>
-    <button type="button" class="btn btn--primary" (click)="selectTab('atletas')">Adicionar atleta</button>
+    @if (area.apiMode) {
+      <p class="caption">Pede à secretaria do clube para associar os teus atletas a esta conta.</p>
+    } @else {
+      <button type="button" class="btn btn--primary" (click)="selectTab('atletas')">Adicionar atleta</button>
+    }
   </div>
 </ng-template>

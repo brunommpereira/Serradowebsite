@@ -110,7 +110,11 @@ Ferramentas de dados: [`tools/trofeu-almada/`](tools/trofeu-almada/README.md).
 
 Já existem o backoffice com CMS, o middleware e o backend com PostgreSQL. Ficam por fazer:
 
-- **Áreas de Sócio e de Atletas:** ligá-las à API. As APIs já existem (`/me/*`, `/athletes/*`) e, por agora, as áreas usam os dados de demonstração.
+- **Áreas de Sócio e de Atletas:** já estão ligadas à API: quotas, fichas, confirmação da época, pedidos de alteração e resultados. Ainda falta:
+  - na Área de Atletas: agenda e presenças, métricas e avaliações, recibos, convites a co-encarregados e adicionar atletas;
+  - na Área de Sócio: pagamento online.
+
+  Em modo API, estas partes ficam escondidas.
 - **Documentos:** carregamento real para armazenamento privado.
 - **Contas:** convites por email e recuperação de password.
 - **Administradores:** MFA.
