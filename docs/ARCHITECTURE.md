@@ -1,11 +1,11 @@
 # Arquitetura — Serrado FC Digital
 
-Três camadas com responsabilidades separadas, e uma base de dados.
+Três camadas com responsabilidades separadas, e uma base de dados. O front é Angular (TypeScript); o middleware e o backend são Python (FastAPI), em `services/serrado/`.
 
 ```
 ┌──────────────────────────┐   HTTPS + cookie de sessão   ┌───────────────────────────┐  rede interna   ┌──────────────────────────┐      ┌──────────────┐
 │ FRONT (Angular)          │ ───────────────────────────▶ │ MIDDLEWARE (BFF)          │ ──────────────▶ │ BACKEND (API interna)     │ ───▶ │ PostgreSQL   │
-│ src/                     │      /api/v1/…               │ services/middleware       │ /internal/v1/…  │ services/backend          │  SQL │ services/db  │
+│ src/                     │      /api/v1/…               │ serrado/middleware        │ /internal/v1/…  │ serrado/backend           │  SQL │ serrado/db   │
 │ • site público           │                              │ • autenticação (JWT)      │ token de serviço│ • regras de negócio       │      │ • migrações  │
 │ • Área de Sócio/Atletas  │                              │ • permissões por papel    │ + utilizador    │ • acesso à base de dados  │      │ • seed demo  │
 │ • Backoffice /admin (CMS)│                              │ • validação, rate limit   │                 │ • transações e auditoria  │      └──────────────┘
@@ -19,9 +19,9 @@ Três camadas com responsabilidades separadas, e uma base de dados.
 | Camada | Faz | Não faz |
 |---|---|---|
 | **Front** (`src/`) | Interface, navegação e validação de formulários (para a experiência do utilizador). Fala **só** com o middleware. | Não guarda segredos e não acede à base de dados. Nunca decide permissões sozinho. |
-| **Middleware** (`services/middleware`) | Login e sessão (JWT em cookie `httpOnly`); papéis (`admin`, `editor`, `secretaria`, `treinador`); validação de pedidos; rate limit; CORS; cache do conteúdo público; agregação de dados para o front (por exemplo `/home`, `/me` e o dashboard). | Não tem SQL nem regras de negócio. |
-| **Backend** (`services/backend`) | Regras de negócio, por exemplo: pedidos de alteração validados pela secretaria; no máximo 2 co-encarregados; confirmação de dados por época; publicação e revisões do CMS. Faz o acesso a PostgreSQL e escreve a auditoria. | Não fica exposto à Internet. Só aceita pedidos com o token de serviço do middleware. |
-| **Base de dados** (`services/db`) | Esquema versionado (migrações), integridade (chaves estrangeiras e `check`) e dados de demonstração (seed). | — |
+| **Middleware** (`services/serrado/middleware`) | Login e sessão (JWT em cookie `httpOnly`); papéis (`admin`, `editor`, `secretaria`, `treinador`); validação de pedidos; rate limit; CORS; cache do conteúdo público; agregação de dados para o front (por exemplo `/home`, `/me` e o dashboard). | Não tem SQL nem regras de negócio. |
+| **Backend** (`services/serrado/backend`) | Regras de negócio, por exemplo: pedidos de alteração validados pela secretaria; no máximo 2 co-encarregados; confirmação de dados por época; publicação e revisões do CMS. Faz o acesso a PostgreSQL e escreve a auditoria. | Não fica exposto à Internet. Só aceita pedidos com o token de serviço do middleware. |
+| **Base de dados** (`services/serrado/db`) | Esquema versionado (migrações), integridade (chaves estrangeiras e `check`) e dados de demonstração (seed). | — |
 
 **Defesa em profundidade:** o middleware verifica o papel de quem faz o pedido. O backend volta a verificar o acesso ao nível dos dados: um encarregado só consegue ler ou alterar os seus educandos, mesmo que o middleware falhe.
 
@@ -34,7 +34,7 @@ Três camadas com responsabilidades separadas, e uma base de dados.
 | Postgres gerido (Supabase, Neon, Azure Database for PostgreSQL, AWS RDS) | Recomendado: backups automáticos e TLS. O plano gratuito chega para começar. |
 | VPS (OVHcloud, Hostinger…) | PostgreSQL 16 nativo e só local, com cópias diárias e cópia externa cifrada (restic). Ver [`DEPLOY-VPS.md`](DEPLOY-VPS.md). **É a opção escolhida.** |
 
-Tabelas principais (ver `services/db/migrations`):
+Tabelas principais (ver `services/serrado/db/migrations`):
 
 - **Identidade:** `users` (uma conta por pessoa; o n.º de sócio é opcional), `user_roles`, `audit_log`.
 - **Sócios:** `members`, `quotas`.
@@ -45,7 +45,7 @@ Tabelas principais (ver `services/db/migrations`):
 ## Texto rico e imagens
 
 - **Editor visual (Tiptap):** produz HTML simples, com parágrafos, títulos, negrito, itálico, sublinhado, listas, citações, ligações e imagens.
-- **Limpeza do HTML:** o backend limpa o HTML com uma lista de etiquetas permitidas (`services/shared/html.ts`) antes de o gravar. No site, o Angular volta a filtrá-lo.
+- **Limpeza do HTML:** o backend limpa o HTML com uma lista de etiquetas permitidas (`services/serrado/html.py`, com o `nh3`) antes de o gravar. No site, o Angular volta a filtrá-lo.
 - **Conteúdos antigos:** os textos simples, com parágrafos separados por linha em branco, continuam a funcionar.
 - **Imagens:**
   - o browser reduz cada imagem (1920 px) e converte-a para WebP, o que apaga os dados EXIF e GPS;
@@ -55,8 +55,8 @@ Tabelas principais (ver `services/db/migrations`):
 
 ## APIs
 
-- **Middleware (pública):** `services/middleware/openapi.json`, com documentação interativa em `/api/docs`.
-- **Backend (interna):** `services/backend/openapi.json`, com documentação em `/internal/docs`. Só está disponível em desenvolvimento.
+- **Middleware (pública):** `services/openapi/middleware.json`, com documentação interativa em `/api/docs`.
+- **Backend (interna):** `services/openapi/backend.json`, com documentação em `/internal/docs`. Só está disponível em desenvolvimento.
 
 | Grupo | Middleware `/api/v1` | Backend `/internal/v1` |
 |---|---|---|
@@ -91,11 +91,11 @@ O front tem uma camada de dados com duas implementações:
 
 ```bash
 docker compose up -d db                     # PostgreSQL
-cd services && npm ci
-npm run db:migrate && npm run db:seed      # esquema + dados de demonstração
-npm run backend                            # :4100  /internal/docs
-npm run middleware                         # :4000  /api/docs
-cd .. && npm start                         # front :4200 (apiBaseUrl → http://localhost:4000/api/v1)
+cd services && uv sync
+uv run python -m serrado.db.migrate && uv run python -m serrado.db.seed   # esquema + dados de demonstração
+uv run python -m serrado.backend.server                                   # :4100  /internal/docs
+uv run python -m serrado.middleware.server                                # :4000  /api/docs
+cd .. && npm start                                                        # front :4200 (apiBaseUrl → http://localhost:4000/api/v1)
 ```
 
 Ou tudo junto: `docker compose up --build`.
@@ -107,7 +107,7 @@ Ou tudo junto: `docker compose up --build`.
   - o token nunca é devolvido no corpo da resposta, por isso o JavaScript nunca lhe chega.
 - **CSRF:** todos os pedidos que alteram dados, incluindo o login, precisam do cabeçalho `X-Requested-With`. O CORS só aceita as origens do site.
 - **Entrar com Google / Microsoft (OpenID Connect):**
-  - fluxo *authorization code* com PKCE (S256), `state` e `nonce`, feito no middleware com `openid-client`. O `id_token` é validado (assinatura, emissor, audiência, validade e nonce);
+  - fluxo *authorization code* com PKCE (S256), `state` e `nonce`, feito no middleware (`serrado/middleware/oauth.py`, com `httpx` e `PyJWT`). O `id_token` é validado (assinatura, emissor, audiência, validade e nonce);
   - o `state`, o `nonce` e o PKCE ficam num cookie assinado, `httpOnly` e `SameSite=Lax`, que dura 10 minutos e só vale para `/api/v1/auth/oauth`;
   - **não se criam contas**. Na primeira entrada, a conta externa liga-se à conta do clube com o mesmo email, e só se o fornecedor garantir que o email está verificado. Depois disso, a ligação é feita pelo identificador da conta externa (`sub`) e fica em `user_identities`;
   - na Microsoft só entram contas pessoais. Nas contas de empresa o email não é verificado (falha conhecida como «nOAuth»);
@@ -123,9 +123,9 @@ Ou tudo junto: `docker compose up --build`.
   - os **papéis vêm sempre da base de dados**, a cada pedido. Uma conta desativada ou um papel retirado deixam de valer logo, mesmo com sessão aberta (a resposta passa a ser 401 `session_revoked`).
 - **Segredos:** em produção, `SERVICE_TOKEN` e `JWT_SECRET` são obrigatórios e têm pelo menos 32 caracteres. Os serviços recusam arrancar sem eles.
 - **XSS e CSP:**
-  - o HTML do CMS é limpo no backend (`sanitize-html`) e outra vez pelo Angular;
+  - o HTML do CMS é limpo no backend (`nh3`) e outra vez pelo Angular;
   - cada página tem uma **Content-Security-Policy** com os hashes dos scripts embutidos, gerada em `scripts/postbuild.mjs`. Um script injetado não corre;
   - o Caddy acrescenta a política para estilos, fontes, imagens e frames, mais `frame-ancestors 'none'`.
-- **Dependências:** o Dependabot propõe atualizações todas as semanas (`.github/dependabot.yml`) e o `npm audit` das dependências de produção está limpo.
+- **Dependências:** o Dependabot propõe atualizações todas as semanas (`.github/dependabot.yml`) para o front (npm) e para os serviços (uv). As versões dos serviços estão fixas no `uv.lock` e o deploy confere os hashes de cada biblioteca.
 - **Auditoria:** todas as escritas ficam registadas em `audit_log` (quem, o quê, quando).
 - **Dados de identificação:** nome, nascimento, CC e NIF só mudam através de pedidos aprovados pela secretaria. Um trigger na base de dados garante isto.

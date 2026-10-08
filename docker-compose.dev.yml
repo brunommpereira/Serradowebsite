@@ -1,4 +1,4 @@
-# Extra de desenvolvimento: expõe o PostgreSQL em localhost:5432 (para psql / npm test).
+# Extra de desenvolvimento: expõe o PostgreSQL em localhost:5432 (para psql / pytest).
 services:
   db:
     ports: ['5432:5432']

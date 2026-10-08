@@ -1,6 +1,6 @@
 # Pôr o Serrado FC numa VPS (OVHcloud ou Hostinger) com Cloudflare e GitHub Actions
 
-Instalação nativa, sem Docker: PostgreSQL, cópias de segurança, Node.js e Caddy correm diretamente no Ubuntu. O GitHub Actions faz o resto: constrói, instala, verifica e volta atrás se for preciso.
+Instalação nativa, sem Docker: PostgreSQL, cópias de segurança, os serviços em Python e o Caddy correm diretamente no Ubuntu. O GitHub Actions faz o resto: constrói, instala, verifica e volta atrás se for preciso.
 
 ```
 Visitante ──HTTPS──► Cloudflare (DNS, proteção, cache)
@@ -84,7 +84,7 @@ sudo bash /tmp/serrado/deploy/server/bootstrap.sh \
 Sem domínio, basta `sudo bash /tmp/serrado/deploy/server/bootstrap.sh --deploy-key "…"`.
 
 O bootstrap demora cerca de 5 minutos e faz o seguinte:
-1. **Pacotes:** atualiza o sistema e instala o PostgreSQL 16, o Node.js 22, o Caddy, o restic, o ufw e o fail2ban, com atualizações de segurança automáticas.
+1. **Pacotes:** atualiza o sistema e instala o PostgreSQL 16, o Python 3.12, o Caddy, o restic, o ufw e o fail2ban, com atualizações de segurança automáticas.
 2. **Base de dados:** cria a base `serrado`, só local. A aplicação liga-se pelo socket como utilizador do sistema `serrado`, sem password guardada.
 3. **Segredos:** gera-os em `/etc/serrado/serrado.env`, que fica só no servidor.
 4. **Serviços:** instala os do systemd, com isolamento (sem escrita no disco e sem privilégios), e o comando `serrado`.
@@ -105,7 +105,7 @@ Em **GitHub → Settings → Secrets and variables → Actions**:
 | Secret | `VPS_KNOWN_HOSTS` | A linha `IP ssh-ed25519 …` que o bootstrap mostrou |
 
 A partir daqui, **cada merge no `main`** com o CI verde corre o workflow **Deploy VPS**:
-1. **Construção:** o site e os serviços são construídos no GitHub (a VPS não compila nada) e seguem para a VPS num único artefacto, com verificação sha256.
+1. **Construção:** o site e os serviços são construídos no GitHub (a VPS não compila nada) e seguem para a VPS num único artefacto, com verificação sha256. As bibliotecas Python vão dentro do artefacto e a VPS confere o hash de cada uma: não descarrega nada da Internet.
 2. **Na VPS:** é feita uma cópia da BD, correm as migrações, a versão nova é ativada e confirma-se que **é a versão nova** que responde.
 3. **Se não responder:** volta sozinha à versão anterior e o workflow falha.
 

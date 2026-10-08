@@ -3,7 +3,7 @@ Description=Serrado FC — middleware (API pública /api/v1, 127.0.0.1:4000)
 After=network-online.target postgresql.service serrado-backend.service
 Wants=postgresql.service
 # Só arranca depois do primeiro deploy
-ConditionPathExists=/opt/serrado/current/services/package.json
+ConditionPathExists=/opt/serrado/current/services/.venv/bin/python
 
 [Service]
 User=serrado
@@ -11,10 +11,11 @@ Group=serrado
 EnvironmentFile=/etc/serrado/serrado.env
 Environment=MIDDLEWARE_PORT=4000
 WorkingDirectory=/opt/serrado/current/services
-ExecStart=/usr/bin/node middleware/src/server.ts
+Environment=PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+ExecStart=/opt/serrado/current/services/.venv/bin/python -m serrado.middleware.server
 Restart=on-failure
 RestartSec=3
-MemoryMax=700M
+MemoryMax=400M
 # Isolamento: sem escrita no disco, sem privilégios, só rede IP e o socket do PostgreSQL
 NoNewPrivileges=true
 ProtectSystem=strict
