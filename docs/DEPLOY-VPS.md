@@ -132,6 +132,49 @@ sudo serrado content                                  # opcional: notícias, eve
 
 As restantes contas da equipa criam-se no backoffice: **Utilizadores**.
 
+## 5b. Entrar com Google e Microsoft (opcional)
+
+Sócios e atletas passam a ver os botões **Continuar com Google** e **Continuar com Microsoft** em /entrar.
+
+**Como funciona a ligação das contas:**
+- **Não se criam contas novas:** só entra quem já tem conta no clube, criada pela secretaria.
+- **Primeira vez:** a conta Google ou Microsoft fica ligada à conta do clube com **o mesmo email**.
+- **Daí em diante:** a pessoa entra mesmo que mude o email no Google.
+- **Desligar:** cada pessoa pode desligar a conta em /entrar, depois de entrar.
+
+Os botões só aparecem para os fornecedores configurados.
+
+### Google (grátis)
+
+1. Em **console.cloud.google.com**, cria um projeto, por exemplo «Serrado FC».
+2. **Google Auth Platform → Branding:**
+   - nome «Serrado FC», com o email de suporte e o logótipo;
+   - domínio autorizado `serradofc.pt`;
+   - ligações para a política de privacidade (`https://www.serradofc.pt/privacidade`).
+3. **Audience:** *External*. Depois carrega em **Publish app**, senão só entram os utilizadores de teste. Com os âmbitos básicos (email e perfil) não é precisa a verificação da Google.
+4. **Clients → Create client:**
+   - tipo *Web application*;
+   - em *Authorized redirect URIs*: `https://www.serradofc.pt/api/v1/auth/oauth/google/callback`.
+5. Na VPS, corre `sudo serrado oauth google` e cola o *Client ID* e o *Client secret*.
+
+### Microsoft (Outlook, Hotmail, Live; grátis)
+
+1. Em **entra.microsoft.com → App registrations → New registration**:
+   - nome «Serrado FC»;
+   - *Supported account types*: **Personal Microsoft accounts only**;
+   - *Redirect URI*: tipo *Web*, com `https://www.serradofc.pt/api/v1/auth/oauth/microsoft/callback`.
+2. **Certificates & secrets → New client secret**, com validade de 24 meses. Copia o **Value**.
+   - Põe no calendário a data em que o secret expira: nesse dia tens de o renovar.
+3. Na VPS, corre `sudo serrado oauth microsoft`. Cola o *Application (client) ID* e o *Value* do secret.
+
+**Para desligar um fornecedor:** `sudo serrado oauth google off`.
+
+**Outros fornecedores:**
+- **Apple:** obriga a ter uma conta Apple Developer (99 €/ano).
+- **Facebook:** recolhe mais dados do que precisamos.
+
+Ficam de fora, mas podem acrescentar-se mais tarde.
+
 ## 6. Cópias de segurança
 
 | | Onde | Quando | Quanto tempo |
@@ -170,6 +213,7 @@ sudo serrado offsite-latest /root/recuperar                  # descarrega a últ
 | `sudo serrado rollback` | Versão anterior |
 | `sudo serrado admin <email> "<nome>"` | Criar uma conta de administração ou repor a password |
 | `sudo serrado cf-ips` | Atualizar já os IPs da Cloudflare na firewall |
+| `sudo serrado oauth google` / `microsoft` | Ativar a entrada com Google ou Microsoft (`… off` para desativar) |
 
 Para mudar o domínio ou passar a usar a Cloudflare, volta a correr o `bootstrap.sh` com as novas opções. Os dados e os segredos mantêm-se.
 

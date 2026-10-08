@@ -98,6 +98,7 @@ HOST=127.0.0.1
 TRUST_PROXY=loopback
 SITE_DOMAIN=$DOMAIN
 CORS_ORIGINS=https://$DOMAIN
+PUBLIC_URL=https://$DOMAIN
 DATABASE_URL=postgresql://serrado@%2Fvar%2Frun%2Fpostgresql/serrado
 BACKEND_URL=http://127.0.0.1:4100
 SERVICE_TOKEN=$(openssl rand -hex 32)
@@ -105,7 +106,8 @@ JWT_SECRET=$(openssl rand -hex 32)
 EOF
   umask 022
 else
-  sed -i "s#^SITE_DOMAIN=.*#SITE_DOMAIN=$DOMAIN#; s#^CORS_ORIGINS=.*#CORS_ORIGINS=https://$DOMAIN#" "$ETC/serrado.env"
+  sed -i "s#^SITE_DOMAIN=.*#SITE_DOMAIN=$DOMAIN#; s#^CORS_ORIGINS=.*#CORS_ORIGINS=https://$DOMAIN#; s#^PUBLIC_URL=.*#PUBLIC_URL=https://$DOMAIN#" "$ETC/serrado.env"
+  grep -q '^PUBLIC_URL=' "$ETC/serrado.env" || echo "PUBLIC_URL=https://$DOMAIN" >> "$ETC/serrado.env"
 fi
 chown root:serrado "$ETC/serrado.env" && chmod 640 "$ETC/serrado.env"
 

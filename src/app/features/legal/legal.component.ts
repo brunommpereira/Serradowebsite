@@ -55,7 +55,7 @@ export class LegalComponent {
   private privacy(): LegalPage {
     return {
       title: 'Política de Privacidade',
-      updated: '06/10/2026',
+      updated: '08/10/2026',
       sections: [
         { h: '1. Responsável pelo tratamento', p: [`${this.club.name}, NIPC ${this.club.nipc}, com sede no ${this.club.address}, ${this.club.postalCode} ${this.club.locality}. Contacto: ${this.club.email}.`] },
         { h: '2. Dados tratados', p: ['Identificação (nome, data de nascimento, NIF, documento de identificação), contactos, morada, dados de sócio e de pagamento de quotas, inscrições em modalidades e eventos e, quando autorizado, imagem.'] },
@@ -63,7 +63,13 @@ export class LegalComponent {
         { h: '4. Conservação', p: ['Os dados são conservados durante a relação com o clube e pelos prazos legais aplicáveis (por exemplo, obrigações fiscais), sendo depois eliminados ou anonimizados.'] },
         { h: '5. Os seus direitos', p: ['Acesso, retificação, apagamento (quando aplicável), limitação, portabilidade (exportação de dados), oposição e retirada do consentimento a qualquer momento. Pode exercê-los através do email do clube ou na Área de Sócio, e apresentar reclamação à CNPD.'] },
         { h: '6. Segurança', p: ['Ligações cifradas (HTTPS), controlo de acessos por perfis, autenticação forte para administradores, registos de auditoria e cópias de segurança.'] },
-        { h: '7. Menores', p: ['O tratamento de dados de menores de 13 anos requer o consentimento do titular das responsabilidades parentais.'] },
+        {
+          h: '7. Entrar com Google ou Microsoft',
+          p: [
+            'Se escolher entrar com uma conta Google ou Microsoft, recebemos desse serviço apenas o identificador da conta, o nome e o email, para a ligar à sua conta no clube (que tem de existir e ter o mesmo email). Não recebemos a password nem outros dados, e não criamos contas novas. Pode desligar a conta Google ou Microsoft a qualquer momento depois de entrar no site.',
+          ],
+        },
+        { h: '8. Menores', p: ['O tratamento de dados de menores de 13 anos requer o consentimento do titular das responsabilidades parentais.'] },
       ],
     };
   }

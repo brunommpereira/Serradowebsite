@@ -20,7 +20,7 @@ npm run db:migrate          # aplica db/migrations/*.sql (cada uma numa transaç
 npm run db:seed             # dados de demonstração (APAGA o conteúdo!)
 npm run backend             # http://localhost:4100/internal/docs
 npm run middleware          # http://localhost:4000/api/docs
-npm test                    # 51 testes de integração com PostgreSQL real
+npm test                    # 63 testes de integração com PostgreSQL real
 npm run typecheck
 npm run openapi             # regenera backend/openapi.json e middleware/openapi.json
 ```
@@ -54,6 +54,10 @@ Também se pode subir tudo com Docker: `docker compose up --build` na raiz (incl
 | `TRUST_PROXY` | middleware | Proxies de confiança para o IP do cliente (`loopback` no servidor, atrás do Caddy) |
 | `SESSION_SAMESITE` | middleware | `strict` por omissão (site e API no mesmo domínio). `none` só se ficarem em domínios diferentes |
 | `RATE_LIMIT_MAX` | middleware | Pedidos por minuto e por IP em toda a API (por omissão 300) |
+| `PUBLIC_URL` | middleware | Endereço do site, por exemplo `https://www.serradofc.pt`. Necessário para entrar com Google/Microsoft |
+| `SITE_URL` | middleware | Para onde se volta depois de entrar com Google/Microsoft (por omissão `PUBLIC_URL`) |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | middleware | Ativam «Continuar com Google» (ver docs/DEPLOY-VPS.md) |
+| `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` | middleware | Ativam «Continuar com Microsoft» (só contas pessoais) |
 | `NODE_ENV=production` | todos | Torna obrigatórias as variáveis acima e ativa os cookies `Secure` |
 
 ## Importar dados reais
