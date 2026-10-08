@@ -23,7 +23,11 @@ const CATEGORY_SPORT: Record<string, string> = {
   template: `
     <article class="news" [class.news--featured]="featured()">
       <a class="news__media media-ph" [attr.data-sport]="sport()" [routerLink]="['/noticias', article().slug]" tabindex="-1" aria-hidden="true">
-        <img src="brand/logo-white.svg" alt="" loading="lazy" />
+        @if (article().coverUrl; as cover) {
+          <img class="news__cover" [src]="cover" alt="" loading="lazy" />
+        } @else {
+          <img src="brand/logo-white.svg" alt="" loading="lazy" />
+        }
       </a>
       <div class="news__body">
         <p class="news__meta">
@@ -49,7 +53,7 @@ const CATEGORY_SPORT: Record<string, string> = {
       transition: transform 0.22s, box-shadow 0.22s;
       &:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
     }
-    .news__media { aspect-ratio: 16 / 9; img { width: 70px; opacity: 0.9; } }
+    .news__media { aspect-ratio: 16 / 9; img { width: 70px; opacity: 0.9; } .news__cover { width: 100%; height: 100%; object-fit: cover; opacity: 1; } }
     .news__body { padding: 1.2rem 1.3rem 1.4rem; display: flex; flex-direction: column; flex: 1; }
     .news__meta { display: flex; align-items: center; gap: 0.7rem; font-size: 0.8rem; color: var(--color-muted); margin-bottom: 0.7rem; }
     h3 { font-size: 1.35rem; a { color: inherit; text-decoration: none; } a:hover { color: var(--sfc-blue); } }

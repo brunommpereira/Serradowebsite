@@ -3,7 +3,8 @@ import { isPlatformBrowser } from '@angular/common';
 import * as DATA from '../data/mock-data';
 import { ClubEvent, NewsArticle, NewsCategory, EventKind, Sponsor, SportSlug } from '../models';
 import { ApiClient } from '../api/api-client';
-import { CMS_TYPES, CmsEntry, CmsRevision, CmsStatus, CmsType, paragraphs } from './cms.models';
+import { CMS_TYPES, CmsEntry, CmsRevision, CmsStatus, CmsType } from './cms.models';
+import { bodyToHtml } from './rich-text';
 
 const STORAGE_KEY = 'sfc.cms.v1';
 
@@ -50,9 +51,9 @@ export class CmsStore {
   );
   readonly partners = computed<Sponsor[]>(() => this.state().entries.partners.filter((e) => e.status === 'published').map(toPartner));
 
-  page(slug: string): { title: string; summary: string; paragraphs: string[]; updatedAt: string } | null {
+  page(slug: string): { title: string; summary: string; bodyHtml: string; updatedAt: string } | null {
     const p = this.published('pages').find((e) => e.slug === slug);
-    return p ? { title: String(p['title']), summary: String(p['summary'] ?? ''), paragraphs: paragraphs(p['body']), updatedAt: p.updatedAt } : null;
+    return p ? { title: String(p['title']), summary: String(p['summary'] ?? ''), bodyHtml: bodyToHtml(p['body']), updatedAt: p.updatedAt } : null;
   }
 
   // ---------------------------------------------------------------- modo API
@@ -79,14 +80,14 @@ export class CmsStore {
         this.api.get<NewsArticle[]>('/content/news'),
         this.api.get<ClubEvent[]>('/content/events'),
         this.api.get<Sponsor[]>('/content/partners'),
-        this.api.get<{ slug: string; title: string; summary: string; paragraphs: string[]; updatedAt: string }[]>('/content/pages'),
+        this.api.get<{ slug: string; title: string; summary: string; bodyHtml: string; updatedAt: string }[]>('/content/pages'),
       ]);
       this.state.set({
         entries: {
-          news: news.map(fromNews),
-          events: events.map(fromEvent),
+          news: news.map((n) => ({ ...fromNews({ ...n, content: [] }), body: n.bodyHtml, coverUrl: n.coverUrl ?? null })),
+          events: events.map((e) => ({ ...fromEvent({ ...e, description: [] }), body: e.bodyHtml, coverUrl: e.coverUrl ?? null })),
           partners: partners.map(fromPartner),
-          pages: pages.map((p, i) => ({ id: i + 1, slug: p.slug, title: p.title, summary: p.summary, body: p.paragraphs.join('\n\n'), ...published(p.updatedAt) })),
+          pages: pages.map((p, i) => ({ id: i + 1, slug: p.slug, title: p.title, summary: p.summary, body: p.bodyHtml, ...published(p.updatedAt) })),
         },
         revisions: [],
         seq: 0,
@@ -201,7 +202,8 @@ export const toNews = (e: CmsEntry): NewsArticle => ({
   title: String(e['title']),
   category: e['category'] as NewsCategory,
   summary: String(e['summary'] ?? ''),
-  content: paragraphs(e['body']),
+  bodyHtml: bodyToHtml(e['body']),
+  coverUrl: (e['coverUrl'] as string | null) ?? null,
   author: String(e['author'] || 'Comunicação Serrado FC'),
   publicationDate: String(e.publishedAt ?? e.updatedAt).slice(0, 10),
 });
@@ -213,7 +215,8 @@ export const toEvent = (e: CmsEntry): ClubEvent => ({
   kind: e['kind'] as EventKind,
   sportSlug: (e['sportSlug'] as SportSlug | null) ?? undefined,
   summary: String(e['summary'] ?? ''),
-  description: paragraphs(e['body']),
+  bodyHtml: bodyToHtml(e['body']),
+  coverUrl: (e['coverUrl'] as string | null) ?? null,
   date: String(e['startsAt']),
   endTime: (e['endTime'] as string | null) ?? undefined,
   location: String(e['location']),
@@ -236,11 +239,11 @@ export const toPartner = (e: CmsEntry): Sponsor => ({
 
 const published = (date: string) => ({ status: 'published' as const, publishedAt: date, updatedAt: date });
 
-function fromNews(n: NewsArticle): CmsEntry {
+function fromNews(n: DATA.NewsSeed): CmsEntry {
   return { id: n.id, slug: n.slug, title: n.title, category: n.category, summary: n.summary, body: n.content.join('\n\n'), author: n.author, coverUrl: null, ...published(n.publicationDate) };
 }
 
-function fromEvent(e: ClubEvent): CmsEntry {
+function fromEvent(e: DATA.EventSeed): CmsEntry {
   return {
     id: e.id,
     slug: e.slug,
@@ -249,6 +252,7 @@ function fromEvent(e: ClubEvent): CmsEntry {
     sportSlug: e.sportSlug ?? null,
     summary: e.summary,
     body: e.description.join('\n\n'),
+    coverUrl: null,
     startsAt: e.date,
     endTime: e.endTime ?? null,
     location: e.location,

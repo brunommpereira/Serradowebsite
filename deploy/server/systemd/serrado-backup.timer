@@ -1,0 +1,11 @@
+[Unit]
+Description=Serrado FC — cópia diária da base de dados (03:30)
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=15min
+# Se o servidor estiver desligado à hora marcada, faz a cópia quando voltar
+Persistent=true
+
+[Install]
+WantedBy=timers.target

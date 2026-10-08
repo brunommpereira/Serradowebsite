@@ -2,9 +2,12 @@ import { ChangeDetectionStrategy, Component, computed, effect, HostListener, inj
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { CMS_TYPES, CmsEntry, CmsField, CmsRevision, CmsType, emptyEntry, paragraphs, slugify, STATUS_LABEL } from '../../../core/cms/cms.models';
+import { CMS_TYPES, CmsEntry, CmsField, CmsRevision, CmsType, emptyEntry, slugify, STATUS_LABEL } from '../../../core/cms/cms.models';
+import { bodyToHtml } from '../../../core/cms/rich-text';
 import { IconComponent } from '../../../shared/icon.component';
 import { AdminSource, CmsAction } from '../data/admin-source';
+import { MediaPickerComponent } from '../media/media-picker.component';
+import { RichTextEditorComponent } from '../media/rich-text-editor.component';
 import { HasUnsavedChanges } from './unsaved.guard';
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -12,7 +15,7 @@ const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 /** Editor de um conteúdo do CMS (criação e edição). */
 @Component({
   selector: 'sfc-admin-cms-editor',
-  imports: [DatePipe, FormsModule, RouterLink, IconComponent],
+  imports: [DatePipe, FormsModule, RouterLink, IconComponent, MediaPickerComponent, RichTextEditorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './cms-editor.page.html',
   styleUrl: './cms-editor.page.scss',
@@ -44,8 +47,14 @@ export class CmsEditorPage implements HasUnsavedChanges {
   protected readonly preview = signal(false);
   protected readonly loading = signal(true);
 
-  protected readonly mainFields = computed(() => this.def().fields.filter((f) => f.kind !== 'markdown'));
-  protected readonly bodyField = computed(() => this.def().fields.find((f) => f.kind === 'markdown'));
+  protected readonly mainFields = computed(() => this.def().fields.filter((f) => f.kind !== 'richtext'));
+  protected readonly bodyField = computed(() => this.def().fields.find((f) => f.kind === 'richtext'));
+  /** O texto aparece logo a seguir ao campo que o antecede na definição (resumo ou imagem de capa) */
+  protected readonly bodyAfter = computed(() => {
+    const fields = this.def().fields;
+    const i = fields.findIndex((f) => f.kind === 'richtext');
+    return i > 0 ? fields[i - 1].key : null;
+  });
 
   constructor() {
     effect(() => {
@@ -68,8 +77,8 @@ export class CmsEditorPage implements HasUnsavedChanges {
     return String(this.model[this.def().titleKey] ?? '') || `Novo ${this.def().singular}`;
   }
 
-  protected bodyParagraphs() {
-    return paragraphs(this.model['body']);
+  protected bodyHtml() {
+    return String(this.model['body'] ?? '');
   }
 
   protected onTitle(value: string) {
@@ -171,6 +180,8 @@ export class CmsEditorPage implements HasUnsavedChanges {
   private applyEntry(e: CmsEntry) {
     this.entry.set(e);
     this.model = Object.fromEntries(this.def().fields.map((f) => [f.key, e[f.key] ?? emptyEntry(this.def().type)[f.key]]));
+    // Conteúdos antigos em texto simples passam a HTML para o editor visual
+    if (this.bodyField()) this.model['body'] = bodyToHtml(this.model['body']);
     this.saved = JSON.stringify(this.payload());
   }
 
@@ -186,7 +197,7 @@ export class CmsEditorPage implements HasUnsavedChanges {
       const v = this.model[f.key];
       if (f.kind === 'number') out[f.key] = v === '' || v === null || v === undefined ? (f.key === 'memberPrice' ? null : 0) : Number(v);
       else if (f.kind === 'checkbox') out[f.key] = !!v;
-      else if ((f.kind === 'select' && !f.required) || f.kind === 'url' || f.kind === 'time') out[f.key] = v ? String(v) : null;
+      else if ((f.kind === 'select' && !f.required) || f.kind === 'url' || f.kind === 'time' || f.kind === 'image') out[f.key] = v ? String(v) : null;
       else out[f.key] = String(v ?? '');
     }
     return out;
@@ -201,6 +212,8 @@ export class CmsEditorPage implements HasUnsavedChanges {
       else if (f.max && s.length > f.max) e[f.key] = `Máximo ${f.max} caracteres.`;
       else if (f.key === 'slug' && !SLUG_RE.test(s)) e[f.key] = 'Só letras minúsculas, números e hífenes (ex.: nova-epoca-futsal).';
       else if (f.kind === 'url' && s && !/^https?:\/\/.+/.test(s)) e[f.key] = 'Endereço completo, a começar por https://';
+      else if (f.kind === 'image' && s && !/^(https:\/\/|\/api\/v1\/media\/|data:image\/)/.test(s)) e[f.key] = 'Escolhe uma imagem da biblioteca.';
+      else if (f.kind === 'richtext' && s.length > 200000) e[f.key] = 'O texto é demasiado longo.';
       else if (f.kind === 'number' && s && (Number.isNaN(Number(s)) || Number(s) < 0)) e[f.key] = 'Número igual ou superior a 0.';
     }
     return e;

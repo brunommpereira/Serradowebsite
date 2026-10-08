@@ -29,7 +29,7 @@ const slugify = (s: string) =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 export async function seed(pool: Pool, log = console.log) {
-  const content: Content = JSON.parse(await readFile(new URL('./content.json', import.meta.url), 'utf8'));
+  const content = await loadContent();
   await tx(pool, async (c) => {
     await c.query(`truncate users, user_roles, audit_log, members, quotas, athletes, athlete_access, athlete_documents,
       athlete_change_requests, races, results, cms_news, cms_events, cms_pages, cms_partners, cms_revisions restart identity cascade`);
@@ -127,14 +127,19 @@ async function seedResults(c: Client) {
   }
 }
 
-async function seedCms(c: Client, content: Content, editor: string) {
+export async function loadContent(): Promise<Content> {
+  return JSON.parse(await readFile(new URL('./content.json', import.meta.url), 'utf8'));
+}
+
+/** Conteúdo do CMS (notícias, eventos, parceiros e páginas). Com `draft`, junta um rascunho de exemplo. */
+export async function seedCms(c: Client, content: Content, editor: string | null, opts = { draft: true }) {
   for (const n of content.news) {
     await c.query(
       `insert into cms_news (slug, title, category, summary, body, author, status, published_at, updated_by) values ($1,$2,$3,$4,$5,$6,'published',$7,$8)`,
       [n.slug, n.title, n.category, n.summary, n.content.join('\n\n'), n.author, n.publicationDate + 'T09:00:00Z', editor],
     );
   }
-  await c.query(
+  if (opts.draft) await c.query(
     `insert into cms_news (slug, title, category, summary, body, status, updated_by) values ('rascunho-gala-anual', 'Gala anual do clube: reserva a data', 'Clube', 'A gala de aniversário regressa em abril.', 'Texto em preparação.', 'draft', $1)`,
     [editor],
   );

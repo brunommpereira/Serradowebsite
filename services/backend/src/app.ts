@@ -11,6 +11,7 @@ import { athleteRoutes } from './routes/athletes.ts';
 import { memberRoutes } from './routes/members.ts';
 import { resultRoutes } from './routes/results.ts';
 import { adminRoutes } from './routes/admin.ts';
+import { mediaRoutes } from './routes/media.ts';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -74,6 +75,7 @@ export async function buildBackend(pool: Pool, opts: { logger?: boolean } = {}) 
     async (v1) => {
       await v1.register(authRoutes);
       await v1.register(cmsRoutes);
+      await v1.register(mediaRoutes);
       await v1.register(athleteRoutes);
       await v1.register(memberRoutes);
       await v1.register(resultRoutes);

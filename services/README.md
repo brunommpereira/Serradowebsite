@@ -20,7 +20,7 @@ npm run db:migrate          # aplica db/migrations/*.sql (cada uma numa transaç
 npm run db:seed             # dados de demonstração (APAGA o conteúdo!)
 npm run backend             # http://localhost:4100/internal/docs
 npm run middleware          # http://localhost:4000/api/docs
-npm test                    # 35 testes de integração com PostgreSQL real
+npm test                    # 48 testes de integração com PostgreSQL real
 npm run typecheck
 npm run openapi             # regenera backend/openapi.json e middleware/openapi.json
 ```
@@ -50,6 +50,8 @@ Também se pode subir tudo com Docker: `docker compose up --build` na raiz (incl
 | `JWT_SECRET` | middleware | Segredo da sessão (32 caracteres ou mais) |
 | `BACKEND_URL` | middleware | Endereço interno do backend |
 | `CORS_ORIGINS` | middleware | Origens do site, por exemplo `https://www.serradofc.pt` |
+| `HOST` | backend, middleware | Endereço onde escutam (`0.0.0.0` em Docker; `127.0.0.1` no servidor) |
+| `TRUST_PROXY` | middleware | Proxies de confiança para o IP do cliente (`loopback` no servidor, atrás do Caddy) |
 | `NODE_ENV=production` | todos | Torna obrigatórias as variáveis acima e ativa os cookies `Secure` |
 
 ## Importar dados reais
@@ -60,6 +62,17 @@ Também se pode subir tudo com Docker: `docker compose up --build` na raiz (incl
 3. **Acessos:** associar cada conta aos seus atletas na tabela `athlete_access` (encarregado → educandos; atleta → o próprio).
 
 ## Pôr em produção
+
+**Numa VPS** (a opção escolhida para começar): [`docs/DEPLOY-VPS.md`](../docs/DEPLOY-VPS.md).
+
+- **Instalação nativa, sem Docker** (`deploy/server/`): PostgreSQL 16 só local, serviços systemd, Caddy e Cloudflare.
+- **Cópias de segurança:** pg_dump e restic cifrado.
+- **Deploy:** orquestrado pelo GitHub Actions, com verificação da versão e rollback automático.
+- **Docker:** o `docker-compose.yml` fica só para desenvolvimento.
+
+Criar a primeira conta de administração (`npm run db:create-admin -- email "Nome"`; no servidor: `sudo serrado admin …`) e carregar o conteúdo inicial do site, sem dados pessoais (`npm run db:content`).
+
+Outras opções:
 
 - **Base de dados:** PostgreSQL gerido na **região UE**, com backups automáticos (Supabase, Neon, Azure Database for PostgreSQL, RDS…) ou o `docker compose` num servidor do clube.
 - **Serviços:** a mesma imagem `services/Dockerfile` serve os dois, com comandos diferentes. Podem correr em qualquer serviço de containers (Fly.io, Render, Railway, Azure Container Apps, um VPS…).

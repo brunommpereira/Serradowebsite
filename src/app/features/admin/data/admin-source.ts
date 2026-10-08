@@ -125,6 +125,39 @@ export interface ImportSummary {
 
 export type CmsAction = 'publish' | 'unpublish' | 'archive';
 
+/** Imagem da biblioteca do CMS. */
+export interface MediaItem {
+  id: number;
+  key: string;
+  name: string;
+  mime: string;
+  sizeBytes: number;
+  width: number | null;
+  height: number | null;
+  alt: string;
+  createdAt: string;
+  uploadedByName: string | null;
+  /** endereço a usar no site (texto e capas) */
+  url: string;
+}
+
+/** Imagem já reduzida e convertida no browser, pronta a enviar. */
+export interface PreparedImage {
+  name: string;
+  mime: string;
+  /** conteúdo em base64 (sem o prefixo data:) */
+  base64: string;
+  width: number;
+  height: number;
+  alt: string;
+}
+
+export interface MediaUsage {
+  type: string;
+  id: number;
+  title: string;
+}
+
 export abstract class AdminSource {
   abstract readonly mode: 'demo' | 'api';
   abstract dashboard(): Promise<Dashboard>;
@@ -137,6 +170,14 @@ export abstract class AdminSource {
   abstract cmsDelete(type: CmsType, id: number): Promise<void>;
   abstract cmsRevisions(type: CmsType, id: number): Promise<CmsRevision[]>;
   abstract cmsRestore(type: CmsType, id: number, revision: number): Promise<CmsEntry>;
+
+  abstract mediaList(q?: string): Promise<MediaItem[]>;
+  abstract mediaUpload(img: PreparedImage): Promise<MediaItem>;
+  abstract mediaUpdate(id: number, alt: string): Promise<MediaItem>;
+  abstract mediaUsage(id: number): Promise<MediaUsage[]>;
+  abstract mediaDelete(id: number): Promise<void>;
+  /** Dimensão máxima (px) a que o browser reduz as imagens antes de as enviar. */
+  readonly mediaMaxSize: number = 1920;
 
   abstract athletes(filter: { q?: string; sport?: string; pending?: string }): Promise<AdminAthlete[]>;
   abstract athlete(id: string): Promise<AdminAthleteDetail>;

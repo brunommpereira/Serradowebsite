@@ -32,7 +32,7 @@ Três camadas com responsabilidades separadas, e uma base de dados.
 | Opção | Notas |
 |---|---|
 | Postgres gerido (Supabase, Neon, Azure Database for PostgreSQL, AWS RDS) | Recomendado: backups automáticos e TLS. O plano gratuito chega para começar. |
-| Servidor do clube / VPS com Docker | `docker compose up` (ver `docker-compose.yml`). Os backups ficam a cargo do clube. |
+| VPS (OVHcloud, Hostinger…) | PostgreSQL 16 nativo e só local, com cópias diárias e cópia externa cifrada (restic). Ver [`DEPLOY-VPS.md`](DEPLOY-VPS.md). **É a opção escolhida.** |
 
 Tabelas principais (ver `services/db/migrations`):
 
@@ -41,6 +41,17 @@ Tabelas principais (ver `services/db/migrations`):
 - **Atletas:** `athletes`, `athlete_access` (encarregado, co-encarregado ou atleta), `athlete_documents`, `athlete_change_requests`.
 - **Competições:** `races`, `results` (Troféu de Almada).
 - **CMS:** `cms_news`, `cms_events`, `cms_pages`, `cms_partners`, `cms_revisions` (histórico de versões de cada conteúdo).
+
+## Texto rico e imagens
+
+- **Editor visual (Tiptap):** produz HTML simples, com parágrafos, títulos, negrito, itálico, sublinhado, listas, citações, ligações e imagens.
+- **Limpeza do HTML:** o backend limpa o HTML com uma lista de etiquetas permitidas (`services/shared/html.ts`) antes de o gravar. No site, o Angular volta a filtrá-lo.
+- **Conteúdos antigos:** os textos simples, com parágrafos separados por linha em branco, continuam a funcionar.
+- **Imagens:**
+  - o browser reduz cada imagem (1920 px) e converte-a para WebP, o que apaga os dados EXIF e GPS;
+  - o backend confirma o tipo real pelos primeiros bytes (JPEG, PNG, WebP ou GIF, até 5 MB);
+  - as imagens ficam na tabela `cms_media` e entram nas cópias de segurança;
+  - uma imagem em uso não pode ser apagada.
 
 ## APIs
 
@@ -54,6 +65,8 @@ Tabelas principais (ver `services/db/migrations`):
 | Área de Atletas | `GET /me/athletes`, `GET\|PATCH /athletes/{id}`, `POST /athletes/{id}/confirm`, `POST /athletes/{id}/change-requests`, `GET /athletes/{id}/results` | `GET /athletes?accessibleBy=`, `GET\|PATCH /athletes/{id}`, `POST /athletes/{id}/confirm`, `POST /athletes/{id}/change-requests`, `GET /athletes/{id}/results` |
 | Área de Sócio | `GET /me/member`, `GET /me/quotas` | `GET /members/{number}`, `GET /members/{number}/quotas` |
 | Backoffice: CMS | `GET\|POST /admin/cms/{tipo}`, `GET\|PUT\|DELETE /admin/cms/{tipo}/{id}`, `POST …/publish`, `POST …/unpublish`, `GET …/revisions`, `POST …/revisions/{rev}/restore` | as mesmas, em `/cms/…` |
+| Backoffice: imagens | `GET\|POST /admin/media`, `PATCH\|DELETE /admin/media/{id}`, `GET /admin/media/{id}/usage` | as mesmas, em `/cms/media…` |
+| Imagens públicas | `GET /media/{chave}.{ext}` (cache de 1 ano, endereço aleatório) | `GET /media/{chave}` |
 | Backoffice: atletas | `GET /admin/athletes`, `GET /admin/change-requests`, `POST /admin/change-requests/{id}/approve\|reject`, `POST /admin/documents/{id}/approve\|reject` | as mesmas, sem o prefixo `/admin` |
 | Backoffice: resultados | `POST /admin/results/import` | `POST /results/import` |
 | Backoffice: gestão | `GET /admin/dashboard` (agregado), `GET /admin/users`, `PUT /admin/users/{id}/roles`, `GET /admin/audit` | `GET /stats`, `GET /users`, `PUT /users/{id}/roles`, `GET /audit` |
@@ -72,7 +85,7 @@ Tabelas principais (ver `services/db/migrations`):
 O front tem uma camada de dados com duas implementações:
 
 - **Demo:** quando `apiBaseUrl` está vazio, que é o caso do GitHub Pages hoje. Os dados vêm de `core/data` e do `localStorage` do browser. No modo demo, o CMS do backoffice já publica no site, mas só no browser de quem edita.
-- **API:** quando `apiBaseUrl` está definido em `src/app/core/api/api.config.ts`. O front passa a chamar o middleware com `withCredentials`, e o conteúdo e as áreas reservadas passam a ser reais.
+- **API:** quando `apiBaseUrl` está definido em `src/app/core/api/api.config.ts`. Na VPS, o build define-o como `/api/v1` através de `scripts/set-api-url.mjs` (ver [`DEPLOY-VPS.md`](DEPLOY-VPS.md)). O front passa a chamar o middleware com `withCredentials`, e o conteúdo e as áreas reservadas passam a ser reais.
 
 ## Correr localmente
 

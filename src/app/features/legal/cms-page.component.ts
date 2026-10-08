@@ -15,9 +15,7 @@ import { PageHeroComponent } from '../../shared/page-hero.component';
       <sfc-page-hero eyebrow="Clube" [title]="p.title" [subtitle]="p.summary" [crumbs]="[{ label: p.title }]" />
       <section class="section">
         <div class="container prose">
-          @for (par of p.paragraphs; track $index) {
-            <p>{{ par }}</p>
-          }
+          <div class="rich" [innerHTML]="p.bodyHtml"></div>
           <p class="caption">Última atualização: {{ p.updatedAt | date: 'd MMMM y' }}</p>
         </div>
       </section>

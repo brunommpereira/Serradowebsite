@@ -82,7 +82,7 @@ O `ContentService` é o único ponto de acesso aos dados. Ao lado de cada métod
 | Conta | Password | Papel |
 |---|---|---|
 | `admin@serradofc.pt` | `admin2026` | admin (tudo) |
-| `editor@serradofc.pt` | `editor2026` | editor: notícias, eventos, páginas, parceiros |
+| `editor@serradofc.pt` | `editor2026` | editor: notícias, eventos, páginas, parceiros e imagens (editor visual) |
 | `secretaria@serradofc.pt` | `secretaria2026` | secretaria: atletas, validações, resultados |
 | `treinador@serradofc.pt` | `treinador2026` | treinador: consulta de atletas (sem dados sensíveis) |
 
@@ -97,13 +97,19 @@ O `ContentService` é o único ponto de acesso aos dados. Ao lado de cada métod
 
 Ver [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) e [`services/README.md`](services/README.md). Sem `apiBaseUrl` (o caso do GitHub Pages), o front corre em **modo demonstração**: as edições do CMS ficam só no browser. Com a API configurada, tudo passa pelo middleware até ao PostgreSQL.
 
+**Produção numa VPS** (OVHcloud VPS-1 ou Hostinger KVM 1):
+
+- **Instalação nativa, sem Docker:** PostgreSQL, Node.js e Caddy no Ubuntu.
+- **Cloudflare:** à frente do site, e as portas 80/443 só aceitam a Cloudflare.
+- **Cópias de segurança:** diárias, com cópia externa cifrada.
+- **GitHub Actions:** faz o deploy, o rollback e a verificação diária. Ver [`docs/DEPLOY-VPS.md`](docs/DEPLOY-VPS.md).
+
 Ferramentas de dados: [`tools/trofeu-almada/`](tools/trofeu-almada/README.md).
 
 ## O que falta (próximas fases)
 
 Já existem o backoffice com CMS, o middleware e o backend com PostgreSQL. Ficam por fazer:
 
-- **Alojamento:** pôr os serviços e a base de dados em produção, e ligar o front configurando `apiBaseUrl` (ver `services/README.md`).
 - **Áreas de Sócio e de Atletas:** ligá-las à API. As APIs já existem (`/me/*`, `/athletes/*`) e, por agora, as áreas usam os dados de demonstração.
 - **Documentos:** carregamento real para armazenamento privado.
 - **Contas:** convites por email e recuperação de password.

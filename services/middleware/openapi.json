@@ -204,6 +204,30 @@
         }
       }
     },
+    "/api/v1/media/{file}": {
+      "get": {
+        "summary": "Imagem do CMS",
+        "tags": [
+          "Conteúdo público"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f-]{36}(\\.[a-z]{3,4})?$"
+            },
+            "in": "path",
+            "name": "file",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
     "/api/v1/content/partners": {
       "get": {
         "summary": "Parceiros e patrocinadores",
@@ -412,6 +436,131 @@
         "summary": "Indicadores + atividade recente + o que precisa de atenção (agregado)",
         "tags": [
           "Backoffice"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/media": {
+      "get": {
+        "summary": "Lista as imagens",
+        "tags": [
+          "Backoffice · Imagens"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "in": "query",
+            "name": "q",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      },
+      "post": {
+        "summary": "Carrega uma imagem (base64; o browser reduz e converte antes)",
+        "tags": [
+          "Backoffice · Imagens"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/media/{id}": {
+      "patch": {
+        "summary": "Altera o texto alternativo",
+        "tags": [
+          "Backoffice · Imagens"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Apaga (recusa se estiver a ser usada)",
+        "tags": [
+          "Backoffice · Imagens"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/media/{id}/usage": {
+      "get": {
+        "summary": "Onde a imagem é usada",
+        "tags": [
+          "Backoffice · Imagens"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
         ],
         "responses": {
           "200": {

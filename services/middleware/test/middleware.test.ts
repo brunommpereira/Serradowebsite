@@ -83,7 +83,7 @@ describe('conteúdo público (BFF)', () => {
   test('notícias no formato do front, sem rascunhos', async () => {
     const news = (await mw.inject({ method: 'GET', url: '/api/v1/content/news' })).json();
     assert.ok(news.length >= 7);
-    assert.ok(Array.isArray(news[0].content));
+    assert.match(news[0].bodyHtml, /^<p>/);
     assert.match(news[0].publicationDate, /^\d{4}-\d{2}-\d{2}$/);
     assert.ok(!news.some((n: { slug: string }) => n.slug === 'rascunho-gala-anual'));
   });
@@ -94,10 +94,10 @@ describe('conteúdo público (BFF)', () => {
     assert.ok(Array.isArray(home.events) && Array.isArray(home.partners));
   });
 
-  test('página institucional em parágrafos', async () => {
+  test('página institucional em HTML', async () => {
     const page = (await mw.inject({ method: 'GET', url: '/api/v1/content/pages/privacidade' })).json();
     assert.equal(page.title, 'Política de Privacidade');
-    assert.ok(page.paragraphs.length >= 2);
+    assert.ok(page.bodyHtml.split('<p>').length > 2);
   });
 });
 
@@ -132,7 +132,32 @@ describe('backoffice', () => {
     await as(s.cookie, 'POST', `/admin/cms/news/${created.json().id}/publish`);
     news = (await mw.inject({ method: 'GET', url: '/api/v1/content/news' })).json();
     const n = news.find((x: { slug: string }) => x.slug === 'noticia-do-cms');
-    assert.deepEqual(n.content, ['Parágrafo 1', 'Parágrafo 2']);
+    assert.equal(n.bodyHtml, '<p>Parágrafo 1</p><p>Parágrafo 2</p>');
+  });
+
+  test('editor: carrega uma imagem e o site serve-a com cache longa', async () => {
+    const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+    const s = await login('editor@serradofc.pt', 'editor2026');
+    const up = await as(s.cookie, 'POST', '/admin/media', { name: 'logo.png', data: png, alt: 'Logótipo' });
+    assert.equal(up.statusCode, 201);
+    const { key, id } = up.json();
+    assert.equal((await as(s.cookie, 'GET', '/admin/media')).json()[0].key, key);
+    const img = await mw.inject({ method: 'GET', url: `/api/v1/media/${key}.png` });
+    assert.equal(img.statusCode, 200);
+    assert.equal(img.headers['content-type'], 'image/png');
+    assert.match(String(img.headers['cache-control']), /immutable/);
+    assert.equal(img.rawPayload.toString('base64'), png);
+    // Sem sessão de staff não se carrega nada
+    const socio = await login('socio@exemplo.pt', 'serrado1978');
+    assert.equal((await as(socio.cookie, 'POST', '/admin/media', { name: 'x.png', data: png })).statusCode, 403);
+    // HTML com a imagem: limpo e servido ao site
+    const news = await as(s.cookie, 'POST', '/admin/cms/news', {
+      slug: 'com-foto', title: 'Com foto', category: 'Clube', body: `<p>Olá<script>x()</script></p><img src="/api/v1/media/${key}.png" alt="Logótipo">`,
+    });
+    await as(s.cookie, 'POST', `/admin/cms/news/${news.json().id}/publish`);
+    const pub = (await mw.inject({ method: 'GET', url: '/api/v1/content/news/com-foto' })).json();
+    assert.equal(pub.bodyHtml, `<p>Olá</p><img src="/api/v1/media/${key}.png" alt="Logótipo" />`);
+    assert.equal((await as(s.cookie, 'DELETE', `/admin/media/${id}`)).statusCode, 409);
   });
 
   test('editor não gere atletas; secretaria sim', async () => {
