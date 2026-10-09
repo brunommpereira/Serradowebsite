@@ -22,7 +22,15 @@ describe('Backoffice (modo demonstração)', () => {
   it('notícia criada fica em rascunho e só aparece no site depois de publicada', async () => {
     await auth.login('editor@serradofc.pt', 'editor2026');
     const content = TestBed.inject(ContentService);
-    const e = await admin.cmsCreate('news', { slug: 'teste-cms', title: 'Teste CMS', category: 'Clube', summary: 'Resumo', body: 'Um\n\nDois', coverUrl: null, author: 'Teste' });
+    const e = await admin.cmsCreate('news', {
+      slug: 'teste-cms',
+      title: 'Teste CMS',
+      category: 'Clube',
+      summary: 'Resumo',
+      body: 'Um\n\nDois',
+      coverUrl: null,
+      author: 'Teste',
+    });
     expect(e.status).toBe('draft');
     expect(content.article('teste-cms')).toBeUndefined();
     await admin.cmsStatus('news', e.id, 'publish');
@@ -31,13 +39,28 @@ describe('Backoffice (modo demonstração)', () => {
 
   it('imagens: carregar, descrever e não apagar enquanto estiverem em uso', async () => {
     await auth.login('editor@serradofc.pt', 'editor2026');
-    const img = await admin.mediaUpload({ name: 'equipa.webp', mime: 'image/webp', base64: 'UklGRg==', width: 10, height: 5, alt: ' Equipa ' });
+    const img = await admin.mediaUpload({
+      name: 'equipa.webp',
+      mime: 'image/webp',
+      base64: 'UklGRg==',
+      width: 10,
+      height: 5,
+      alt: ' Equipa ',
+    });
     expect(img.url).toBe('data:image/webp;base64,UklGRg==');
     expect(img.alt).toBe('Equipa');
     expect((await admin.mediaList('equi')).length).toBe(1);
     expect((await admin.mediaUpdate(img.id, 'Equipa sub-11')).alt).toBe('Equipa sub-11');
 
-    const e = await admin.cmsCreate('news', { slug: 'com-capa', title: 'Com capa', category: 'Clube', summary: '', body: '<p>Olá</p>', coverUrl: img.url, author: 'Teste' });
+    const e = await admin.cmsCreate('news', {
+      slug: 'com-capa',
+      title: 'Com capa',
+      category: 'Clube',
+      summary: '',
+      body: '<p>Olá</p>',
+      coverUrl: img.url,
+      author: 'Teste',
+    });
     expect((await admin.mediaUsage(img.id)).map((u) => u.title)).toEqual(['Com capa']);
     await expect(admin.mediaDelete(img.id)).rejects.toThrow(/Com capa/);
     await admin.cmsDelete('news', e.id);
@@ -52,8 +75,18 @@ describe('Backoffice (modo demonstração)', () => {
 
   it('guarda revisões e repõe versões anteriores', async () => {
     await auth.login('editor@serradofc.pt', 'editor2026');
-    const e = await admin.cmsCreate('pages', { slug: 'pagina-teste', title: 'V1', summary: '', body: '' });
-    await admin.cmsUpdate('pages', e.id, { slug: 'pagina-teste', title: 'V2', summary: '', body: '' });
+    const e = await admin.cmsCreate('pages', {
+      slug: 'pagina-teste',
+      title: 'V1',
+      summary: '',
+      body: '',
+    });
+    await admin.cmsUpdate('pages', e.id, {
+      slug: 'pagina-teste',
+      title: 'V2',
+      summary: '',
+      body: '',
+    });
     const revs = await admin.cmsRevisions('pages', e.id);
     expect(revs.map((r) => r.title)).toEqual(['V2', 'V1']);
     const restored = await admin.cmsRestore('pages', e.id, revs[1].id);
@@ -62,7 +95,9 @@ describe('Backoffice (modo demonstração)', () => {
 
   it('slug repetido é recusado', async () => {
     await auth.login('editor@serradofc.pt', 'editor2026');
-    await expect(admin.cmsCreate('news', { slug: 'nova-epoca-futsal', title: 'x', category: 'Clube' })).rejects.toThrow();
+    await expect(
+      admin.cmsCreate('news', { slug: 'nova-epoca-futsal', title: 'x', category: 'Clube' }),
+    ).rejects.toThrow();
   });
 
   it('permissões por papel', async () => {

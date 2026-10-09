@@ -51,7 +51,16 @@ export interface MemberDetail {
   accountHasPassword: boolean | null;
   accountLastLogin: string | null;
   athletes: { id: string; code: string; name: string; sport: string; category: string | null }[];
-  quotas: { id: number; period: string; amount: number; dueDate: string; paidAt: string | null; paymentMethod: string | null; receiptNumber: string | null; status: string }[];
+  quotas: {
+    id: number;
+    period: string;
+    amount: number;
+    dueDate: string;
+    paidAt: string | null;
+    paymentMethod: string | null;
+    receiptNumber: string | null;
+    status: string;
+  }[];
 }
 
 export interface AthleteAccess {
@@ -117,9 +126,22 @@ export interface ImportField {
 const PERSON: ImportField[] = [
   { key: 'name', label: 'Nome', aliases: ['nome', 'nomecompleto'], required: true },
   { key: 'email', label: 'Email', aliases: ['email', 'mail', 'correioeletronico'] },
-  { key: 'phone', label: 'Telemóvel', aliases: ['telemovel', 'telefone', 'telm', 'contacto', 'contactotelefonico'] },
-  { key: 'taxNumber', label: 'NIF', aliases: ['nif', 'contribuinte', 'ncontribuinte', 'numerodecontribuinte'] },
-  { key: 'birthDate', label: 'Data de nascimento', aliases: ['datadenascimento', 'nascimento', 'datanascimento', 'dn'], date: true },
+  {
+    key: 'phone',
+    label: 'Telemóvel',
+    aliases: ['telemovel', 'telefone', 'telm', 'contacto', 'contactotelefonico'],
+  },
+  {
+    key: 'taxNumber',
+    label: 'NIF',
+    aliases: ['nif', 'contribuinte', 'ncontribuinte', 'numerodecontribuinte'],
+  },
+  {
+    key: 'birthDate',
+    label: 'Data de nascimento',
+    aliases: ['datadenascimento', 'nascimento', 'datanascimento', 'dn'],
+    date: true,
+  },
   { key: 'address', label: 'Morada', aliases: ['morada', 'endereco'] },
   { key: 'postalCode', label: 'Código postal', aliases: ['codigopostal', 'cp', 'codpostal'] },
   { key: 'city', label: 'Localidade', aliases: ['localidade', 'cidade'] },
@@ -127,11 +149,29 @@ const PERSON: ImportField[] = [
 
 export const IMPORT_FIELDS: Record<ImportKind, ImportField[]> = {
   members: [
-    { key: 'memberNumber', label: 'N.º sócio', aliases: ['nsocio', 'nosocio', 'numerodesocio', 'numerosocio', 'socion', 'sociono', 'nodesocio', 'socio'] },
+    {
+      key: 'memberNumber',
+      label: 'N.º sócio',
+      aliases: [
+        'nsocio',
+        'nosocio',
+        'numerodesocio',
+        'numerosocio',
+        'socion',
+        'sociono',
+        'nodesocio',
+        'socio',
+      ],
+    },
     ...PERSON,
     { key: 'category', label: 'Categoria', aliases: ['categoria', 'tipo', 'tipodesocio'] },
     { key: 'status', label: 'Estado', aliases: ['estado', 'situacao'] },
-    { key: 'joinedOn', label: 'Sócio desde', aliases: ['sociodesde', 'datadeadmissao', 'admissao', 'datadeinscricao', 'inscricao'], date: true },
+    {
+      key: 'joinedOn',
+      label: 'Sócio desde',
+      aliases: ['sociodesde', 'datadeadmissao', 'admissao', 'datadeinscricao', 'inscricao'],
+      date: true,
+    },
     { key: 'notes', label: 'Observações', aliases: ['observacoes', 'notas', 'obs'] },
   ],
   athletes: [
@@ -140,19 +180,95 @@ export const IMPORT_FIELDS: Record<ImportKind, ImportField[]> = {
     { key: 'gender', label: 'Género', aliases: ['genero', 'sexo'] },
     { key: 'sport', label: 'Modalidade', aliases: ['modalidade', 'desporto'] },
     { key: 'category', label: 'Escalão', aliases: ['escalao', 'categoria'] },
-    { key: 'memberNumber', label: 'N.º sócio', aliases: ['nsocio', 'nosocio', 'numerodesocio', 'numerosocio', 'socion', 'sociono', 'nodesocio'] },
-    { key: 'idNumber', label: 'N.º CC', aliases: ['cc', 'ncc', 'nocc', 'nodocc', 'cartaodecidadao', 'numerodocc', 'bi', 'ndocumento', 'documento'] },
-    { key: 'idExpiry', label: 'Validade do CC', aliases: ['validadecc', 'validadedocc', 'validade', 'validadedocumento'], date: true },
-    { key: 'guardianName', label: 'Encarregado (nome)', aliases: ['encarregado', 'encarregadodeeducacao', 'nomeencarregado', 'nomedoencarregado'] },
-    { key: 'guardianEmail', label: 'Encarregado (email)', aliases: ['emailencarregado', 'emaildoencarregado', 'emailencarregadodeeducacao'] },
-    { key: 'accountEmail', label: 'Conta do atleta (email)', aliases: ['contadoatleta', 'emailconta', 'contaatleta'] },
+    {
+      key: 'memberNumber',
+      label: 'N.º sócio',
+      aliases: [
+        'nsocio',
+        'nosocio',
+        'numerodesocio',
+        'numerosocio',
+        'socion',
+        'sociono',
+        'nodesocio',
+      ],
+    },
+    {
+      key: 'idNumber',
+      label: 'N.º CC',
+      aliases: [
+        'cc',
+        'ncc',
+        'nocc',
+        'nodocc',
+        'cartaodecidadao',
+        'numerodocc',
+        'bi',
+        'ndocumento',
+        'documento',
+      ],
+    },
+    {
+      key: 'idExpiry',
+      label: 'Validade do CC',
+      aliases: ['validadecc', 'validadedocc', 'validade', 'validadedocumento'],
+      date: true,
+    },
+    {
+      key: 'guardianName',
+      label: 'Encarregado (nome)',
+      aliases: ['encarregado', 'encarregadodeeducacao', 'nomeencarregado', 'nomedoencarregado'],
+    },
+    {
+      key: 'guardianEmail',
+      label: 'Encarregado (email)',
+      aliases: ['emailencarregado', 'emaildoencarregado', 'emailencarregadodeeducacao'],
+    },
+    {
+      key: 'accountEmail',
+      label: 'Conta do atleta (email)',
+      aliases: ['contadoatleta', 'emailconta', 'contaatleta'],
+    },
   ],
 };
 
 /** Exemplo fictício para o modelo a descarregar. */
 export const IMPORT_EXAMPLE: Record<ImportKind, string[]> = {
-  members: ['01001', 'Maria Exemplo', 'maria@exemplo.pt', '912345678', '123456789', '1985-04-12', 'Rua do Exemplo, 1', '2825-000', 'Charneca', 'Efetivo', 'Ativo', '2024-09-01', ''],
-  athletes: ['', 'Tiago Exemplo', '', '', '', '2014-06-20', '', '', '', 'Masculino', 'futsal', 'Sub-13', '01001', '', '', 'Maria Exemplo', 'maria@exemplo.pt', ''],
+  members: [
+    '01001',
+    'Maria Exemplo',
+    'maria@exemplo.pt',
+    '912345678',
+    '123456789',
+    '1985-04-12',
+    'Rua do Exemplo, 1',
+    '2825-000',
+    'Charneca',
+    'Efetivo',
+    'Ativo',
+    '2024-09-01',
+    '',
+  ],
+  athletes: [
+    '',
+    'Tiago Exemplo',
+    '',
+    '',
+    '',
+    '2014-06-20',
+    '',
+    '',
+    '',
+    'Masculino',
+    'futsal',
+    'Sub-13',
+    '01001',
+    '',
+    '',
+    'Maria Exemplo',
+    'maria@exemplo.pt',
+    '',
+  ],
 };
 
 /** Liga as colunas do ficheiro aos campos (pelo nome do cabeçalho). */
@@ -160,14 +276,19 @@ export function mapColumns(kind: ImportKind, header: string[]): (ImportField | n
   const used = new Set<string>();
   return header.map((h) => {
     const key = headerKey(h);
-    const f = IMPORT_FIELDS[kind].find((x) => !used.has(x.key) && (x.aliases.includes(key) || headerKey(x.label) === key));
+    const f = IMPORT_FIELDS[kind].find(
+      (x) => !used.has(x.key) && (x.aliases.includes(key) || headerKey(x.label) === key),
+    );
     if (f) used.add(f.key);
     return f ?? null;
   });
 }
 
 /** Linhas da tabela → objetos com os campos reconhecidos (as colunas ignoradas não seguem). */
-export function toRows(table: string[][], columns: (ImportField | null)[]): Record<string, string>[] {
+export function toRows(
+  table: string[][],
+  columns: (ImportField | null)[],
+): Record<string, string>[] {
   return table.slice(1).map((r) => {
     const o: Record<string, string> = {};
     columns.forEach((f, i) => {
@@ -227,12 +348,19 @@ export class RegistryApi {
     return this.api.get<PendingItem[]>('/admin/payments/pending', { q });
   }
   recordPayment(body: Record<string, unknown>) {
-    return this.api.post<{ id: string; amount: number; receiptStatus: string }>('/admin/payments/manual', body);
+    return this.api.post<{ id: string; amount: number; receiptStatus: string }>(
+      '/admin/payments/manual',
+      body,
+    );
   }
   quotaPlans() {
     return this.api.get<QuotaPlan[]>('/admin/quota-plans');
   }
   saveQuotaPlan(p: QuotaPlan) {
-    return this.api.put(`/admin/quota-plans/${encodeURIComponent(p.category)}`, { amount: p.amount, periodicity: p.periodicity, active: p.active });
+    return this.api.put(`/admin/quota-plans/${encodeURIComponent(p.category)}`, {
+      amount: p.amount,
+      periodicity: p.periodicity,
+      active: p.active,
+    });
   }
 }
