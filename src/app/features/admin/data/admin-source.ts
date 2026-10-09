@@ -169,10 +169,7 @@ export abstract class AdminSource {
   abstract readonly mode: 'demo' | 'api';
   abstract dashboard(): Promise<Dashboard>;
 
-  abstract cmsList(
-    type: CmsType,
-    filter: { status?: string; q?: string },
-  ): Promise<{ items: CmsEntry[]; total: number }>;
+  abstract cmsList(type: CmsType, filter: { status?: string; q?: string }): Promise<{ items: CmsEntry[]; total: number }>;
   abstract cmsGet(type: CmsType, id: number): Promise<CmsEntry>;
   abstract cmsCreate(type: CmsType, data: Record<string, unknown>): Promise<CmsEntry>;
   abstract cmsUpdate(type: CmsType, id: number, data: Record<string, unknown>): Promise<CmsEntry>;
@@ -189,11 +186,7 @@ export abstract class AdminSource {
   /** Dimensão máxima (px) a que o browser reduz as imagens antes de as enviar. */
   readonly mediaMaxSize: number = 1920;
 
-  abstract athletes(filter: {
-    q?: string;
-    sport?: string;
-    pending?: string;
-  }): Promise<AdminAthlete[]>;
+  abstract athletes(filter: { q?: string; sport?: string; pending?: string }): Promise<AdminAthlete[]>;
   abstract athlete(id: string): Promise<AdminAthleteDetail>;
   abstract changeRequests(): Promise<IdentityRequest[]>;
   abstract resolveChange(id: number | string, approve: boolean, note?: string): Promise<void>;
@@ -224,10 +217,4 @@ export const DOC_LABELS: Record<string, string> = {
   ficha: 'Ficha de sócio',
 };
 
-export const FIELD_LABELS: Record<string, string> = {
-  name: 'Nome',
-  birthDate: 'Data de nascimento',
-  gender: 'Género',
-  idNumber: 'N.º CC',
-  taxNumber: 'NIF',
-};
+export const FIELD_LABELS: Record<string, string> = { name: 'Nome', birthDate: 'Data de nascimento', gender: 'Género', idNumber: 'N.º CC', taxNumber: 'NIF' };

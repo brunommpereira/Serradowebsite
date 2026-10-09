@@ -14,15 +14,9 @@ import { AdminSource, AdminUser, NewAdminUser } from '../data/admin-source';
     <div class="adm-head">
       <div>
         <h1>Utilizadores</h1>
-        <p>
-          Papéis de acesso ao backoffice. Uma conta sem papéis só usa o site (sócio, atleta,
-          encarregado). O que cada papel pode fazer define-se em
-          <a routerLink="/admin/papeis">Papéis e permissões</a>.
-        </p>
+        <p>Papéis de acesso ao backoffice. Uma conta sem papéis só usa o site (sócio, atleta, encarregado). O que cada papel pode fazer define-se em <a routerLink="/admin/papeis">Papéis e permissões</a>.</p>
       </div>
-      <button type="button" class="btn btn--primary btn--sm" (click)="startNew()">
-        Novo utilizador
-      </button>
+      <button type="button" class="btn btn--primary btn--sm" (click)="startNew()">Novo utilizador</button>
     </div>
 
     <sfc-dialog heading="Novo utilizador" [open]="!!newUser()" (closed)="newUser.set(null)">
@@ -30,37 +24,17 @@ import { AdminSource, AdminUser, NewAdminUser } from '../data/admin-source';
         <form (submit)="$event.preventDefault(); create()">
           <div class="field">
             <label for="u-name">Nome <span class="req">*</span></label>
-            <input
-              id="u-name"
-              name="name"
-              [(ngModel)]="f.name"
-              required
-              minlength="3"
-              maxlength="160"
-              autocomplete="off"
-            />
+            <input id="u-name" name="name" [(ngModel)]="f.name" required minlength="3" maxlength="160" autocomplete="off" />
           </div>
           <div class="field">
             <label for="u-email">Email <span class="req">*</span></label>
-            <input
-              id="u-email"
-              name="email"
-              type="email"
-              [(ngModel)]="f.email"
-              required
-              maxlength="200"
-              autocomplete="off"
-            />
+            <input id="u-email" name="email" type="email" [(ngModel)]="f.email" required maxlength="200" autocomplete="off" />
           </div>
           <fieldset>
             <legend>Papéis</legend>
             @for (r of roles(); track r.key) {
               <label class="check">
-                <input
-                  type="checkbox"
-                  [checked]="f.roles.includes(r.key)"
-                  (change)="toggleNew(r.key)"
-                />
+                <input type="checkbox" [checked]="f.roles.includes(r.key)" (change)="toggleNew(r.key)" />
                 <span>
                   <strong>{{ r.name }}</strong>
                   <span class="caption desc">{{ r.description }}</span>
@@ -70,21 +44,14 @@ import { AdminSource, AdminUser, NewAdminUser } from '../data/admin-source';
           </fieldset>
           <label class="check">
             <input type="checkbox" name="invite" [(ngModel)]="f.invite" />
-            <span
-              >Enviar já o convite por email (a pessoa define a password; a ligação vale 7
-              dias)</span
-            >
+            <span>Enviar já o convite por email (a pessoa define a password; a ligação vale 7 dias)</span>
           </label>
           @if (formError(); as e) {
             <p class="alert alert--warning" role="alert">{{ e }}</p>
           }
           <div class="actions">
-            <button type="submit" class="btn btn--primary btn--sm" [disabled]="busy()">
-              Criar utilizador
-            </button>
-            <button type="button" class="btn btn--outline btn--sm" (click)="newUser.set(null)">
-              Cancelar
-            </button>
+            <button type="submit" class="btn btn--primary btn--sm" [disabled]="busy()">Criar utilizador</button>
+            <button type="button" class="btn btn--outline btn--sm" (click)="newUser.set(null)">Cancelar</button>
           </div>
         </form>
       }
@@ -92,22 +59,12 @@ import { AdminSource, AdminUser, NewAdminUser } from '../data/admin-source';
 
     <ul class="legend">
       @for (r of roles(); track r.key) {
-        <li>
-          <strong>{{ r.name }}</strong> — {{ r.description }}
-        </li>
+        <li><strong>{{ r.name }}</strong> — {{ r.description }}</li>
       }
     </ul>
 
     @if (message(); as m) {
-      <p
-        class="alert"
-        [class.alert--success]="m.ok"
-        [class.alert--warning]="!m.ok"
-        role="status"
-        aria-live="polite"
-      >
-        {{ m.text }}
-      </p>
+      <p class="alert" [class.alert--success]="m.ok" [class.alert--warning]="!m.ok" role="status" aria-live="polite">{{ m.text }}</p>
     }
 
     <div class="adm-table-wrap">
@@ -126,37 +83,16 @@ import { AdminSource, AdminUser, NewAdminUser } from '../data/admin-source';
             <tr>
               <td>
                 <strong>{{ u.name }}</strong>
-                <span class="caption sub"
-                  >{{ u.email }}{{ u.member ? ' · sócio ' + u.member.memberNumber : '' }}</span
-                >
+                <span class="caption sub">{{ u.email }}{{ u.member ? ' · sócio ' + u.member.memberNumber : '' }}</span>
               </td>
               @for (r of roles(); track r.key) {
                 <td class="c">
-                  <input
-                    type="checkbox"
-                    [checked]="draft[u.id].includes(r.key)"
-                    (change)="toggle(u.id, r.key)"
-                    [attr.aria-label]="r.name + ' — ' + u.name"
-                  />
+                  <input type="checkbox" [checked]="draft[u.id].includes(r.key)" (change)="toggle(u.id, r.key)" [attr.aria-label]="r.name + ' — ' + u.name" />
                 </td>
               }
               <td class="act">
-                <button
-                  type="button"
-                  class="btn btn--outline btn--sm"
-                  [disabled]="!changed(u)"
-                  (click)="save(u)"
-                >
-                  Guardar
-                </button>
-                <button
-                  type="button"
-                  class="btn btn--outline btn--sm"
-                  (click)="invite(u)"
-                  title="Envia por email uma ligação para definir a password"
-                >
-                  Enviar convite
-                </button>
+                <button type="button" class="btn btn--outline btn--sm" [disabled]="!changed(u)" (click)="save(u)">Guardar</button>
+                <button type="button" class="btn btn--outline btn--sm" (click)="invite(u)" title="Envia por email uma ligação para definir a password">Enviar convite</button>
               </td>
             </tr>
           }
@@ -256,10 +192,7 @@ export class UsersPage {
 
   protected toggle(id: string, role: string) {
     const cur = this.draft[id];
-    this.draft = {
-      ...this.draft,
-      [id]: cur.includes(role) ? cur.filter((r) => r !== role) : [...cur, role],
-    };
+    this.draft = { ...this.draft, [id]: cur.includes(role) ? cur.filter((r) => r !== role) : [...cur, role] };
     this.users.set([...this.users()]); // força nova verificação do botão «Guardar»
   }
 
@@ -284,8 +217,7 @@ export class UsersPage {
 
   protected toggleNew(role: string) {
     const f = this.newUser();
-    if (f)
-      f.roles = f.roles.includes(role) ? f.roles.filter((r) => r !== role) : [...f.roles, role];
+    if (f) f.roles = f.roles.includes(role) ? f.roles.filter((r) => r !== role) : [...f.roles, role];
   }
 
   async create() {
@@ -298,11 +230,7 @@ export class UsersPage {
     this.busy.set(true);
     this.formError.set(null);
     try {
-      const out = await this.source.createUser({
-        ...f,
-        name: f.name.trim(),
-        email: f.email.trim(),
-      });
+      const out = await this.source.createUser({ ...f, name: f.name.trim(), email: f.email.trim() });
       this.newUser.set(null);
       const who = f.email.trim().toLowerCase();
       this.message.set({
@@ -310,8 +238,8 @@ export class UsersPage {
         text: out.invited
           ? `Conta criada. O convite foi enviado para ${who} (vale 7 dias).`
           : f.invite
-            ? `Conta criada, mas o envio de emails não está ligado. Liga-o no servidor e depois usa «Enviar convite».`
-            : `Conta criada. Quando quiseres, usa «Enviar convite» para a pessoa definir a password.`,
+            ? 'Conta criada, mas o envio de emails não está ligado. Liga-o no servidor e depois usa «Enviar convite».'
+            : 'Conta criada. Quando quiseres, usa «Enviar convite» para a pessoa definir a password.',
       });
       await this.load();
     } catch (e) {
@@ -324,10 +252,7 @@ export class UsersPage {
   async invite(u: AdminUser) {
     try {
       await this.source.invite(u.id);
-      this.message.set({
-        ok: true,
-        text: `Convite enviado para ${u.email}. A ligação vale 7 dias.`,
-      });
+      this.message.set({ ok: true, text: `Convite enviado para ${u.email}. A ligação vale 7 dias.` });
     } catch (e) {
       this.message.set({ ok: false, text: (e as Error).message });
     }

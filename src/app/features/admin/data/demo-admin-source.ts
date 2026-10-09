@@ -5,14 +5,7 @@ import { AthleteAreaService } from '../../../core/services/athlete-area.service'
 import { CmsStore } from '../../../core/cms/cms-store';
 import { CMS_TYPES, CmsEntry, CmsType } from '../../../core/cms/cms.models';
 import { Athlete, CURRENT_SEASON } from '../../../core/data/athletes-data';
-import {
-  ADMIN_ROLE,
-  ALL_PERMISSIONS,
-  demoRoles,
-  Permission,
-  RoleDef,
-  saveDemoRoles,
-} from '../../../core/permissions';
+import { ADMIN_ROLE, ALL_PERMISSIONS, demoRoles, Permission, RoleDef, saveDemoRoles } from '../../../core/permissions';
 import {
   AdminAthlete,
   AdminAthleteDetail,
@@ -72,19 +65,11 @@ export class DemoAdminSource extends AdminSource {
       stats: {
         newsPublished: this.cms.entries('news').filter((e) => e.status === 'published').length,
         newsDrafts: this.cms.entries('news').filter((e) => e.status === 'draft').length,
-        eventsUpcoming: this.cms
-          .entries('events')
-          .filter((e) => e.status === 'published' && String(e['startsAt']) >= now).length,
-        otherDrafts: (['events', 'pages', 'partners'] as CmsType[]).reduce(
-          (n, t) => n + this.cms.entries(t).filter((e) => e.status === 'draft').length,
-          0,
-        ),
+        eventsUpcoming: this.cms.entries('events').filter((e) => e.status === 'published' && String(e['startsAt']) >= now).length,
+        otherDrafts: (['events', 'pages', 'partners'] as CmsType[]).reduce((n, t) => n + this.cms.entries(t).filter((e) => e.status === 'draft').length, 0),
         athletes: athletes.length,
         athletesToConfirm: athletes.filter((a) => !this.area.isConfirmed(a)).length,
-        documentsToReview: athletes.reduce(
-          (n, a) => n + a.documents.filter((d) => d.status === 'Em análise').length,
-          0,
-        ),
+        documentsToReview: athletes.reduce((n, a) => n + a.documents.filter((d) => d.status === 'Em análise').length, 0),
         changeRequests: athletes.filter((a) => a.pendingReview).length,
         membersActive: 2,
         results: 0,
@@ -104,9 +89,7 @@ export class DemoAdminSource extends AdminSource {
       .entries(type)
       .filter((e) => !filter.status || e.status === filter.status)
       .filter((e) => !q || `${e[titleKey]} ${e['summary'] ?? ''}`.toLowerCase().includes(q))
-      .sort((a, b) =>
-        String(b.publishedAt ?? b.updatedAt).localeCompare(String(a.publishedAt ?? a.updatedAt)),
-      );
+      .sort((a, b) => String(b.publishedAt ?? b.updatedAt).localeCompare(String(a.publishedAt ?? a.updatedAt)));
     return { items, total: items.length };
   }
 
@@ -133,11 +116,7 @@ export class DemoAdminSource extends AdminSource {
 
   async cmsStatus(type: CmsType, id: number, action: CmsAction) {
     this.guard('cms.edit');
-    const e = this.cms.demoSetStatus(
-      type,
-      id,
-      action === 'publish' ? 'published' : action === 'archive' ? 'archived' : 'draft',
-    );
+    const e = this.cms.demoSetStatus(type, id, action === 'publish' ? 'published' : action === 'archive' ? 'archived' : 'draft');
     this.log(`cms.${type}.${action}`, CMS_TYPES[type].label, e);
     return e;
   }
@@ -162,11 +141,7 @@ export class DemoAdminSource extends AdminSource {
   }
 
   // ---------------------------------------------------------------- atletas
-  async athletes(filter: {
-    q?: string;
-    sport?: string;
-    pending?: string;
-  }): Promise<AdminAthlete[]> {
+  async athletes(filter: { q?: string; sport?: string; pending?: string }): Promise<AdminAthlete[]> {
     this.guard('athletes.view', 'athletes.manage');
     const q = (filter.q ?? '').toLowerCase();
     return this.area
@@ -175,13 +150,7 @@ export class DemoAdminSource extends AdminSource {
       .filter((a) => !q || a.name.toLowerCase().includes(q) || a.code.toLowerCase().includes(q))
       .filter((a) => !filter.sport || a.sportSlug === filter.sport)
       .filter((a) =>
-        filter.pending === 'docs'
-          ? a.docsApproved < a.docsTotal
-          : filter.pending === 'confirm'
-            ? !a.confirmed
-            : filter.pending === 'requests'
-              ? a.pendingRequests > 0
-              : true,
+        filter.pending === 'docs' ? a.docsApproved < a.docsTotal : filter.pending === 'confirm' ? !a.confirmed : filter.pending === 'requests' ? a.pendingRequests > 0 : true,
       )
       .sort((a, b) => a.name.localeCompare(b.name));
   }
@@ -204,21 +173,8 @@ export class DemoAdminSource extends AdminSource {
       access: this.auth.can('athletes.manage') ? 'staff' : 'treinador',
       confirmed: this.area.isConfirmed(a),
       missing: this.area.missingFields(a),
-      documents: a.documents.map((d) => ({
-        id: `${a.id}:${d.id}`,
-        kind: d.id,
-        status: d.status,
-        note: d.note ?? null,
-      })),
-      pendingRequests: a.pendingReview
-        ? [
-            {
-              id: a.id,
-              changes: a.pendingReview.changes as Record<string, string>,
-              requestedAt: a.pendingReview.requestedAt,
-            },
-          ]
-        : [],
+      documents: a.documents.map((d) => ({ id: `${a.id}:${d.id}`, kind: d.id, status: d.status, note: d.note ?? null })),
+      pendingRequests: a.pendingReview ? [{ id: a.id, changes: a.pendingReview.changes as Record<string, string>, requestedAt: a.pendingReview.requestedAt }] : [],
     };
     if (!this.auth.can('athletes.sensitive')) for (const k of SENSITIVE) delete detail[k];
     return detail;
@@ -236,13 +192,7 @@ export class DemoAdminSource extends AdminSource {
         athleteName: a.name,
         athleteCode: code(i),
         changes: a.pendingReview!.changes as Record<string, string>,
-        current: {
-          name: a.name,
-          birthDate: a.birthDate,
-          gender: a.details.gender,
-          idNumber: a.details.idNumber,
-          taxNumber: a.details.taxNumber,
-        },
+        current: { name: a.name, birthDate: a.birthDate, gender: a.details.gender, idNumber: a.details.idNumber, taxNumber: a.details.taxNumber },
         requestedAt: a.pendingReview!.requestedAt,
         requestedBy: a.selfAccount ? a.name : 'Encarregado de educação',
       }));
@@ -253,30 +203,16 @@ export class DemoAdminSource extends AdminSource {
     const a = this.area.allAthletes().find((x) => x.id === id);
     if (!a?.pendingReview) throw new Error('Pedido não encontrado');
     this.area.resolveChange(a.id, approve);
-    this.log(`change_requests.${approve ? 'approve' : 'reject'}`, 'Atletas', null, {
-      atleta: a.name,
-      ...(note ? { note } : {}),
-    });
+    this.log(`change_requests.${approve ? 'approve' : 'reject'}`, 'Atletas', null, { atleta: a.name, ...(note ? { note } : {}) });
   }
 
   async documents(): Promise<DocumentToReview[]> {
     this.guard('athletes.manage');
-    return this.area
-      .allAthletes()
-      .flatMap((a, i) =>
-        a.documents
-          .filter((d) => d.status === 'Em análise')
-          .map((d) => ({
-            id: `${a.id}:${d.id}`,
-            kind: d.id,
-            status: d.status,
-            note: d.note ?? null,
-            updatedAt: '',
-            athleteId: a.id,
-            athleteName: a.name,
-            athleteCode: code(i),
-          })),
-      );
+    return this.area.allAthletes().flatMap((a, i) =>
+      a.documents
+        .filter((d) => d.status === 'Em análise')
+        .map((d) => ({ id: `${a.id}:${d.id}`, kind: d.id, status: d.status, note: d.note ?? null, updatedAt: '', athleteId: a.id, athleteName: a.name, athleteCode: code(i) })),
+    );
   }
 
   async reviewDocument(id: number | string, approve: boolean, note?: string) {
@@ -285,25 +221,14 @@ export class DemoAdminSource extends AdminSource {
     const a = this.area.allAthletes().find((x) => x.id === athleteId);
     if (!a) throw new Error('Documento não encontrado');
     this.area.reviewDocument(athleteId, docId, approve, note);
-    this.log(`documents.${approve ? 'approve' : 'reject'}`, 'Atletas', null, {
-      atleta: a.name,
-      documento: docId,
-      ...(note ? { note } : {}),
-    });
+    this.log(`documents.${approve ? 'approve' : 'reject'}`, 'Atletas', null, { atleta: a.name, documento: docId, ...(note ? { note } : {}) });
   }
 
   // ---------------------------------------------------------------- resultados, utilizadores, auditoria
   async importResults(rows: ImportRow[]): Promise<ImportSummary> {
     this.guard('results.import');
     const linked = rows.filter((r) => r.athleteCode).length;
-    const summary = {
-      rows: rows.length,
-      inserted: rows.length,
-      updated: 0,
-      linked,
-      unlinked: rows.length - linked,
-      races: new Set(rows.map((r) => `${r.season}#${r.round}`)).size,
-    };
+    const summary = { rows: rows.length, inserted: rows.length, updated: 0, linked, unlinked: rows.length - linked, races: new Set(rows.map((r) => `${r.season}#${r.round}`)).size };
     this.log('results.import', 'Resultados', null, summary);
     return summary;
   }
@@ -326,15 +251,8 @@ export class DemoAdminSource extends AdminSource {
     this.guard('users.manage');
     const email = user.email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Email inválido.');
-    if ((await this.users()).some((u) => u.email === email))
-      throw new Error('Já existe uma conta com este email. Procura-a na lista e muda os papéis.');
-    const created: AdminUser = {
-      id: email,
-      email,
-      name: user.name.trim().replace(/\s+/g, ' '),
-      roles: user.roles,
-      member: null,
-    };
+    if ((await this.users()).some((u) => u.email === email)) throw new Error('Já existe uma conta com este email. Procura-a na lista e muda os papéis.');
+    const created: AdminUser = { id: email, email, name: user.name.trim().replace(/\s+/g, ' '), roles: user.roles, member: null };
     this.write(USERS_KEY, [...this.read<AdminUser[]>(USERS_KEY, []), created]);
     this.log('users.create', 'Utilizadores', null, { utilizador: email, roles: user.roles });
     return { id: email, invited: false };
@@ -342,8 +260,7 @@ export class DemoAdminSource extends AdminSource {
 
   async setRoles(id: string, roles: string[]) {
     this.guard('users.manage');
-    if (id === this.auth.account()?.email && !roles.includes(ADMIN_ROLE))
-      throw new Error('Não podes retirar o teu próprio acesso de administração.');
+    if (id === this.auth.account()?.email && !roles.includes(ADMIN_ROLE)) throw new Error('Não podes retirar o teu próprio acesso de administração.');
     const known = new Set(demoRoles().map((r) => r.key));
     if (roles.some((r) => !known.has(r))) throw new Error('Papel desconhecido');
     const overrides = this.read<Record<string, string[]>>(ROLES_KEY, {});
@@ -369,26 +286,18 @@ export class DemoAdminSource extends AdminSource {
   async saveRole(role: RoleDef, isNew: boolean) {
     this.guard('users.manage');
     const list = demoRoles();
-    if (!/^[a-z][a-z0-9-]{1,30}$/.test(role.key))
-      throw new Error('Identificador inválido: letras minúsculas, números e hífens.');
-    if (isNew && list.some((r) => r.key === role.key))
-      throw new Error('Já existe um papel com esse identificador.');
+    if (!/^[a-z][a-z0-9-]{1,30}$/.test(role.key)) throw new Error('Identificador inválido: letras minúsculas, números e hífens.');
+    if (isNew && list.some((r) => r.key === role.key)) throw new Error('Já existe um papel com esse identificador.');
     if (!isNew && !list.some((r) => r.key === role.key)) throw new Error('Papel não encontrado');
     const clean: RoleDef = {
       key: role.key,
       name: role.name.trim(),
       description: role.description.trim(),
       builtin: isNew ? false : (list.find((r) => r.key === role.key)?.builtin ?? false),
-      permissions:
-        role.key === ADMIN_ROLE
-          ? [...ALL_PERMISSIONS]
-          : ALL_PERMISSIONS.filter((p) => role.permissions.includes(p)),
+      permissions: role.key === ADMIN_ROLE ? [...ALL_PERMISSIONS] : ALL_PERMISSIONS.filter((p) => role.permissions.includes(p)),
     };
     saveDemoRoles(isNew ? [...list, clean] : list.map((r) => (r.key === role.key ? clean : r)));
-    this.log(isNew ? 'roles.create' : 'roles.update', 'Papéis', null, {
-      papel: role.key,
-      permissions: clean.permissions,
-    });
+    this.log(isNew ? 'roles.create' : 'roles.update', 'Papéis', null, { papel: role.key, permissions: clean.permissions });
   }
 
   async deleteRole(key: string) {
@@ -396,16 +305,10 @@ export class DemoAdminSource extends AdminSource {
     const list = demoRoles();
     const role = list.find((r) => r.key === key);
     if (!role) throw new Error('Papel não encontrado');
-    if (role.builtin)
-      throw new Error('Os papéis de origem não se apagam; podes mudar as permissões.');
+    if (role.builtin) throw new Error('Os papéis de origem não se apagam; podes mudar as permissões.');
     saveDemoRoles(list.filter((r) => r.key !== key));
     const overrides = this.read<Record<string, string[]>>(ROLES_KEY, {});
-    this.write(
-      ROLES_KEY,
-      Object.fromEntries(
-        Object.entries(overrides).map(([u, rs]) => [u, rs.filter((r) => r !== key)]),
-      ),
-    );
+    this.write(ROLES_KEY, Object.fromEntries(Object.entries(overrides).map(([u, rs]) => [u, rs.filter((r) => r !== key)])));
     this.log('roles.delete', 'Papéis', null, { papel: key });
   }
 
@@ -419,9 +322,7 @@ export class DemoAdminSource extends AdminSource {
   async mediaList(q?: string) {
     this.guard('cms.edit');
     const term = (q ?? '').toLowerCase();
-    return this.read<MediaItem[]>(MEDIA_KEY, []).filter(
-      (m) => !term || m.name.toLowerCase().includes(term) || m.alt.toLowerCase().includes(term),
-    );
+    return this.read<MediaItem[]>(MEDIA_KEY, []).filter((m) => !term || m.name.toLowerCase().includes(term) || m.alt.toLowerCase().includes(term));
   }
 
   async mediaUpload(img: PreparedImage) {
@@ -443,9 +344,7 @@ export class DemoAdminSource extends AdminSource {
     try {
       localStorage.setItem(MEDIA_KEY, JSON.stringify([item, ...all]));
     } catch {
-      throw new Error(
-        'Sem espaço no browser para mais imagens (modo demonstração). Apaga algumas ou usa o site com servidor.',
-      );
+      throw new Error('Sem espaço no browser para mais imagens (modo demonstração). Apaga algumas ou usa o site com servidor.');
     }
     this.log('cms.media.upload', 'Imagens', null, { nome: item.name });
     return item;
@@ -475,14 +374,10 @@ export class DemoAdminSource extends AdminSource {
 
   async mediaDelete(id: number) {
     const used = await this.mediaUsage(id);
-    if (used.length)
-      throw new Error(`A imagem está a ser usada em: ${used.map((u) => u.title).join(', ')}`);
+    if (used.length) throw new Error(`A imagem está a ser usada em: ${used.map((u) => u.title).join(', ')}`);
     const all = this.read<MediaItem[]>(MEDIA_KEY, []);
     const item = all.find((m) => m.id === id);
-    this.write(
-      MEDIA_KEY,
-      all.filter((m) => m.id !== id),
-    );
+    this.write(MEDIA_KEY, all.filter((m) => m.id !== id));
     this.log('cms.media.delete', 'Imagens', null, { nome: item?.name });
   }
 
@@ -504,12 +399,7 @@ export class DemoAdminSource extends AdminSource {
     };
   }
 
-  private log(
-    action: string,
-    entity: string,
-    e: CmsEntry | null,
-    details: Record<string, unknown> = {},
-  ) {
+  private log(action: string, entity: string, e: CmsEntry | null, details: Record<string, unknown> = {}) {
     const all = this.read<AuditEntry[]>(AUDIT_KEY, []);
     const entry: AuditEntry = {
       id: Date.now(),

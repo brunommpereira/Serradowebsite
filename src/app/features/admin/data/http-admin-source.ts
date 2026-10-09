@@ -21,12 +21,7 @@ import {
   PreparedImage,
 } from './admin-source';
 
-const EXT: Record<string, string> = {
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-  'image/gif': 'gif',
-};
+const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
 
 /** Backoffice ligado ao middleware (/api/v1/admin/…). */
 @Injectable()
@@ -40,10 +35,7 @@ export class HttpAdminSource extends AdminSource {
   }
 
   cmsList(type: CmsType, filter: { status?: string; q?: string }) {
-    return this.api.get<{ items: CmsEntry[]; total: number }>(`/admin/cms/${type}`, {
-      ...filter,
-      limit: 200,
-    });
+    return this.api.get<{ items: CmsEntry[]; total: number }>(`/admin/cms/${type}`, { ...filter, limit: 200 });
   }
   cmsGet(type: CmsType, id: number) {
     return this.api.get<CmsEntry>(`/admin/cms/${type}/${id}`);
@@ -65,30 +57,18 @@ export class HttpAdminSource extends AdminSource {
     return this.api.get<CmsRevision[]>(`/admin/cms/${type}/${id}/revisions`);
   }
   async cmsRestore(type: CmsType, id: number, revision: number) {
-    return this.refresh(
-      await this.api.post<CmsEntry>(`/admin/cms/${type}/${id}/revisions/${revision}/restore`),
-    );
+    return this.refresh(await this.api.post<CmsEntry>(`/admin/cms/${type}/${id}/revisions/${revision}/restore`));
   }
 
   async mediaList(q?: string) {
-    return (await this.api.get<Omit<MediaItem, 'url'>[]>('/admin/media', { q })).map((m) =>
-      this.withUrl(m),
-    );
+    return (await this.api.get<Omit<MediaItem, 'url'>[]>('/admin/media', { q })).map((m) => this.withUrl(m));
   }
   async mediaUpload(img: PreparedImage) {
-    const m = await this.api.post<Omit<MediaItem, 'url'>>('/admin/media', {
-      name: img.name,
-      data: img.base64,
-      alt: img.alt,
-      width: img.width,
-      height: img.height,
-    });
+    const m = await this.api.post<Omit<MediaItem, 'url'>>('/admin/media', { name: img.name, data: img.base64, alt: img.alt, width: img.width, height: img.height });
     return this.withUrl(m);
   }
   async mediaUpdate(id: number, alt: string) {
-    return this.withUrl(
-      await this.api.patch<Omit<MediaItem, 'url'>>(`/admin/media/${id}`, { alt }),
-    );
+    return this.withUrl(await this.api.patch<Omit<MediaItem, 'url'>>(`/admin/media/${id}`, { alt }));
   }
   mediaUsage(id: number) {
     return this.api.get<MediaUsage[]>(`/admin/media/${id}/usage`);
@@ -111,19 +91,13 @@ export class HttpAdminSource extends AdminSource {
     return this.api.get<IdentityRequest[]>('/admin/change-requests');
   }
   async resolveChange(id: number | string, approve: boolean, note?: string) {
-    await this.api.post(
-      `/admin/change-requests/${id}/${approve ? 'approve' : 'reject'}`,
-      approve ? {} : { note },
-    );
+    await this.api.post(`/admin/change-requests/${id}/${approve ? 'approve' : 'reject'}`, approve ? {} : { note });
   }
   documents() {
     return this.api.get<DocumentToReview[]>('/admin/documents');
   }
   async reviewDocument(id: number | string, approve: boolean, note?: string) {
-    await this.api.post(
-      `/admin/documents/${id}/${approve ? 'approve' : 'reject'}`,
-      approve ? {} : { note },
-    );
+    await this.api.post(`/admin/documents/${id}/${approve ? 'approve' : 'reject'}`, approve ? {} : { note });
   }
 
   importResults(rows: ImportRow[]) {
