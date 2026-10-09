@@ -42,8 +42,9 @@ jobs:
           SITE_URL="https://${{ vars.SITE_DOMAIN }}" node scripts/postbuild.mjs
       - uses: actions/setup-python@v6
         with:
-          # A mesma versão do Ubuntu 24.04 da VPS: as bibliotecas compiladas (wheels) têm de servir lá
-          python-version: '3.12'
+          # A mesma versão do Python da VPS (Ubuntu 26.04: 3.14; Ubuntu 24.04: 3.12, com a variável VPS_PYTHON):
+          # as bibliotecas compiladas (wheels) têm de servir lá
+          python-version: ${{ vars.VPS_PYTHON || '3.14' }}
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.12.19'
@@ -59,6 +60,7 @@ jobs:
           cp -r services/pyproject.toml services/uv.lock services/requirements.txt services/wheels services/serrado release/services/
           find release/services -name __pycache__ -prune -exec rm -rf {} +
           echo "$SHA" > release/REVISION
+          python -c 'import sys; print(f"{sys.version_info[0]}.{sys.version_info[1]}")' > release/PYTHON
           tar -czf release.tgz -C release .
           ls -lh release.tgz
       - uses: actions/upload-artifact@v4

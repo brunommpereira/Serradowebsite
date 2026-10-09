@@ -79,6 +79,12 @@ cmd_deploy() {
   [ -f "$dir.tmp/services/pyproject.toml" ] && [ -f "$dir.tmp/services/requirements.txt" ] && [ -d "$dir.tmp/services/wheels" ] && [ -f "$dir.tmp/web/index.html" ] \
     || { rm -rf "$dir.tmp"; die 'Artefacto incompleto.'; }
   echo "$sha" > "$dir.tmp/REVISION"
+  # As bibliotecas compiladas só servem para a versão do Python com que foram preparadas no GitHub
+  local want have; have=$(python3 -c 'import sys; print(f"{sys.version_info[0]}.{sys.version_info[1]}")')
+  want=$(cat "$dir.tmp/PYTHON" 2>/dev/null || echo "$have")
+  if [ "$want" != "$have" ]; then
+    rm -rf "$dir.tmp"; die "Esta versão foi preparada para o Python $want, mas a VPS tem o $have. No GitHub, cria a variável VPS_PYTHON=$have (Settings → Secrets and variables → Actions → Variables) e volta a fazer o deploy."
+  fi
   rm -rf "$dir" && mv "$dir.tmp" "$dir"
   # Ambiente Python da versão: só as bibliotecas que vieram no artefacto, conferidas pelos hashes (sem acesso ao PyPI)
   info 'Dependências Python'

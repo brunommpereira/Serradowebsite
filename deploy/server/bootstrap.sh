@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Serrado FC — preparação do servidor (Ubuntu 24.04; testado a pensar na OVHcloud VPS e na Hostinger KVM).
+# Serrado FC — preparação do servidor (Ubuntu 24.04 ou 26.04 LTS; testado a pensar na OVHcloud VPS e na Hostinger KVM).
 # Corre uma vez, com sudo. Pode voltar a correr-se para atualizar a configuração (não apaga dados nem segredos).
 #
 #   sudo bash bootstrap.sh --domain www.serradofc.pt --cloudflare --deploy-key "ssh-ed25519 AAAA… github-actions"
@@ -48,7 +48,8 @@ apt-get install -yq curl ca-certificates gnupg git jq ufw fail2ban unattended-up
 dpkg-reconfigure -f noninteractive unattended-upgrades
 
 step 'Python 3 (serviços: middleware e backend)'
-# O Ubuntu 24.04 traz o Python 3.12. As bibliotecas chegam já empacotadas em cada versão (sem acesso ao PyPI)
+# O Ubuntu 26.04 traz o Python 3.14 (o 24.04, o 3.12). As bibliotecas chegam já empacotadas em cada versão (sem acesso ao PyPI),
+# preparadas no GitHub para esta versão do Python (variável VPS_PYTHON; por omissão 3.14)
 apt-get install -yq python3 python3-venv
 python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)' || die "É preciso Python 3.12 ou superior (encontrei $(python3 --version))."
 python3 --version
