@@ -50,7 +50,6 @@ class BackendCaller:
         headers = {
             "authorization": f"Bearer {config.service_token}",
             "x-actor-id": self.users[as_["email"]] if as_.get("email") else "",
-            "x-actor-roles": as_.get("roles", ""),
         }
         return await self.client.request(method, "/internal/v1" + url, headers=headers, json=json)
 

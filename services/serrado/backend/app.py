@@ -11,8 +11,9 @@ import psycopg
 from fastapi import APIRouter, FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 
-from ..config import ROLES, config
+from ..config import config
 from ..db.pool import Pool, fetch_one
+from ..permissions import effective
 from ..web import BodyLimit, HttpError, MiB, error, install_error_handlers, log
 from .core import Actor
 from .routes import admin, athletes, auth, cms, media, members, payments, results
@@ -54,6 +55,8 @@ def build_backend(pool: Pool) -> FastAPI:
         code = exc.sqlstate or ""
         if code == "23505":
             return error(409, "conflict", "Já existe um registo com esse identificador (slug, n.º, …)")
+        if code == "23503":
+            return error(400, "invalid_reference", "Referência inexistente")
         if code in ("23514", "22P02", "22007", "22008"):
             return error(400, "invalid", "Valor inválido")
         if "identity_locked" in str(exc):
@@ -77,13 +80,20 @@ def build_backend(pool: Pool) -> FastAPI:
             return await call_next(req)
         row = await fetch_one(
             pool,
-            """select coalesce(array_agg(r.role) filter (where r.role is not null), '{}') as roles
-                 from users u left join user_roles r on r.user_id = u.id where u.id = %s and not u.disabled group by u.id""",
+            """select coalesce((select array_agg(role) from user_roles where user_id = u.id), '{}') as roles,
+                      coalesce((select array_agg(distinct rp.permission) from user_roles ur join role_permissions rp on rp.role = ur.role
+                                 where ur.user_id = u.id), '{}') as permissions,
+                      floor(extract(epoch from u.password_changed_at))::bigint as changed
+                 from users u where u.id = %s and not u.disabled""",
             [actor_id],
         )
-        if not row:
+        # Sessão iniciada antes de a password mudar (x-actor-iat = início da sessão): deixa de valer
+        iat = req.headers.get("x-actor-iat", "")
+        stale = row is not None and row["changed"] is not None and iat.isdigit() and int(iat) < row["changed"]
+        if not row or stale:
             return error(401, "session_revoked", "A sessão já não é válida. Entra de novo.")
-        req.state.actor = Actor(id=actor_id, roles=[r for r in row["roles"] if r in ROLES])
+        roles = list(row["roles"])
+        req.state.actor = Actor(id=actor_id, roles=roles, permissions=effective(roles, set(row["permissions"])))
         return await call_next(req)
 
     @app.get("/internal/health", include_in_schema=False)

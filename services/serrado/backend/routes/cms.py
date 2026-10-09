@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, create_mod
 
 from ...db.pool import Conn, Jsonb, fetch, fetch_one, tx
 from ...html import sanitize_body
-from ..core import HttpError, actor, audit, camel, has_role, not_found, pool, require_role, snake
+from ..core import HttpError, actor, audit, camel, can, not_found, pool, require, snake
 
 
 @dataclass(frozen=True)
@@ -141,7 +141,7 @@ def clean(data: dict[str, Any]) -> dict[str, Any]:
 
 def can_edit(req: Request) -> bool:
     """Leitura de rascunhos/arquivados e escrita: editor ou admin."""
-    return has_role(req, "editor")
+    return can(req, "cms.edit")
 
 
 async def load(c: Any, table: str, entry_id: int) -> dict[str, Any] | None:
@@ -202,7 +202,7 @@ def _register_type(r: APIRouter, type_: str, d: CmsType) -> None:
 
     @r.post(base, tags=tags, summary="Cria um rascunho", status_code=201)
     async def create(req: Request, body: Body) -> dict[str, Any]:  # type: ignore[valid-type]
-        require_role(req, "editor")
+        require(req, "cms.edit")
         data = clean(body.model_dump(exclude_unset=True))  # type: ignore[attr-defined]
         keys = [k for k in columns if k in data]
         who = actor(req)
@@ -219,7 +219,7 @@ def _register_type(r: APIRouter, type_: str, d: CmsType) -> None:
 
     @r.put(base + "/{id}", tags=tags, summary="Atualiza (cria revisão)")
     async def update(req: Request, id: Id, body: Body) -> dict[str, Any]:  # type: ignore[valid-type]
-        require_role(req, "editor")
+        require(req, "cms.edit")
         data = clean(body.model_dump(exclude_unset=True))  # type: ignore[attr-defined]
         who = actor(req)
         async with tx(pool(req)) as c:
@@ -246,7 +246,7 @@ def _register_type(r: APIRouter, type_: str, d: CmsType) -> None:
 
     @r.delete(base + "/{id}", tags=tags, summary="Apaga (fica no histórico de auditoria)", status_code=204)
     async def delete(req: Request, id: Id) -> Response:
-        require_role(req, "editor")
+        require(req, "cms.edit")
         async with tx(pool(req)) as c:
             cur = await c.execute(f"delete from {d.table} where id = %s returning slug", [id])
             row = await cur.fetchone()
@@ -257,7 +257,7 @@ def _register_type(r: APIRouter, type_: str, d: CmsType) -> None:
 
     @r.get(base + "/{id}/revisions", tags=tags, summary="Histórico de versões")
     async def revisions(req: Request, id: Id) -> list[dict[str, Any]]:
-        require_role(req, "editor")
+        require(req, "cms.edit")
         rows = await fetch(
             pool(req),
             """select r.id, r.created_at, u.name as author, r.data->>'status' as status, coalesce(r.data->>'title', r.data->>'name') as title
@@ -269,7 +269,7 @@ def _register_type(r: APIRouter, type_: str, d: CmsType) -> None:
 
     @r.post(base + "/{id}/revisions/{rev}/restore", tags=tags, summary="Repõe uma versão anterior (como nova revisão)")
     async def restore(req: Request, id: int, rev: int) -> dict[str, Any]:
-        require_role(req, "editor")
+        require(req, "cms.edit")
         who = actor(req)
         async with tx(pool(req)) as c:
             cur = await c.execute("select data from cms_revisions where id = %s and type = %s and entry_id = %s", [rev, type_, id])
@@ -294,7 +294,7 @@ def _register_type(r: APIRouter, type_: str, d: CmsType) -> None:
 def _register_status(r: APIRouter, base: str, tags: list[Any], type_: str, d: CmsType, action: str, status: str, summary: str) -> None:
     @r.post(f"{base}/{{id}}/{action}", tags=tags, summary=summary, name=f"{type_}_{action}")
     async def change_status(req: Request, id: Id) -> dict[str, Any]:
-        require_role(req, "editor")
+        require(req, "cms.edit")
         who = actor(req)
         async with tx(pool(req)) as c:
             cur = await c.execute(

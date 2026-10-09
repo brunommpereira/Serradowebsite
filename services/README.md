@@ -46,6 +46,7 @@ Também se pode subir tudo com Docker: `docker compose up --build` na raiz (incl
 | `admin@serradofc.pt` | `admin2026` | backoffice: admin |
 | `editor@serradofc.pt` | `editor2026` | backoffice: editor (CMS) |
 | `secretaria@serradofc.pt` | `secretaria2026` | backoffice: secretaria |
+| `tesouraria@serradofc.pt` | `tesouraria2026` | backoffice: tesouraria |
 | `treinador@serradofc.pt` | `treinador2026` | backoffice: treinador |
 
 ## Variáveis de ambiente
@@ -73,6 +74,8 @@ Também se pode subir tudo com Docker: `docker compose up --build` na raiz (incl
 | `FACEBOOK_SYNC_MODE` | sincronização | `publish` (omissão: entra logo no site) ou `draft` (fica em rascunho) |
 | `FACEBOOK_SYNC_TAG` | sincronização | Opcional: só importa publicações com esta hashtag (ex.: `site`) |
 | `FACEBOOK_GRAPH_VERSION` | sincronização | Versão da Graph API (omissão `v25.0`) |
+| `BREVO_API_KEY`, `MAIL_FROM_EMAIL` | backend, middleware, emails | Envio de emails pela Brevo (recuperar password, convites). Sem elas, «Esqueci-me da password» pede para contactar a secretaria. O envio é feito por `python -m serrado.mail send` |
+| `MAIL_FROM_NAME` | emails | Nome do remetente (omissão `Serrado FC`) |
 | `APP_ENV=production` | todos | Torna obrigatórias as variáveis acima, ativa os cookies `Secure` e esconde `/internal/docs` |
 
 ## Importar dados reais
@@ -106,8 +109,9 @@ Outras opções:
 ## RGPD
 
 - A base de dados tem dados de menores e dados sensíveis (CC, NIF, morada).
-  - Só a secretaria e os administradores os veem.
-  - O treinador recebe as fichas sem esses campos.
+  - Só quem tem a permissão `athletes.sensitive` os vê (de origem: secretaria e administração).
+  - Os outros (por exemplo, o treinador) recebem as fichas sem esses campos.
+- Os emails enviados não ficam guardados: depois do envio, o conteúdo sai da fila (`email_outbox`). As ligações de reposição de password guardam só o hash.
 - Os dados de identificação só mudam através de pedidos aprovados pela secretaria. Um trigger na base de dados garante isto.
 - Todas as escritas ficam em `audit_log`.
 - As exportações (`.xlsx`, `.csv`) nunca vão para o repositório (estão no `.gitignore`).

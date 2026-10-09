@@ -12,7 +12,7 @@ from ...config import config
 from ...db.pool import fetch, fetch_one, tx
 from ...payments import service
 from ...payments.stripe import StripeClient, StripeError, verify_webhook
-from ..core import HttpError, actor, audit, not_found, pool, require_role, require_user
+from ..core import HttpError, actor, audit, can, not_found, pool, require, require_user
 
 PaymentId = Annotated[str, Path(pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")]
 Sport = Annotated[str, Path(pattern=r"^[a-z0-9-]{1,40}$")]
@@ -90,20 +90,20 @@ def register(r: APIRouter) -> None:
     async def receipt(req: Request, id: PaymentId) -> dict[str, str]:
         row = await fetch_one(pool(req), "select user_id, receipt_number, receipt_pdf from payments where id = %s", [id])
         who = actor(req)
-        if not row or not row["receipt_pdf"] or (row["user_id"] != who.id and not any(x in ("admin", "secretaria") for x in who.roles)):
+        if not row or not row["receipt_pdf"] or (row["user_id"] != who.id and not can(req, "payments.view")):
             raise not_found("Recibo")
         name = f"recibo-{(row['receipt_number'] or id).replace('/', '-').replace(' ', '-')}.pdf"
         return {"filename": name, "data": base64.b64encode(row["receipt_pdf"]).decode()}
 
-    # ------------------------------------------------------------- backoffice (secretaria)
+    # ------------------------------------------------------------- backoffice (tesouraria)
     @r.get("/fee-plans", tags=office, summary="Valor mensal por modalidade")
     async def fee_plans(req: Request) -> list[dict[str, Any]]:
-        require_role(req, "secretaria")
+        require(req, "payments.view")
         return await fetch(pool(req), 'select sport_slug as "sport", amount, active, updated_at as "updatedAt" from fee_plans order by sport_slug')
 
     @r.put("/fee-plans/{sport}", tags=office, summary="Define o valor mensal de uma modalidade")
     async def set_fee_plan(req: Request, sport: Sport, body: FeePlan) -> dict[str, Any]:
-        require_role(req, "secretaria")
+        require(req, "payments.manage")
         async with tx(pool(req)) as c:
             await c.execute(
                 """insert into fee_plans (sport_slug, amount, active) values (%s, %s, %s)
@@ -115,7 +115,7 @@ def register(r: APIRouter) -> None:
 
     @r.post("/fees/generate", tags=office, summary="Gera as mensalidades de um mês (não duplica)")
     async def generate(req: Request, body: Generate) -> dict[str, Any]:
-        require_role(req, "secretaria")
+        require(req, "payments.manage")
         month = date.fromisoformat(body.month + "-01")
         async with tx(pool(req)) as c:
             created = await service.generate_fees(c, month)
@@ -124,7 +124,7 @@ def register(r: APIRouter) -> None:
 
     @r.get("/fees", tags=office, summary="Mensalidades de um mês")
     async def fees(req: Request, month: Annotated[str, Query(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")]) -> list[dict[str, Any]]:
-        require_role(req, "secretaria")
+        require(req, "payments.view")
         return await fetch(
             pool(req),
             """select f.id, a.name as "athleteName", a.code as "athleteCode", f.sport_slug as sport, f.period, f.amount, f.due_date as "dueDate",
@@ -135,7 +135,7 @@ def register(r: APIRouter) -> None:
 
     @r.get("/payments", tags=office, summary="Pagamentos online e estado dos recibos")
     async def payments(req: Request, status: Literal["open", "paid", "failed", "expired"] | None = None) -> list[dict[str, Any]]:
-        require_role(req, "secretaria")
+        require(req, "payments.view")
         return await fetch(
             pool(req),
             """select p.id, p.created_at as "createdAt", p.paid_at as "paidAt", p.amount, p.status, p.method, p.payer_name as "payerName",
@@ -148,7 +148,7 @@ def register(r: APIRouter) -> None:
 
     @r.post("/payments/{id}/retry-receipt", tags=office, summary="Volta a tentar emitir o recibo (continua de onde parou)")
     async def retry(req: Request, id: PaymentId) -> dict[str, Any]:
-        require_role(req, "secretaria")
+        require(req, "payments.manage")
         async with tx(pool(req)) as c:
             cur = await c.execute(
                 "update payments set receipt_status = 'pending', receipt_attempts = 0, receipt_error = null where id = %s and status = 'paid' and receipt_status <> 'issued' returning id",

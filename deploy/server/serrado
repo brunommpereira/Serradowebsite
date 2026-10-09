@@ -21,6 +21,9 @@
 #   serrado moloni-info               empresas, séries, artigos e métodos de pagamento do Moloni (para configurar)
 #   serrado receipts                  emite agora as faturas-recibo em falta
 #   serrado fees [AAAA-MM]            cria as mensalidades das escolas do mês
+#   serrado email                     liga o envio de emails (Brevo): recuperar password, convites, registos
+#   serrado email test <endereço>     envia um email de teste
+#   serrado email off                 desliga
 #
 # O GitHub Actions só pode correr deploy, rollback, backup e status (ver serrado-ssh-gate).
 set -euo pipefail
@@ -184,6 +187,8 @@ cmd_status() {
   echo "disk_used_pct=$(df --output=pcent / | tail -1 | tr -dc 0-9)"
   echo "tls_mode=$([ -f "$ETC/cloudflare" ] && echo cloudflare || echo letsencrypt)"
   # Faturas-recibo que falharam 6 vezes (o Moloni recusou): a verificação diária avisa
+  # Emails que falharam todas as tentativas (Brevo): a verificação diária avisa
+  echo "mail_failed=$(as_postgres psql -d "$DB_NAME" -tAc "select count(*) from email_outbox where status = 'failed' and attempts >= 6" 2>/dev/null || echo 0)"
   echo "receipts_stuck=$(as_postgres psql -d "$DB_NAME" -tAc "select count(*) from payments where status = 'paid' and receipt_status = 'failed' and receipt_attempts >= 6" 2>/dev/null || echo 0)"
 }
 
@@ -306,6 +311,36 @@ cmd_payments() {
   echo "  $(grep '^PUBLIC_URL=' "$ETC/serrado.env" | cut -d= -f2-)/api/v1/payments/stripe/webhook"
 }
 
+cmd_email() {
+  case "${1:-}" in
+    off)
+      sed -i '/^BREVO_API_KEY=/d; /^MAIL_FROM_/d' "$ETC/serrado.env"
+      $SYSTEMCTL disable --now serrado-mail.timer 2>/dev/null || true
+      $SYSTEMCTL restart serrado-backend serrado-middleware
+      echo '✔ Envio de emails desligado («Esqueci-me da password» volta a pedir para contactar a secretaria)'
+      return ;;
+    test)
+      [[ ${2:-} =~ ^[^@[:space:]]+@[^@[:space:]]+\.[a-z]{2,}$ ]] || die 'Uso: serrado email test <endereço>'
+      (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.mail test "$2")
+      return ;;
+  esac
+  local key from name
+  echo '— Brevo (SMTP e API → Chaves de API). O domínio do remetente tem de estar autenticado (SPF/DKIM) na Brevo.'
+  read -rsp 'Chave de API (xkeysib-…; não aparece no ecrã): ' key; echo
+  read -rp 'Remetente (ex.: nao-responder@serradofc.pt): ' from
+  read -rp 'Nome do remetente [Serrado FC]: ' name
+  [[ $key =~ ^xkeysib-[A-Za-z0-9-]{20,200}$ ]] || die 'Chave da Brevo inválida'
+  [[ $from =~ ^[^@[:space:]]+@[^@[:space:]]+\.[a-z]{2,}$ ]] || die 'Remetente inválido'
+  name=${name:-Serrado FC}
+  [[ $name =~ ^[[:alnum:][:space:].-]{2,60}$ ]] || die 'Nome inválido'
+  set_env BREVO_API_KEY "$key"
+  set_env MAIL_FROM_EMAIL "$from"
+  set_env MAIL_FROM_NAME "$name"
+  $SYSTEMCTL restart serrado-backend serrado-middleware
+  $SYSTEMCTL enable --now serrado-mail.timer
+  echo "✔ Emails ligados. Experimenta: sudo serrado email test o-teu@email.pt"
+}
+
 case "${1:-}" in
   deploy) shift; cmd_deploy "$@" ;;
   rollback) cmd_rollback ;;
@@ -315,7 +350,7 @@ case "${1:-}" in
   status) cmd_status ;;
   admin) shift; [ $# -eq 2 ] || die 'Uso: serrado admin <email> "<nome>"'; (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.db.create_admin "$1" "$2") ;;
   content) (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.db.content) ;;
-  logs) journalctl -u serrado-middleware -u serrado-backend -u serrado-facebook -u serrado-receipts -u serrado-fees -u caddy -n "${2:-100}" --no-pager ;;
+  logs) journalctl -u serrado-middleware -u serrado-backend -u serrado-facebook -u serrado-receipts -u serrado-fees -u serrado-mail -u caddy -n "${2:-100}" --no-pager ;;
   cf-ips) cmd_cf_ips ;;
   oauth) shift; cmd_oauth "$@" ;;
   facebook) shift; cmd_facebook "$@" ;;
@@ -324,5 +359,6 @@ case "${1:-}" in
   moloni-info) pay_py moloni-info ;;
   receipts) pay_py receipts ;;
   fees) shift; [[ -z ${1:-} || $1 =~ ^[0-9]{4}-(0[1-9]|1[0-2])$ ]] || die 'Uso: serrado fees [AAAA-MM]'; pay_py generate-fees "$@" ;;
-  *) sed -n '2,25p' "$0"; exit 1 ;;
+  email) shift; cmd_email "$@" ;;
+  *) sed -n '2,28p' "$0"; exit 1 ;;
 esac

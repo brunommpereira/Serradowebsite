@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
-import { StaffRole } from '../../core/models';
+import { Permission } from '../../core/permissions';
 
 /**
  * Área de Sócio: exige sessão E perfil de sócio. Sem sessão (ou com uma conta
@@ -22,13 +22,13 @@ export const accountGuard: CanActivateFn = (_route, state) => {
 };
 
 /**
- * Backoffice: exige papel de staff. Com `data: { roles: [...] }` na rota,
- * exige um desses papéis (admin passa sempre).
+ * Backoffice: exige alguma permissão (é da equipa). Com `data: { permissions: [...] }` na rota,
+ * exige uma dessas permissões. O servidor volta a verificar cada pedido.
  */
 export const staffGuard: CanActivateFn = (route, state) => {
   const auth = inject(AuthService);
   const router = inject(Router);
   if (!auth.isStaff()) return router.createUrlTree(['/entrar'], { queryParams: { perfil: 'staff', voltar: state.url } });
-  const roles = (route.data?.['roles'] ?? []) as StaffRole[];
-  return !roles.length || auth.hasRole(...roles) ? true : router.createUrlTree(['/admin'], { queryParams: { semPermissao: 1 } });
+  const needed = (route.data?.['permissions'] ?? []) as Permission[];
+  return !needed.length || auth.can(...needed) ? true : router.createUrlTree(['/admin'], { queryParams: { semPermissao: 1 } });
 };

@@ -1,5 +1,5 @@
 import { CmsEntry, CmsRevision, CmsType } from '../../../core/cms/cms.models';
-import { StaffRole } from '../../../core/models';
+import { RoleDef } from '../../../core/permissions';
 
 /**
  * Contrato de dados do backoffice. Duas implementações:
@@ -54,7 +54,7 @@ export interface DocumentToReview {
 }
 
 export interface Dashboard {
-  user: { name: string; roles: string[] };
+  user: { name: string; roles: string[]; permissions?: string[] };
   stats: AdminStats;
   activity: AuditEntry[];
   attention: { requests: IdentityRequest[]; documents: DocumentToReview[] };
@@ -90,7 +90,7 @@ export interface AdminUser {
   id: string;
   email: string;
   name: string;
-  roles: StaffRole[];
+  roles: string[];
   member: { memberNumber: string } | null;
 }
 
@@ -188,7 +188,14 @@ export abstract class AdminSource {
 
   abstract importResults(rows: ImportRow[]): Promise<ImportSummary>;
   abstract users(): Promise<AdminUser[]>;
-  abstract setRoles(id: string, roles: StaffRole[]): Promise<void>;
+  abstract setRoles(id: string, roles: string[]): Promise<void>;
+  /** Envia por email o convite para a pessoa definir a password */
+  abstract invite(id: string): Promise<void>;
+  /** Papéis com as permissões e quantos utilizadores têm cada um */
+  abstract roles(): Promise<RoleDef[]>;
+  /** Cria (isNew) ou altera um papel */
+  abstract saveRole(role: RoleDef, isNew: boolean): Promise<void>;
+  abstract deleteRole(key: string): Promise<void>;
   abstract audit(): Promise<AuditEntry[]>;
 }
 

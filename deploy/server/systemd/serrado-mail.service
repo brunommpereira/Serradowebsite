@@ -1,0 +1,31 @@
+[Unit]
+Description=Serrado FC — envio dos emails do site (Brevo)
+After=network-online.target postgresql.service
+Wants=network-online.target
+ConditionPathExists=/opt/serrado/current/services/.venv/bin/python
+
+[Service]
+Type=oneshot
+User=serrado
+Group=serrado
+EnvironmentFile=/etc/serrado/serrado.env
+Environment=PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WorkingDirectory=/opt/serrado/current/services
+ExecStart=/opt/serrado/current/services/.venv/bin/python -m serrado.mail send
+TimeoutStartSec=2min
+MemoryMax=200M
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=

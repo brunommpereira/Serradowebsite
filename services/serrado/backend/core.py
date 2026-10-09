@@ -9,7 +9,7 @@ from fastapi import Request
 from ..db.pool import Conn, Jsonb, Pool, Row
 from ..web import HttpError, forbidden, not_found
 
-__all__ = ["Actor", "HttpError", "audit", "camel", "forbidden", "has_role", "not_found", "pool", "require_role", "require_user", "snake"]
+__all__ = ["Actor", "HttpError", "audit", "camel", "can", "forbidden", "not_found", "pool", "require", "require_user", "snake"]
 
 
 @dataclass
@@ -18,6 +18,8 @@ class Actor:
 
     id: str | None = None
     roles: list[str] = field(default_factory=list)
+    # Permissões efetivas (dos papéis, configuradas no backoffice; admin tem todas)
+    permissions: set[str] = field(default_factory=set)
 
 
 def actor(req: Request) -> Actor:
@@ -28,13 +30,14 @@ def pool(req: Request) -> Pool:
     return req.app.state.pool  # type: ignore[no-any-return]
 
 
-def has_role(req: Request, *roles: str) -> bool:
-    """Admin passa sempre."""
-    return any(r == "admin" or r in roles for r in actor(req).roles)
+def can(req: Request, *permissions: str) -> bool:
+    """Tem pelo menos uma das permissões (sem argumentos: é da equipa, com alguma permissão)."""
+    granted = actor(req).permissions
+    return bool(granted) if not permissions else any(p in granted for p in permissions)
 
 
-def require_role(req: Request, *roles: str) -> None:
-    if not has_role(req, *roles):
+def require(req: Request, *permissions: str) -> None:
+    if not can(req, *permissions):
         raise forbidden()
 
 

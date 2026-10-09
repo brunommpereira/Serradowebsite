@@ -76,6 +76,13 @@ export class LegalComponent {
           ],
         },
         { h: '9. Menores', p: ['O tratamento de dados de menores de 13 anos requer o consentimento do titular das responsabilidades parentais.'] },
+        {
+          h: '10. Emails do site e acesso da equipa',
+          p: [
+            'Os emails do site (por exemplo, a ligação para repor a password ou o convite para criar a conta) são enviados através da Brevo, com servidores na União Europeia. A Brevo recebe apenas o nome, o email e o texto da mensagem; depois do envio, o clube não guarda o conteúdo. As ligações de reposição são de uso único e expiram.',
+            'Na equipa do clube, cada pessoa só acede ao que a sua função exige (por exemplo, só a secretaria vê os dados de identificação dos atletas). Todos os acessos de gestão ficam registados.',
+          ],
+        },
       ],
     };
   }

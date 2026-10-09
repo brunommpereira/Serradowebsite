@@ -259,6 +259,27 @@ sudo serrado payments        # pede as chaves do Stripe e do Moloni; mostra as s
 
 > **Testar antes de abrir:** faz um pagamento real pequeno com cada método e confirma três coisas: a quota fica «Pago», o email com a fatura-recibo chega e o PDF descarrega-se no site.
 
+## 5e. Emails do site: recuperar password e convites (Brevo)
+
+Sem isto, «Esqueci-me da password» pede para contactar a secretaria. Com a Brevo (plano grátis: 300 emails por dia):
+
+- **«Esqueci-me da password»:** a pessoa recebe uma ligação de uso único, válida durante 1 hora. Ao definir a nova password, as sessões abertas noutros dispositivos terminam.
+- **Convites:** em **Backoffice → Utilizadores → Enviar convite**, a pessoa recebe uma ligação (7 dias) para definir a primeira password.
+
+1. **Conta:** cria a conta do clube em brevo.com (servidores na UE; aceita o contrato de tratamento de dados).
+2. **Domínio:** em **Senders, Domains & Dedicated IPs → Domains**, adiciona `serradofc.pt` e cria na Cloudflare os registos DNS que a Brevo indica (TXT de verificação, DKIM e DMARC). Sem isto, os emails vão para o spam.
+3. **Remetente:** adiciona `nao-responder@serradofc.pt` (ou outro do domínio) como remetente.
+4. **Chave:** em **SMTP & API → API Keys**, cria uma chave só para o site.
+5. **Na VPS:**
+```bash
+sudo serrado email                       # pede a chave, o remetente e o nome; liga o envio (a cada minuto)
+sudo serrado email test o-teu@email.pt   # envia um email de teste
+sudo serrado email off                   # desliga
+```
+Se a VPS já tinha sido instalada antes desta versão, corre outra vez o `bootstrap.sh` (com as mesmas opções) para instalar o serviço `serrado-mail`.
+
+> `sudo serrado status` mostra `mail_failed`: emails que falharam 6 tentativas. A verificação diária avisa.
+
 ## 6. Cópias de segurança
 
 | | Onde | Quando | Quanto tempo |
@@ -298,6 +319,7 @@ sudo serrado offsite-latest /root/recuperar                  # descarrega a últ
 | `sudo serrado admin <email> "<nome>"` | Criar uma conta de administração ou repor a password |
 | `sudo serrado cf-ips` | Atualizar já os IPs da Cloudflare na firewall |
 | `sudo serrado payments` / `receipts` / `fees AAAA-MM` / `moloni-info` | Pagamentos online e faturas-recibo |
+| `sudo serrado email` / `email test <endereço>` / `email off` | Emails do site (Brevo): recuperar password e convites |
 | `sudo serrado facebook` / `facebook-sync` / `facebook off` | Ligar, sincronizar agora ou desligar a página de Facebook |
 | `sudo serrado oauth google` / `microsoft` | Ativar a entrada com Google ou Microsoft (`… off` para desativar) |
 
