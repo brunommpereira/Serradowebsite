@@ -415,19 +415,34 @@ export const MEMBERSHIP_FAQ: FaqItem[] = [
   { q: 'Como são tratados os meus dados?', a: 'De acordo com o RGPD. Consulta a nossa Política de Privacidade para saberes como tratamos e protegemos os teus dados.' },
 ];
 
+// Órgãos sociais eleitos na Assembleia Geral de 6/12/2025 para o biénio 2025/2027 (auto de posse da mesma data)
 export const BOARDS: Board[] = [
-  { name: 'Direção', members: [{ name: 'A designar', role: 'Presidente' }, { name: 'A designar', role: 'Vice-Presidente' }, { name: 'A designar', role: 'Secretário' }, { name: 'A designar', role: 'Tesoureiro' }] },
-  { name: 'Conselho Fiscal', members: [{ name: 'A designar', role: 'Presidente' }, { name: 'A designar', role: 'Vogal' }, { name: 'A designar', role: 'Vogal' }] },
-  { name: 'Mesa da Assembleia Geral', members: [{ name: 'A designar', role: 'Presidente' }, { name: 'A designar', role: 'Secretário' }, { name: 'A designar', role: 'Vogal' }] },
+  {
+    name: 'Direção',
+    members: [
+      { name: 'Bruno Pereira', role: 'Presidente' },
+      { name: 'Luís Coelho', role: 'Vice-Presidente' },
+      { name: 'André Carrasco', role: 'Tesoureiro' },
+      { name: 'Fernando Ferreira', role: '1.º Secretário' },
+      { name: 'Manuel José Janes', role: '2.º Secretário' },
+      { name: 'Vítor Hugo', role: 'Vogal' },
+      { name: 'Pedro Resende', role: 'Vogal' },
+      { name: 'Pedro Davide', role: 'Vogal' },
+      { name: 'Joaquim Nascimento', role: 'Vogal' },
+      { name: 'Ricardo Cardinho', role: 'Vogal' },
+    ],
+  },
+  { name: 'Conselho Fiscal', members: [{ name: 'Ricardo Lopes', role: 'Presidente' }, { name: 'Pedro Lopes', role: 'Secretário' }, { name: 'Ana Janes', role: 'Relator' }] },
+  { name: 'Mesa da Assembleia Geral', members: [{ name: 'Maria João Lopes', role: 'Presidente' }, { name: 'Bruno Lopes', role: '1.º Secretário' }, { name: 'João Barata', role: '2.º Secretário' }] },
 ];
 
 export const DOCUMENTS: ClubDocument[] = [
-  { title: 'Estatutos do Serrado Futebol Clube', category: 'Estatutos', year: '—', url: '' },
-  { title: 'Regulamento Interno', category: 'Regulamentos', year: '—', url: '' },
+  { title: 'Estatutos do Serrado Futebol Clube', category: 'Estatutos', year: '1985', url: '/clube/estatutos' },
+  { title: 'Regulamento Interno', category: 'Regulamentos', year: '1999', url: '/clube/estatutos#regulamento' },
   { title: 'Regulamento de Quotas', category: 'Regulamentos', year: '2026', url: '' },
   { title: 'Relatório e Contas', category: 'Relatórios e Contas', year: '2025', url: '' },
   { title: 'Orçamento', category: 'Orçamentos', year: '2026', url: '' },
-  { title: 'Ata da Assembleia Geral', category: 'Atas', year: '2026', url: '' },
+  { title: 'Assembleia Geral de 6/12/2025 — eleição dos órgãos sociais (resumo)', category: 'Atas', year: '2025', url: '/clube/estatutos#assembleia-2025' },
   { title: 'Regulamento Eleitoral', category: 'Eleições', year: '—', url: '' },
   { title: 'Convocatória — Assembleia Geral Ordinária', category: 'Comunicados', year: '2026', url: '' },
 ];

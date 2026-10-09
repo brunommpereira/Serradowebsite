@@ -157,7 +157,7 @@
             <strong>{{ d.title }}</strong>
             <span class="caption">{{ d.category }} · {{ d.year }}</span>
           </span>
-          @if (d.url?.startsWith('/clube/')) {
+          @if (d.url.startsWith('/clube/')) {
             <a class="btn btn--outline btn--sm" [href]="d.url"><sfc-icon name="file" />Ler</a>
           } @else if (d.url) {
             <a class="btn btn--outline btn--sm" [href]="d.url" target="_blank" rel="noopener"><sfc-icon name="download" />PDF</a>

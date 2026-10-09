@@ -139,7 +139,7 @@ export const SITE_DEFAULTS: SiteData = {
     ],
   },
   boards: {
-    note: 'Mandato em curso. Os perfis completos (fotografia e biografia) serão publicados pela Direção.',
+    note: 'Biénio 2025/2027, eleitos na Assembleia Geral de 6 de dezembro de 2025.',
     members: DATA.BOARDS.flatMap((b) =>
       b.members.map((m) => ({ group: b.name, role: m.role, name: m.name })),
     ),
