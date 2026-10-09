@@ -86,7 +86,7 @@ sudo bash /tmp/serrado/deploy/server/bootstrap.sh \
 Sem domínio, basta `sudo bash /tmp/serrado/deploy/server/bootstrap.sh --deploy-key "…"`.
 
 O bootstrap demora cerca de 5 minutos e faz o seguinte:
-1. **Pacotes:** atualiza o sistema e instala o PostgreSQL 16, o Python 3.12, o Caddy, o restic, o ufw e o fail2ban, com atualizações de segurança automáticas.
+1. **Pacotes:** atualiza o sistema e instala o PostgreSQL 16, o Python 3.12, o restic, o ufw e o fail2ban, com atualizações de segurança automáticas. O **Caddy** vem do binário oficial do GitHub, numa versão fixa e com o SHA-512 conferido.
 2. **Base de dados:** cria a base `serrado`, só local. A aplicação liga-se pelo socket como utilizador do sistema `serrado`, sem password guardada.
 3. **Segredos:** gera-os em `/etc/serrado/serrado.env`, que fica só no servidor.
 4. **Serviços:** instala os do systemd, com isolamento (sem escrita no disco e sem privilégios), e o comando `serrado`.

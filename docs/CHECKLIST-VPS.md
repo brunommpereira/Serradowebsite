@@ -132,6 +132,7 @@ Com a API ligada, estas partes do site **ainda não gravam nada no servidor**. E
 | A cada cerca de 2 anos | Atualizar `FACEBOOK_GRAPH_VERSION` quando a Meta retirar a versão em uso. |
 | Quando a verificação diária avisar de recibos encravados | **Backoffice → Pagamentos**: ver o erro do Moloni e carregar em «Tentar outra vez». |
 | Atualizações do sistema | As de segurança instalam-se sozinhas. De vez em quando, `sudo apt upgrade` e reiniciar num horário calmo. |
+| A cada 6 meses (ou num alerta de segurança do Caddy) | Atualizar o Caddy: mudar `CADDY_VERSION` e os SHA-512 em `deploy/server/bootstrap.sh` (ficheiro `caddy_<versão>_checksums.txt` da release no GitHub) e voltar a correr o bootstrap. O Caddy deixou de vir de um repositório apt, por isso não se atualiza sozinho. |
 | A cada 15 anos | Renovar o certificado de origem da Cloudflare. |
 | Renovação anual | Domínio `serradofc.pt` no dominios.pt e plano da VPS. **Com renovação automática e um cartão válido.** |
 
