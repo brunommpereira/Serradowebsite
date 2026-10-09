@@ -9,6 +9,7 @@ tentativas espaçadas. Assim um problema no servidor de email nunca falha o pedi
 
 import asyncio
 import base64
+import hashlib
 import html
 import logging
 import re
@@ -41,6 +42,67 @@ async def enqueue(c: Conn, *, to_email: str, to_name: str, subject: str, html_bo
     )
 
 
+# A assinatura (Backoffice → Conteúdos do site → Assinatura dos emails) entra no momento do envio
+SIGNATURE_MARK = "<!--assinatura-->"
+DEFAULT_SIGNATURE: dict[str, Any] = {
+    "text": "\n".join(
+        [
+            "**SERRADO FUTEBOL CLUBE**",
+            "*Desporto • Formação • Comunidade*",
+            "",
+            '🥈 **Vice-Campeão Troféu de Atletismo de Almada "Mário Pinto Claro"** | 2025/2026',
+            "🏆 **Campeão Distrital de Futebol de Salão** | 1999/2000",
+            "🥈 **Vice-Campeão Nacional Futebol Salão** | 2001/2002",
+            "🏆 **Campeão Distrital de Futsal** | 2002/2003",
+            "",
+            "🏅 **Medalha de Prata de Mérito Desportivo**",
+            "Câmara Municipal de Almada",
+        ]
+    ),
+    "showLogo": True,
+    "logoUrl": None,
+    "logoSize": 90,
+}
+DEFAULT_LOGO = "/brand/email-logo.png"
+_BOLD = re.compile(r"\*\*(.+?)\*\*")
+_ITALIC = re.compile(r"(?<![*\w])\*(?!\*)(.+?)(?<!\*)\*(?![*\w])")
+
+
+def inline(text: str) -> str:
+    """Texto escapado com **negrito** e *itálico* (o resto fica tal e qual)."""
+    out = _BOLD.sub(r"<strong>\1</strong>", html.escape(text))
+    return _ITALIC.sub(r"<em>\1</em>", out)
+
+
+LOGO_PATH = "/api/v1/email/logo.png"
+
+
+def signature_html(sig: dict[str, Any] | None, site_url: str) -> str:
+    """Texto (uma linha por linha) e, no fim, o símbolo. Tudo escapado; a imagem só com endereço absoluto."""
+    s = {**DEFAULT_SIGNATURE, **(sig or {})}
+    e = html.escape
+    # Linhas seguidas ficam no mesmo parágrafo; uma linha em branco começa outro
+    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", str(s.get("text") or "").replace("\r", "")) if p.strip()]
+    out = '<div style="margin:24px 0 0;padding-top:16px;border-top:1px solid #e5e5e5;font-size:14px;line-height:1.45;color:#333">'
+    for p in paragraphs:
+        out += '<p style="margin:0 0 12px">' + "<br>".join(inline(ln.strip()) for ln in p.splitlines()) + "</p>"
+    if s.get("showLogo") and site_url.startswith("https://"):
+        try:
+            size = max(24, min(240, int(s.get("logoSize") or 90)))
+        except (TypeError, ValueError):
+            size = 90
+        # Símbolo próprio: servido em PNG (os clientes de email nem sempre mostram WebP); a versão evita caches antigas
+        custom = str(s.get("logoUrl") or "")
+        src = f"{site_url}{LOGO_PATH}?v={hashlib.sha256(custom.encode()).hexdigest()[:10]}" if custom else f"{site_url}{DEFAULT_LOGO}"
+        out += f'<img src="{e(src, quote=True)}" alt="Serrado FC" width="{size}" style="display:block;width:{size}px;height:auto;border:0">'
+    return out + "</div>"
+
+
+async def load_signature(pool: Pool) -> str:
+    rows = await fetch(pool, "select data from site_blocks where key = 'email'")
+    return signature_html(rows[0]["data"] if rows else None, config.oauth.site_url)
+
+
 def layout(title: str, paragraphs: list[str], button: tuple[str, str] | None = None, footer: str = "") -> str:
     """HTML simples e legível em qualquer cliente de email. O texto é sempre escapado."""
     e = html.escape
@@ -57,7 +119,7 @@ def layout(title: str, paragraphs: list[str], button: tuple[str, str] | None = N
     return (
         '<!doctype html><html lang="pt"><body style="margin:0;background:#f4f4f4;font-family:Arial,sans-serif;color:#1a1a1a">'
         '<div style="max-width:560px;margin:0 auto;padding:24px"><div style="background:#fff;border-radius:8px;padding:24px">'
-        f'<h1 style="font-size:20px;margin:0 0 16px">{e(title)}</h1>{body}</div>'
+        f'<h1 style="font-size:20px;margin:0 0 16px">{e(title)}</h1>{body}{SIGNATURE_MARK}</div>'
         '<p style="font-size:12px;color:#777;text-align:center">Serrado Futebol Clube</p></div></body></html>'
     )
 
@@ -173,9 +235,10 @@ async def send_pending(pool: Pool, cfg: MailConfig, client: Sender, limit: int =
                     order by created_at limit %s""",
                 [MAX_ATTEMPTS, limit],
             )
+            signature = await load_signature(pool) if todo else ""
             for row in todo:
                 try:
-                    await client.send(row)
+                    await client.send({**row, "html": str(row["html"]).replace(SIGNATURE_MARK, signature)})
                 except Exception as e:  # fica registado e volta a tentar
                     summary.failed += 1
                     summary.errors.append(f"{row['id']}: {e}")

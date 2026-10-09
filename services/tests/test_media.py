@@ -56,7 +56,7 @@ async def test_lista_pesquisa_e_altera_o_texto_alternativo(call, state):
 async def test_o_conteudo_publico_so_se_obtem_pela_chave_aleatoria(call, state):
     r = await call("GET", f"/media/{state['key']}")
     assert r.status_code == 200
-    assert r.json() == {"mime": "image/png", "data": PNG}
+    assert r.json()["mime"] == "image/png" and r.json()["data"] == PNG
     assert (await call("GET", "/media/00000000-0000-0000-0000-000000000000")).status_code == 404
     assert (await call("GET", "/media/1")).status_code == 400
 

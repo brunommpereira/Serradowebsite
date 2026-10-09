@@ -1,7 +1,8 @@
 """
 Biblioteca de imagens do CMS. O browser reduz e converte as imagens antes de as enviar,
 o que também apaga os metadados (EXIF, localização GPS). Aqui confirma-se o tipo real
-pelo conteúdo do ficheiro e o tamanho.
+pelo conteúdo do ficheiro e o tamanho. Também guarda documentos em PDF (estatutos,
+relatórios e contas…), que são sempre públicos.
 """
 
 import base64
@@ -16,7 +17,8 @@ from ...db.pool import Pool, fetch, fetch_one, tx
 from ..core import HttpError, actor, audit, camel, not_found, pool, require
 
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
-EXT = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif"}
+MAX_PDF_BYTES = 10 * 1024 * 1024
+EXT = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif", "application/pdf": "pdf"}
 
 
 def sniff_image(b: bytes) -> str | None:
@@ -29,6 +31,8 @@ def sniff_image(b: bytes) -> str | None:
         return "image/webp"
     if b[:6] in (b"GIF87a", b"GIF89a"):
         return "image/gif"
+    if b[:5] == b"%PDF-":
+        return "application/pdf"
     return None
 
 
@@ -36,21 +40,22 @@ COLUMNS = "id, key, name, mime, size_bytes, width, height, alt, created_at, (sel
 
 
 async def usage(db: Pool, key: str) -> list[dict[str, Any]]:
-    """Onde a imagem está a ser usada (texto ou capa de notícias, eventos e páginas)."""
+    """Onde a imagem está a ser usada (texto ou capa de notícias, eventos e páginas, e conteúdos do site)."""
     like = f"%{key}%"
     return await fetch(
         db,
-        """select 'news' as type, id, title from cms_news where body like %s or cover_url like %s
-           union all select 'events', id, title from cms_events where body like %s or cover_url like %s
-           union all select 'pages', id, title from cms_pages where body like %s""",
-        [like, like, like, like, like],
+        """select 'news' as type, id::text, title from cms_news where body like %s or cover_url like %s
+           union all select 'events', id::text, title from cms_events where body like %s or cover_url like %s
+           union all select 'pages', id::text, title from cms_pages where body like %s
+           union all select 'site', key, key from site_blocks where data::text like %s""",
+        [like, like, like, like, like, like],
     )
 
 
 class Upload(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: str = Field(min_length=1, max_length=200)
-    data: str = Field(min_length=8, max_length=7_100_000)
+    data: str = Field(min_length=8, max_length=14_100_000)
     alt: str | None = Field(default=None, max_length=300)
     width: int | None = Field(default=None, ge=1, le=10000)
     height: int | None = Field(default=None, ge=1, le=10000)
@@ -88,11 +93,13 @@ def register(r: APIRouter) -> None:
             data = base64.b64decode(body.data, validate=False)
         except (binascii.Error, ValueError):
             raise HttpError(400, "validation", "data: base64 inválido") from None
-        if len(data) > MAX_IMAGE_BYTES:
-            raise HttpError(413, "too_large", "A imagem tem mais de 5 MB")
         mime = sniff_image(data)
         if not mime:
-            raise HttpError(415, "unsupported_type", "Formato não suportado. Usa JPEG, PNG, WebP ou GIF.")
+            raise HttpError(415, "unsupported_type", "Formato não suportado. Usa JPEG, PNG, WebP, GIF ou PDF.")
+        if mime == "application/pdf" and len(data) > MAX_PDF_BYTES:
+            raise HttpError(413, "too_large", "O PDF tem mais de 10 MB")
+        if mime != "application/pdf" and len(data) > MAX_IMAGE_BYTES:
+            raise HttpError(413, "too_large", "A imagem tem mais de 5 MB")
         name = _UNSAFE_NAME.sub("", body.name).strip()[:200] or "imagem"
         who = actor(req)
         async with tx(pool(req)) as c:
@@ -143,7 +150,7 @@ def register(r: APIRouter) -> None:
     async def media_content(
         req: Request, key: Annotated[str, Path(pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")]
     ) -> dict[str, str]:
-        row = await fetch_one(pool(req), "select mime, data from cms_media where key = %s", [key])
+        row = await fetch_one(pool(req), "select mime, name, data from cms_media where key = %s", [key])
         if not row:
             raise not_found("Imagem")
-        return {"mime": row["mime"], "data": base64.b64encode(row["data"]).decode()}
+        return {"mime": row["mime"], "name": row["name"], "data": base64.b64encode(row["data"]).decode()}

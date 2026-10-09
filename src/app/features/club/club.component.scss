@@ -246,6 +246,11 @@
   min-width: 0;
 }
 
+.facility__img {
+  display: block;
+  width: 100%;
+  object-fit: cover;
+}
 .facility__media {
   aspect-ratio: 16 / 10;
   border-radius: var(--radius);

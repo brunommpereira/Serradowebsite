@@ -1,7 +1,7 @@
 <sfc-page-hero
   eyebrow="Desde 29.04.1978"
   title="O Serrado FC"
-  subtitle="Um clube de bairro que se tornou casa de várias modalidades. Esta é a nossa história, a nossa missão e a nossa gente."
+  [subtitle]="page.heroSubtitle"
   [crumbs]="[{ label: 'Clube' }]"
 />
 
@@ -21,17 +21,12 @@
   <div class="container split intro">
     <div>
       <p class="eyebrow">O Serrado FC</p>
-      <h2>Uma história. Uma família. Várias modalidades.</h2>
+      <h2>{{ page.introTitle }}</h2>
     </div>
     <div class="prose">
-      <p>
-        O <strong>Serrado Futebol Clube</strong> foi fundado a <strong>29 de abril de 1978</strong> no Bairro do Serrado, na Caparica (Almada), pela
-        vontade de um grupo de moradores que queria dar aos jovens um lugar para jogar, aprender e pertencer.
-      </p>
-      <p>
-        Hoje somos um clube multidesportivo, com atletismo, futsal, rugby, formação e Escola de Desporto, sem nunca perder aquilo que nos define: a
-        comunidade.
-      </p>
+      @for (p of intro; track $index) {
+        <p>{{ p }}</p>
+      }
     </div>
   </div>
 </section>
@@ -47,7 +42,7 @@
       <p>De 1978 até hoje, os marcos que fizeram do Serrado FC o clube que é.</p>
     </div>
     <ol class="timeline">
-      @for (t of timeline; track t.title) {
+      @for (t of page.timeline; track $index) {
         <li>
           <span class="timeline__dot" aria-hidden="true"></span>
           @if (t.year) {
@@ -67,16 +62,16 @@
     <div class="mv">
       <div class="mv__card">
         <p class="eyebrow">Missão</p>
-        <p class="mv__text">Promover a prática desportiva, a formação e a inclusão, unindo a comunidade da Caparica à volta do desporto.</p>
+        <p class="mv__text">{{ page.mission }}</p>
       </div>
       <div class="mv__card mv__card--accent">
         <p class="eyebrow">Visão</p>
-        <p class="mv__text">Ser um clube multidesportivo de referência, moderno e transparente, onde cada pessoa encontra o seu lugar.</p>
+        <p class="mv__text">{{ page.vision }}</p>
       </div>
     </div>
     <h2 id="h-missao" class="values__title">Os nossos valores</h2>
     <ul class="values">
-      @for (v of values; track v.title) {
+      @for (v of page.values; track $index) {
         <li class="card">
           <span class="values__icon"><sfc-icon [name]="v.icon" size="26" /></span>
           <h3>{{ v.title }}</h3>
@@ -93,9 +88,7 @@
     <div>
       <p class="eyebrow">Identidade</p>
       <h2 id="h-identidade">O emblema</h2>
-      <p>
-        A bola ao centro, rodeada pelas cores do clube, os louros da vitória e a fita com o nome e a data de fundação: <strong>EST. 29.04.1978</strong>.
-      </p>
+      <p>{{ page.emblem }}</p>
       <ul class="palette" aria-label="Cores oficiais">
         <li><span style="background: #004a8e"></span>Azul Serrado<code>#004A8E</code></li>
         <li><span style="background: #ffd318"></span>Amarelo<code>#FFD318</code></li>
@@ -120,7 +113,7 @@
         <p class="eyebrow">Governo do clube</p>
         <h2 id="h-orgaos">Órgãos Sociais</h2>
       </div>
-      <p>Mandato em curso. Os perfis completos (fotografia e biografia) serão publicados pela Direção.</p>
+      <p>{{ boardsNote }}</p>
     </div>
     @for (b of boards; track b.name) {
       <h3 class="board__title">{{ b.name }}</h3>
@@ -154,7 +147,7 @@
       }
     </div>
     <ul class="docs">
-      @for (d of filteredDocs(); track d.title) {
+      @for (d of filteredDocs(); track $index) {
         <li>
           <sfc-icon name="file" size="26" />
           <span class="docs__info">
@@ -183,11 +176,15 @@
       <a class="link-arrow" routerLink="/contactos">Como chegar</a>
     </div>
     <div class="grid grid-3">
-      @for (f of facilities; track f.name; let i = $index) {
+      @for (f of page.facilities; track $index; let i = $index) {
         <article class="facility">
-          <div class="facility__media media-ph" [attr.data-sport]="i === 0 ? 'rugby' : i === 2 ? 'formacao' : null">
-            <sfc-icon [name]="i === 0 ? 'rugby' : i === 1 ? 'ball' : 'home'" size="56" />
-          </div>
+          @if (f.imageUrl) {
+            <img class="facility__media facility__img" [src]="f.imageUrl" [alt]="f.name" loading="lazy" />
+          } @else {
+            <div class="facility__media media-ph" [attr.data-sport]="i % 3 === 0 ? 'rugby' : i % 3 === 2 ? 'formacao' : null">
+              <sfc-icon [name]="i % 3 === 0 ? 'rugby' : i % 3 === 1 ? 'ball' : 'home'" size="56" />
+            </div>
+          }
           <h3>{{ f.name }}</h3>
           <p class="muted">{{ f.text }}</p>
         </article>

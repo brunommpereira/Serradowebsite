@@ -69,7 +69,11 @@ interface Upload {
           @for (m of items(); track m.id) {
             <li>
               <button type="button" class="tile" role="option" [attr.aria-selected]="selected()?.id === m.id" (click)="select(m)" (dblclick)="picker() && pick(m)">
-                <img [src]="m.url" [alt]="m.alt" loading="lazy" />
+                @if (isPdf(m)) {
+                  <span class="tile__pdf"><sfc-icon name="file" size="36" />PDF</span>
+                } @else {
+                  <img [src]="m.url" [alt]="m.alt" loading="lazy" />
+                }
                 <span class="tile__name">{{ m.name }}</span>
               </button>
             </li>
@@ -79,10 +83,17 @@ interface Upload {
 
       @if (selected(); as m) {
         <aside class="detail adm-panel" aria-label="Imagem selecionada">
-          <img class="detail__img" [src]="m.url" [alt]="m.alt" />
+          @if (isPdf(m)) {
+            <a class="detail__pdf" [href]="m.url" target="_blank" rel="noopener"><sfc-icon name="file" size="28" />Abrir o PDF</a>
+          } @else {
+            <img class="detail__img" [src]="m.url" [alt]="m.alt" />
+          }
           <p class="detail__name">{{ m.name }}</p>
           <p class="caption">
-            {{ m.width }}×{{ m.height }} px · {{ size(m.sizeBytes) }} · {{ m.createdAt | date: 'dd/MM/y' }}@if (m.uploadedByName) { · {{ m.uploadedByName }}}
+            @if (!isPdf(m)) {
+              {{ m.width }}×{{ m.height }} px ·
+            }
+            {{ size(m.sizeBytes) }} · {{ m.createdAt | date: 'dd/MM/y' }}@if (m.uploadedByName) { · {{ m.uploadedByName }}}
           </p>
           <label for="media-alt">Descrição (texto alternativo)</label>
           <textarea id="media-alt" rows="2" maxlength="300" [(ngModel)]="alt" placeholder="Ex.: Equipa de sub-11 de futsal no torneio de Natal"></textarea>
@@ -149,6 +160,8 @@ interface Upload {
       p { margin: 0; }
     }
     .detail__img { width: 100%; max-height: 220px; object-fit: contain; background: #eef1f6; border-radius: var(--radius-s); }
+    .detail__pdf { display: flex; align-items: center; gap: 0.4rem; padding: 1rem; font-weight: 700; background: #eef1f6; border-radius: var(--radius-s); }
+    .tile__pdf { display: grid; place-items: center; align-content: center; gap: 0.2rem; width: 100%; aspect-ratio: 4 / 3; background: #eef1f6; color: var(--sfc-blue); font-weight: 800; }
     .detail__name { font-weight: 700; overflow-wrap: anywhere; }
     .detail__actions { display: flex; flex-wrap: wrap; gap: 0.4rem 0.9rem; align-items: center; margin-top: 0.3rem; }
     .hint { font-size: 0.8rem; color: var(--color-muted); }
@@ -166,12 +179,16 @@ export class MediaLibraryComponent {
   protected readonly source = inject(AdminSource);
   protected readonly accepted = ACCEPTED_IMAGES;
   protected readonly size = formatBytes;
+  protected isPdf(m: MediaItem) {
+    return m.mime === 'application/pdf';
+  }
 
   protected readonly q = signal('');
   private readonly all = signal<MediaItem[]>([]);
   protected readonly items = computed(() => {
     const term = this.q().trim().toLowerCase();
-    return this.all().filter((m) => !term || m.name.toLowerCase().includes(term) || m.alt.toLowerCase().includes(term));
+    // No seletor de imagens, os documentos em PDF não aparecem
+    return this.all().filter((m) => (!this.picker() || !this.isPdf(m)) && (!term || m.name.toLowerCase().includes(term) || m.alt.toLowerCase().includes(term)));
   });
   protected readonly selected = signal<MediaItem | null>(null);
   protected readonly usage = signal<MediaUsage[] | null>(null);

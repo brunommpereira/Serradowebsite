@@ -21,6 +21,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
   {
     title: 'Conteúdos (CMS)',
     items: [
+      { label: 'Conteúdos do site', link: '/admin/site', icon: 'home', permissions: ['cms.edit'] },
       { label: 'Notícias', link: '/admin/conteudos/news', icon: 'file', permissions: ['cms.edit'] },
       { label: 'Eventos', link: '/admin/conteudos/events', icon: 'calendar', permissions: ['cms.edit'] },
       { label: 'Páginas', link: '/admin/conteudos/pages', icon: 'home', permissions: ['cms.edit'] },

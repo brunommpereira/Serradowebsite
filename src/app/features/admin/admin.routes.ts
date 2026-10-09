@@ -35,6 +35,21 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./pages/cms-editor.page').then((m) => m.CmsEditorPage),
       },
       {
+        path: 'site',
+        title: 'Conteúdos do site',
+        canActivate: [staffGuard],
+        data: { permissions: ['cms.edit'] },
+        loadComponent: () => import('./site/site-list.page').then((m) => m.SiteListPage),
+      },
+      {
+        path: 'site/:key',
+        title: 'Conteúdos do site',
+        canActivate: [staffGuard],
+        canDeactivate: [unsavedChangesGuard],
+        data: { permissions: ['cms.edit'] },
+        loadComponent: () => import('./site/site-editor.page').then((m) => m.SiteEditorPage),
+      },
+      {
         path: 'imagens',
         title: 'Imagens',
         canActivate: [staffGuard],

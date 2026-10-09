@@ -89,7 +89,8 @@ Com a API ligada, estas partes do site **ainda não gravam nada no servidor**. E
 
 ## 6. Dados reais e RGPD
 
-- [ ] **Órgãos Sociais:** nomes reais da direção, **só com autorização** de cada pessoa. **[decidir]**
+- [ ] **Órgãos Sociais:** nomes reais da direção (Backoffice → Conteúdos do site → Órgãos Sociais), **só com autorização** de cada pessoa. **[decidir]**
+- [ ] **Conteúdos do site** (Backoffice → Conteúdos do site): rever contactos e telefone, texto e história do Clube, documentos em PDF (estatutos, relatórios e contas), loja, jogos da época e modalidades. Enquanto não forem editados, o site mostra os textos de exemplo. **[eu]**
 - [ ] **Importação dos sócios e depois dos atletas** em **Backoffice → Importar** (CSV ou XLSX; o botão «Descarregar modelo» mostra as colunas). Primeiro «Verificar»: com algum erro não se grava nada. Com o email do encarregado, ele fica com acesso à ficha. Os ficheiros `.xlsx`/`.csv` **nunca** vão para o GitHub nem para pastas partilhadas. **[eu]**
 - [ ] **Convites:** depois de importar, enviar o convite (Backoffice → Sócios → ficha → «Enviar convite», ou Utilizadores) a quem vai usar o site. Precisa do email configurado (secção 4). **[eu]**
 - [ ] **Quotas por categoria** definidas em **Backoffice → Pagamentos** (valor e se é mensal ou anual). São criadas no dia 1 de cada mês, com as mensalidades. **[decidir]**

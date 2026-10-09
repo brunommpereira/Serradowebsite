@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../../shared/icon.component';
-import { ContentService } from '../../core/services/content.service';
+import { ContentService, tel } from '../../core/services/content.service';
 import { ApiClient } from '../../core/api/api-client';
 
 @Component({
@@ -40,9 +40,15 @@ import { ApiClient } from '../../core/api/api-client';
           <img src="brand/logo-white.svg" alt="Serrado FC" width="120" height="134" loading="lazy" />
           <p>{{ club.tagline }}</p>
           <div class="footer__social">
+            @if (club.social.facebook) {
             <a [href]="club.social.facebook" target="_blank" rel="noopener" aria-label="Facebook"><sfc-icon name="facebook" size="20" /></a>
+          }
+            @if (club.social.instagram) {
             <a [href]="club.social.instagram" target="_blank" rel="noopener" aria-label="Instagram"><sfc-icon name="instagram" size="20" /></a>
+          }
+            @if (club.social.youtube) {
             <a [href]="club.social.youtube" target="_blank" rel="noopener" aria-label="YouTube"><sfc-icon name="youtube" size="20" /></a>
+          }
           </div>
         </div>
         <nav aria-label="Clube">
@@ -77,7 +83,7 @@ import { ApiClient } from '../../core/api/api-client';
         <address>
           <p class="footer__title">Contactos</p>
           <span>{{ club.address }}<br />{{ club.postalCode }} {{ club.locality }}</span>
-          <a [href]="'tel:' + club.phone.replace(' ', '')">{{ club.phone }}</a>
+          <a [href]="'tel:' + tel(club.phone)">{{ club.phone }}</a>
           <a [href]="'mailto:' + club.email">{{ club.email }}</a>
           <a routerLink="/contactos" class="footer__more">Horários e mapa →</a>
         </address>
@@ -96,7 +102,11 @@ import { ApiClient } from '../../core/api/api-client';
 export class FooterComponent {
   /** Ligado ao servidor: a newsletter ainda não tem serviço de envio, por isso não aparece */
   protected readonly apiMode = inject(ApiClient).enabled;
-  protected readonly club = inject(ContentService).club;
+  private readonly content = inject(ContentService);
+  protected get club() {
+    return this.content.club;
+  }
+  protected readonly tel = tel;
   protected readonly year = new Date().getFullYear();
   protected email = '';
   protected readonly subscribed = signal(false);

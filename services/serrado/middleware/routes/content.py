@@ -140,18 +140,17 @@ def register(r: APIRouter) -> None:
         return to_page(await by_slug(req, "pages", slug))
 
     # Imagens da biblioteca do CMS: o endereço tem uma chave aleatória e nunca muda, por isso a cache é longa
-    @r.get("/media/{file}", tags=tags, summary="Imagem do CMS")
+    @r.get("/media/{file}", tags=tags, summary="Imagem ou PDF do CMS")
     async def media(req: Request, file: Annotated[str, Path(pattern=r"^[0-9a-f-]{36}(\.[a-z]{3,4})?$")]) -> Response:
         img = await backend(req).call("GET", f"/media/{file[:36]}")
-        return Response(
-            content=base64.b64decode(img["data"]),
-            media_type=img["mime"],
-            headers={
-                "cache-control": "public, max-age=31536000, immutable",
-                "x-content-type-options": "nosniff",
-                "content-security-policy": "default-src 'none'",
-            },
-        )
+        headers = {"cache-control": "public, max-age=31536000, immutable", "x-content-type-options": "nosniff"}
+        if img["mime"] == "application/pdf":
+            # Documentos (estatutos, relatórios…): abrem no leitor de PDF do browser, com o nome original
+            name = quote(str(img.get("name") or "documento").removesuffix(".pdf") + ".pdf")
+            headers["content-disposition"] = f"inline; filename*=UTF-8''{name}"
+        else:
+            headers["content-security-policy"] = "default-src 'none'"
+        return Response(content=base64.b64decode(img["data"]), media_type=img["mime"], headers=headers)
 
     @r.get("/content/partners", tags=tags, summary="Parceiros e patrocinadores")
     async def partners(req: Request) -> list[Row]:

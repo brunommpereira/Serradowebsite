@@ -1,6 +1,8 @@
 import { inject, Injectable } from '@angular/core';
 import { ApiClient } from '../../../core/api/api-client';
 import { CmsStore } from '../../../core/cms/cms-store';
+import { SiteStore } from '../../../core/site/site-store';
+import { BlockRevision, BlockState } from '../../../core/site/site.models';
 import { CmsEntry, CmsRevision, CmsType } from '../../../core/cms/cms.models';
 import { RoleDef } from '../../../core/permissions';
 import {
@@ -21,7 +23,7 @@ import {
   PreparedImage,
 } from './admin-source';
 
-const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
+const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'application/pdf': 'pdf' };
 
 /** Backoffice ligado ao middleware (/api/v1/admin/…). */
 @Injectable()
@@ -29,6 +31,7 @@ export class HttpAdminSource extends AdminSource {
   readonly mode = 'api' as const;
   private readonly api = inject(ApiClient);
   private readonly cms = inject(CmsStore);
+  private readonly site = inject(SiteStore);
 
   dashboard() {
     return this.api.get<Dashboard>('/admin/dashboard');
@@ -67,6 +70,9 @@ export class HttpAdminSource extends AdminSource {
     const m = await this.api.post<Omit<MediaItem, 'url'>>('/admin/media', { name: img.name, data: img.base64, alt: img.alt, width: img.width, height: img.height });
     return this.withUrl(m);
   }
+  async mediaUploadFile(file: { name: string; base64: string }) {
+    return this.withUrl(await this.api.post<Omit<MediaItem, 'url'>>('/admin/media', { name: file.name, data: file.base64 }));
+  }
   async mediaUpdate(id: number, alt: string) {
     return this.withUrl(await this.api.patch<Omit<MediaItem, 'url'>>(`/admin/media/${id}`, { alt }));
   }
@@ -102,6 +108,29 @@ export class HttpAdminSource extends AdminSource {
 
   importResults(rows: ImportRow[]) {
     return this.api.post<ImportSummary>('/admin/results/import', { rows });
+  }
+  siteBlock(key: string) {
+    return this.api.get<BlockState>(`/admin/site/blocks/${key}`);
+  }
+  async siteSave(key: string, data: Record<string, unknown>) {
+    const out = await this.api.put<BlockState>(`/admin/site/blocks/${key}`, { data });
+    this.site.applyFromApi(key, out.data);
+    return out;
+  }
+  async siteReset(key: string) {
+    await this.api.delete(`/admin/site/blocks/${key}`);
+    this.site.applyFromApi(key, null);
+  }
+  siteRevisions(key: string) {
+    return this.api.get<BlockRevision[]>(`/admin/site/blocks/${key}/revisions`);
+  }
+  async siteRestore(key: string, rev: number) {
+    const out = await this.api.post<BlockState>(`/admin/site/blocks/${key}/revisions/${rev}/restore`);
+    this.site.applyFromApi(key, out.data);
+    return out;
+  }
+  async siteEmailTest() {
+    return (await this.api.post<{ email: string }>('/admin/site/email-test')).email;
   }
   users() {
     return this.api.get<AdminUser[]>('/admin/users');
