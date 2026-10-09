@@ -6,7 +6,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { DialogComponent } from '../../../shared/dialog.component';
 import { IconComponent } from '../../../shared/icon.component';
 import { OfflineNoticeComponent } from '../../../shared/offline-notice.component';
-import { MEMBER_STATUS, MemberDetail, MemberRow, RegistryApi } from '../data/registry';
+import { AthleteSuggestion, MEMBER_STATUS, MemberDetail, MemberRow, RegistryApi } from '../data/registry';
 
 type Draft = Partial<MemberDetail> & { memberNumber?: string };
 
@@ -128,13 +128,52 @@ const EMPTY: Draft = { name: '', email: '', phone: '', taxNumber: '', birthDate:
           <p class="caption">Sem conta. Indica um email na ficha para criar a conta e enviar o convite.</p>
         }
 
-        @if (d.athletes.length) {
-          <h3 class="h-s">Atletas com este n.º de sócio</h3>
-          <ul class="plain">
-            @for (a of d.athletes; track a.id) {
-              <li>{{ a.name }} <span class="caption">{{ a.code }} · {{ a.sport }}{{ a.category ? ' · ' + a.category : '' }}</span></li>
-            }
-          </ul>
+        <h3 class="h-s">Atletas ligados a este sócio</h3>
+        <ul class="plain links">
+          @for (a of d.athletes; track a.id) {
+            <li>
+              <span>{{ a.name }} <span class="caption">{{ a.code }} · {{ a.sport }}{{ a.category ? ' · ' + a.category : '' }}</span></span>
+              @if (canLink()) {
+                <button type="button" class="btn btn--outline btn--sm" [disabled]="linkBusy()" (click)="unlink(d, a.id, a.name)">Desligar</button>
+              }
+            </li>
+          } @empty {
+            <li class="caption">Nenhum atleta ligado.</li>
+          }
+        </ul>
+
+        @if (canLink()) {
+          <div class="sugg">
+            <h3 class="h-s">Sugestões de ligação</h3>
+            <p class="caption">Atletas com o mesmo nome, o mesmo apelido ou de quem este sócio é encarregado no site. Confirma antes de ligar: o n.º de sócio passa para a ficha do atleta.</p>
+            <form class="sugg__search" (submit)="$event.preventDefault(); loadSuggestions(d, sq)">
+              <label class="visually-hidden" for="sugg-q">Procurar atleta pelo nome</label>
+              <input id="sugg-q" name="sq" [(ngModel)]="sq" placeholder="Procurar atleta pelo nome" maxlength="80" />
+              <button type="submit" class="btn btn--outline btn--sm">Procurar</button>
+              @if (sq) {
+                <button type="button" class="btn btn--ghost btn--sm" (click)="sq = ''; loadSuggestions(d)">Ver sugestões</button>
+              }
+            </form>
+            <ul class="plain links">
+              @for (s of suggestions() ?? []; track s.id) {
+                <li>
+                  <span>
+                    {{ s.name }}
+                    <span class="caption">{{ s.code }} · {{ s.sport }}{{ s.category ? ' · ' + s.category : '' }}{{ s.birthDate ? ' · ' + (s.birthDate | date: 'dd/MM/y') : '' }}</span>
+                    <span class="caption sub">
+                      <span class="st" [class]="'st ' + (s.score >= 80 ? 'st--ok' : 'st--warn')">{{ s.reason }}</span>
+                      @if (s.memberNumber) {
+                        · já ligado ao sócio n.º {{ s.memberNumber }}
+                      }
+                    </span>
+                  </span>
+                  <button type="button" class="btn btn--primary btn--sm" [disabled]="linkBusy()" (click)="link(d, s)">Ligar</button>
+                </li>
+              } @empty {
+                <li class="caption">{{ suggestions() === null ? 'A procurar…' : sq ? 'Nenhum atleta com esse nome.' : 'Sem sugestões. Procura o atleta pelo nome.' }}</li>
+              }
+            </ul>
+          </div>
         }
 
         <h3 class="h-s">Quotas</h3>
@@ -262,6 +301,35 @@ const EMPTY: Draft = { name: '', email: '', phone: '', taxNumber: '', birthDate:
     </sfc-dialog>
   `,
   styles: `
+    .links li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.35rem 0;
+      border-bottom: 1px solid var(--color-border, #e3e6ee);
+      .sub {
+        display: block;
+        margin-top: 0.15rem;
+      }
+    }
+    .sugg {
+      margin-top: 1rem;
+    }
+    .sugg__search {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin: 0.5rem 0;
+      input {
+        flex: 1;
+        min-width: 180px;
+        font: inherit;
+        padding: 0.4rem 0.6rem;
+        border: 1.5px solid #c9cfdb;
+        border-radius: var(--radius-s);
+      }
+    }
     .quick {
       display: flex;
       gap: 0.5rem;
@@ -386,6 +454,11 @@ export class MembersPage {
   protected readonly busy = signal(false);
   protected readonly categories = computed(() => [...new Set(['Efetivo', 'Familiar', 'Jovem', ...this.list().map((m) => m.category)])].sort());
   protected quota = { period: '', amount: 0, dueDate: '' };
+  /** Ligar atletas ao sócio: quem gere sócios e atletas (secretaria) */
+  protected readonly canLink = computed(() => this.auth.can('members.manage') && this.auth.can('athletes.manage'));
+  protected readonly suggestions = signal<AthleteSuggestion[] | null>(null);
+  protected readonly linkBusy = signal(false);
+  protected sq = '';
   protected readonly isSet = (v: unknown) => !!v;
   private reloads = signal(0);
 
@@ -409,9 +482,46 @@ export class MembersPage {
 
   async open(number: string) {
     try {
-      this.detail.set(await this.api.member(number));
+      const d = await this.api.member(number);
+      this.detail.set(d);
+      this.sq = '';
+      if (this.canLink()) void this.loadSuggestions(d);
     } catch (e) {
       this.message.set({ ok: false, text: (e as Error).message });
+    }
+  }
+
+  async loadSuggestions(d: MemberDetail, q?: string) {
+    this.suggestions.set(null);
+    try {
+      this.suggestions.set(await this.api.athleteSuggestions(d.memberNumber, q?.trim() || undefined));
+    } catch (e) {
+      this.suggestions.set([]);
+      this.message.set({ ok: false, text: (e as Error).message });
+    }
+  }
+
+  async link(d: MemberDetail, s: AthleteSuggestion) {
+    if (s.memberNumber && !confirm(`${s.name} está ligado ao sócio n.º ${s.memberNumber}. Passar para o sócio n.º ${d.memberNumber}?`)) return;
+    await this.changeLink(d, () => this.api.linkAthlete(d.memberNumber, s.id, !!s.memberNumber), `${s.name} ligado ao sócio n.º ${d.memberNumber}.`);
+  }
+
+  async unlink(d: MemberDetail, id: string, name: string) {
+    if (!confirm(`Desligar ${name} do sócio n.º ${d.memberNumber}?`)) return;
+    await this.changeLink(d, () => this.api.unlinkAthlete(d.memberNumber, id), `${name} desligado.`);
+  }
+
+  private async changeLink(d: MemberDetail, call: () => Promise<MemberDetail>, ok: string) {
+    this.linkBusy.set(true);
+    try {
+      this.detail.set(await call());
+      this.message.set({ ok: true, text: ok });
+      this.reloads.update((n) => n + 1);
+      await this.loadSuggestions(d, this.sq);
+    } catch (e) {
+      this.message.set({ ok: false, text: (e as Error).message });
+    } finally {
+      this.linkBusy.set(false);
     }
   }
 

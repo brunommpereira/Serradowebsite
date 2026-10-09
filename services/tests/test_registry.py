@@ -243,3 +243,47 @@ async def test_pagamento_na_secretaria_sem_moloni(mw):
     assert r.status_code == 503 and r.json()["error"] == "receipts_disabled"
     r = await tes.post("/api/v1/admin/payments/manual", json={**body, "receipt": False})
     assert r.status_code == 201 and r.json()["receiptStatus"] == "none"
+
+
+async def test_ficha_do_socio_sugere_atletas_e_a_secretaria_liga(mw):
+    sec = await mw.login(*SEC)
+    m = (await sec.post("/api/v1/admin/members", json={"name": "Rita de Sousa Quintanilha", "email": "rita.q@exemplo.pt"})).json()
+    n = m["memberNumber"]
+
+    async def athlete(name: str, **extra: object) -> str:
+        r = await sec.post("/api/v1/admin/athletes", json={"name": name, "sport": "futsal", **extra})
+        assert r.status_code == 201, r.text
+        return r.json()["id"]
+
+    same = await athlete("Rita Sousa Quintanilha")
+    first_last = await athlete("Rita Maria Quintanilha")
+    child = await athlete("Tomás Quintanilha")
+    guarded = await athlete("Outro Apelido", guardianName="Rita", guardianEmail="rita.q@exemplo.pt")
+    other = await athlete("Nada A Ver")
+    sug = (await sec.get(f"/api/v1/admin/members/{n}/athlete-suggestions")).json()
+    by_id = {x["id"]: x for x in sug}
+    assert [x["id"] for x in sug[:4]] == [same, guarded, first_last, child]
+    assert by_id[same]["reason"] == "Mesmo nome" and by_id[child]["score"] == 40 and other not in by_id
+    # Pesquisa livre por nome
+    found = (await sec.get(f"/api/v1/admin/members/{n}/athlete-suggestions", params={"q": "nada ve"})).json()
+    assert [x["id"] for x in found] == [other]
+
+    # Ligar: a ficha do sócio passa a mostrar o atleta e a do atleta o n.º de sócio
+    r = await sec.post(f"/api/v1/admin/members/{n}/athletes/{child}")
+    assert r.status_code == 200, r.text
+    assert [a["id"] for a in r.json()["athletes"]] == [child]
+    row = await fetch_one(mw.pool, "select member_number from athletes where id = %s", [child])
+    assert row and row["member_number"] == n
+    assert child not in {x["id"] for x in (await sec.get(f"/api/v1/admin/members/{n}/athlete-suggestions")).json()}
+    # Ligado a outro sócio: pede confirmação (force)
+    m2 = (await sec.post("/api/v1/admin/members", json={"name": "Segundo Sócio"})).json()["memberNumber"]
+    assert (await sec.post(f"/api/v1/admin/members/{m2}/athletes/{child}")).status_code == 409
+    assert (await sec.post(f"/api/v1/admin/members/{m2}/athletes/{child}", params={"force": "true"})).status_code == 200
+    # Desligar
+    assert (await sec.delete(f"/api/v1/admin/members/{n}/athletes/{child}")).status_code == 404
+    assert (await sec.delete(f"/api/v1/admin/members/{m2}/athletes/{child}")).json()["athletes"] == []
+    actions = [a["action"] for a in await fetch(mw.pool, "select action from audit_log where entity_id = %s order by id", [child])]
+    assert actions[-3:] == ["athletes.link_member", "athletes.link_member", "athletes.unlink_member"]
+    # Quem não gere sócios e atletas não liga
+    tes = await mw.login(*TES)
+    assert (await tes.post(f"/api/v1/admin/members/{n}/athletes/{same}")).status_code == 403
