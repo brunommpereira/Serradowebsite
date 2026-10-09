@@ -265,9 +265,12 @@ echo "GitHub Actions: Settings → Secrets and variables → Actions"
 echo "  variável VPS_HOST       = $(curl -4 -fsS https://api.ipify.org 2>/dev/null || echo '<IP da VPS>')"
 echo "  variável SITE_DOMAIN    = $DOMAIN"
 echo "  segredo  VPS_KNOWN_HOSTS:"
-ssh-keyscan -t ed25519 localhost 2>/dev/null | sed "s/^localhost/$(curl -4 -fsS https://api.ipify.org 2>/dev/null || echo IP)/"
-if [ "${NEW_RESTIC:-0}" = 1 ]; then
+# Lida diretamente da chave do servidor (o ssh-keyscan nem sempre devolve a linha, por exemplo com o OpenSSH 10)
+echo "$(curl -4 -fsS https://api.ipify.org 2>/dev/null || echo IP) $(cut -d' ' -f1,2 /etc/ssh/ssh_host_ed25519_key.pub)"
+# A password das cópias aparece até ser mostrada uma vez (um bootstrap interrompido não a pode esconder)
+if [ "${NEW_RESTIC:-0}" = 1 ] || [ ! -f "$ETC/.restic-password-shown" ]; then
   echo
   echo "IMPORTANTE: password das cópias externas (guarda-a já num gestor de passwords):"
   grep '^RESTIC_PASSWORD=' "$ETC/backup.env" | cut -d= -f2
+  touch "$ETC/.restic-password-shown"
 fi
