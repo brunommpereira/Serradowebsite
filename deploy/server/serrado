@@ -21,7 +21,7 @@
 #   serrado moloni-info               empresas, séries, artigos e métodos de pagamento do Moloni (para configurar)
 #   serrado receipts                  emite agora as faturas-recibo em falta
 #   serrado fees [AAAA-MM]            cria as mensalidades das escolas do mês
-#   serrado email                     liga o envio de emails (Brevo): recuperar password, convites, registos
+#   serrado email [smtp|brevo]        liga o envio de emails (caixa do domínio por SMTP, ou Brevo)
 #   serrado email test <endereço>     envia um email de teste
 #   serrado email off                 desliga
 #
@@ -320,7 +320,7 @@ cmd_payments() {
 cmd_email() {
   case "${1:-}" in
     off)
-      sed -i '/^BREVO_API_KEY=/d; /^MAIL_FROM_/d' "$ETC/serrado.env"
+      sed -i '/^BREVO_API_KEY=/d; /^MAIL_FROM_/d; /^SMTP_/d' "$ETC/serrado.env"
       $SYSTEMCTL disable --now serrado-mail.timer 2>/dev/null || true
       $SYSTEMCTL restart serrado-backend serrado-middleware
       echo '✔ Envio de emails desligado («Esqueci-me da password» volta a pedir para contactar a secretaria)'
@@ -329,22 +329,60 @@ cmd_email() {
       [[ ${2:-} =~ ^[^@[:space:]]+@[^@[:space:]]+\.[a-z]{2,}$ ]] || die 'Uso: serrado email test <endereço>'
       (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.mail test "$2")
       return ;;
+    smtp | brevo | '') ;;
+    *) die 'Uso: serrado email [smtp|brevo|test <endereço>|off]' ;;
   esac
-  local key from name
-  echo '— Brevo (SMTP e API → Chaves de API). O domínio do remetente tem de estar autenticado (SPF/DKIM) na Brevo.'
-  read -rsp 'Chave de API (xkeysib-…; não aparece no ecrã): ' key; echo
-  read -rp 'Remetente (ex.: nao-responder@serradofc.pt): ' from
+  local kind=${1:-} from name
+  if [ -z "$kind" ]; then
+    read -rp 'Enviar por SMTP (a caixa de email do domínio, ex.: dominios.pt) ou pela Brevo? [smtp/brevo] ' kind
+  fi
+  case "$kind" in
+    smtp) cmd_email_smtp ;;
+    brevo) cmd_email_brevo ;;
+    *) die 'Escolhe smtp ou brevo.' ;;
+  esac
+  read -rp "Remetente [$MAIL_DEFAULT_FROM]: " from
   read -rp 'Nome do remetente [Serrado FC]: ' name
-  [[ $key =~ ^xkeysib-[A-Za-z0-9-]{20,200}$ ]] || die 'Chave da Brevo inválida'
-  [[ $from =~ ^[^@[:space:]]+@[^@[:space:]]+\.[a-z]{2,}$ ]] || die 'Remetente inválido'
+  from=${from:-$MAIL_DEFAULT_FROM}
   name=${name:-Serrado FC}
+  [[ $from =~ ^[^@[:space:]]+@[^@[:space:]]+\.[a-z]{2,}$ ]] || die 'Remetente inválido'
   [[ $name =~ ^[[:alnum:][:space:].-]{2,60}$ ]] || die 'Nome inválido'
-  set_env BREVO_API_KEY "$key"
   set_env MAIL_FROM_EMAIL "$from"
   set_env MAIL_FROM_NAME "$name"
   $SYSTEMCTL restart serrado-backend serrado-middleware
   $SYSTEMCTL enable --now serrado-mail.timer
-  echo "✔ Emails ligados. Experimenta: sudo serrado email test o-teu@email.pt"
+  echo "✔ Emails ligados ($kind). Experimenta: sudo serrado email test o-teu@email.pt"
+}
+
+cmd_email_smtp() {
+  local host port sec user pass
+  echo '— Servidor de email do domínio (no dominios.pt: dados de configuração da caixa de email, «servidor de envio / SMTP»)'
+  read -rp 'Servidor SMTP (ex.: mail.serradofc.pt): ' host
+  read -rp 'Porta [465]: ' port
+  port=${port:-465}
+  read -rp 'Utilizador (normalmente o endereço completo da caixa): ' user
+  read -rsp 'Password da caixa (não aparece no ecrã): ' pass; echo
+  [[ $host =~ ^[A-Za-z0-9.-]{3,253}$ ]] || die 'Servidor inválido'
+  [[ $port =~ ^[0-9]{2,5}$ ]] || die 'Porta inválida'
+  [[ -n $user && ${#user} -le 200 && -n $pass && ${#pass} -le 200 ]] || die 'Utilizador ou password em falta'
+  if [ "$port" = 587 ] || [ "$port" = 25 ]; then sec=starttls; else sec=ssl; fi
+  sed -i '/^BREVO_API_KEY=/d; /^SMTP_PASSWORD=/d' "$ETC/serrado.env"
+  set_env SMTP_HOST "$host"
+  set_env SMTP_PORT "$port"
+  set_env SMTP_SECURITY "$sec"
+  set_env SMTP_USER "$user"
+  set_env SMTP_PASSWORD_B64 "$(printf '%s' "$pass" | base64 -w0)"
+  MAIL_DEFAULT_FROM=$user
+}
+
+cmd_email_brevo() {
+  local key
+  echo '— Brevo (SMTP e API → Chaves de API). O domínio do remetente tem de estar autenticado (SPF/DKIM) na Brevo.'
+  read -rsp 'Chave de API (xkeysib-…; não aparece no ecrã): ' key; echo
+  [[ $key =~ ^xkeysib-[A-Za-z0-9-]{20,200}$ ]] || die 'Chave da Brevo inválida'
+  sed -i '/^SMTP_/d' "$ETC/serrado.env"
+  set_env BREVO_API_KEY "$key"
+  MAIL_DEFAULT_FROM=nao-responder@serradofc.pt
 }
 
 case "${1:-}" in

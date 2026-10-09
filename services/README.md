@@ -76,6 +76,7 @@ Também se pode subir tudo com Docker: `docker compose up --build` na raiz (incl
 | `FACEBOOK_GRAPH_VERSION` | sincronização | Versão da Graph API (omissão `v25.0`) |
 | `BREVO_API_KEY`, `MAIL_FROM_EMAIL` | backend, middleware, emails | Envio de emails pela Brevo (recuperar password, convites). Sem elas, «Esqueci-me da password» pede para contactar a secretaria. O envio é feito por `python -m serrado.mail send` |
 | `MAIL_FROM_NAME` | emails | Nome do remetente (omissão `Serrado FC`) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USER`, `SMTP_PASSWORD_B64` | emails | Envio pela caixa de email do domínio em vez da Brevo (tem prioridade se `SMTP_HOST` existir). `SMTP_SECURITY` é `ssl` (porta 465, omissão) ou `starttls` (587). A password vai em base64; `sudo serrado email smtp` trata disto |
 | `APP_ENV=production` | todos | Torna obrigatórias as variáveis acima, ativa os cookies `Secure` e esconde `/internal/docs` |
 
 ## Importar dados reais

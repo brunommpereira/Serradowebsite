@@ -1,17 +1,24 @@
 """
-Emails do site pela API transacional da Brevo (https://api.brevo.com/v3/smtp/email).
+Emails do site: por SMTP (a caixa de email do próprio domínio, por exemplo no dominios.pt)
+ou pela API transacional da Brevo (https://api.brevo.com/v3/smtp/email).
 
 Quem precisa de enviar um email chama `enqueue` dentro da sua transação; o envio é feito
 depois, por `python -m serrado.mail send` (timer do systemd, a cada minuto), com novas
-tentativas espaçadas. Assim um problema na Brevo nunca falha o pedido de quem está no site.
+tentativas espaçadas. Assim um problema no servidor de email nunca falha o pedido de quem está no site.
 """
 
 import asyncio
+import base64
 import html
 import logging
+import re
+import smtplib
+import ssl
 import sys
 from dataclasses import dataclass, field
-from typing import Any
+from email.message import EmailMessage
+from email.utils import formataddr, formatdate, make_msgid
+from typing import Any, Protocol
 
 import httpx
 from psycopg.types.json import Jsonb
@@ -62,6 +69,65 @@ class MailSummary:
     errors: list[str] = field(default_factory=list)
 
 
+class Sender(Protocol):
+    async def send(self, row: dict[str, Any]) -> None: ...
+
+
+def build_message(cfg: MailConfig, row: dict[str, Any]) -> EmailMessage:
+    """Email em HTML (com uma versão em texto para quem não lê HTML) e anexos."""
+    msg = EmailMessage()
+    msg["From"] = formataddr((cfg.from_name, cfg.from_email))
+    msg["To"] = formataddr((row["to_name"], row["to_email"])) if row["to_name"] else row["to_email"]
+    msg["Subject"] = row["subject"]
+    msg["Date"] = formatdate(localtime=False)
+    msg["Message-ID"] = make_msgid(domain=cfg.from_email.split("@")[-1])
+    text = html.unescape(re.sub(r"<[^>]+>", " ", re.sub(r"</p>|<br\s*/?>", "\n\n", row["html"])))
+    msg.set_content(re.sub(r"[ \t]+", " ", re.sub(r"\n\s*\n+", "\n\n", text)).strip())
+    msg.add_alternative(row["html"], subtype="html")
+    for a in row["attachments"] or []:
+        subtype = "pdf" if a["name"].lower().endswith(".pdf") else "octet-stream"
+        msg.add_attachment(base64.b64decode(a["content"]), maintype="application", subtype=subtype, filename=a["name"])
+    return msg
+
+
+class SmtpClient:
+    """SMTP com TLS (porta 465, ou 587 com STARTTLS) e autenticação; o certificado do servidor é verificado."""
+
+    def __init__(self, cfg: MailConfig, smtp_factory: Any = None) -> None:
+        self.cfg = cfg
+        self.factory = smtp_factory
+
+    def _send_sync(self, msg: EmailMessage) -> None:
+        cfg = self.cfg
+        ctx = ssl.create_default_context()
+        if self.factory:
+            server = self.factory(cfg.smtp_host, cfg.smtp_port)
+        elif cfg.smtp_security == "ssl":
+            server = smtplib.SMTP_SSL(cfg.smtp_host, cfg.smtp_port, context=ctx, timeout=30)
+        else:
+            server = smtplib.SMTP(cfg.smtp_host, cfg.smtp_port, timeout=30)
+        with server as s:
+            if cfg.smtp_security == "starttls" and not self.factory:
+                s.starttls(context=ctx)
+            if cfg.smtp_user:
+                s.login(cfg.smtp_user, cfg.smtp_password)
+            s.send_message(msg)
+
+    async def send(self, row: dict[str, Any]) -> None:
+        try:
+            await asyncio.to_thread(self._send_sync, build_message(self.cfg, row))
+        except smtplib.SMTPAuthenticationError:
+            raise RuntimeError("o servidor de email recusou o utilizador ou a password (SMTP_USER/SMTP_PASSWORD)") from None
+        except smtplib.SMTPResponseException as e:
+            raise RuntimeError(f"o servidor de email respondeu {e.smtp_code}: {str(e.smtp_error)[:200]}") from None
+        except (smtplib.SMTPException, OSError) as e:
+            raise RuntimeError(f"sem ligação ao servidor de email ({type(e).__name__}: {str(e)[:150]})") from None
+
+
+def client_for(cfg: MailConfig) -> Sender:
+    return SmtpClient(cfg) if cfg.provider == "smtp" else BrevoClient(cfg)
+
+
 class BrevoClient:
     def __init__(self, cfg: MailConfig, transport: httpx.AsyncBaseTransport | None = None) -> None:
         self.cfg = cfg
@@ -89,7 +155,7 @@ class BrevoClient:
             raise RuntimeError(f"Brevo respondeu {res.status_code} {detail}".strip())
 
 
-async def send_pending(pool: Pool, cfg: MailConfig, client: BrevoClient, limit: int = 50) -> MailSummary:
+async def send_pending(pool: Pool, cfg: MailConfig, client: Sender, limit: int = 50) -> MailSummary:
     """Envia a fila (novas tentativas a 2, 4, 6… minutos, até 6). Só corre um envio de cada vez."""
     summary = MailSummary()
     if not cfg.enabled:
@@ -146,7 +212,7 @@ async def main(argv: list[str]) -> int:
         print("uso: python -m serrado.mail send | test <endereço>", file=sys.stderr)
         return 2
     if not config.mail.enabled:
-        print("Email não configurado (BREVO_API_KEY e MAIL_FROM_EMAIL): nada a fazer.")
+        print("Email não configurado (SMTP_HOST ou BREVO_API_KEY, e MAIL_FROM_EMAIL): nada a fazer.")
         return 0
     pool = create_pool(max_size=2)
     await pool.open()
@@ -158,9 +224,14 @@ async def main(argv: list[str]) -> int:
                     to_email=argv[1],
                     to_name="",
                     subject="Teste — site do Serrado FC",
-                    html_body=layout("Email de teste", ["Se recebeste este email, o envio pela Brevo está a funcionar."]),
+                    html_body=layout(
+                        "Email de teste",
+                        [
+                            f"Se recebeste este email, o envio de emails do site ({'SMTP' if config.mail.provider == 'smtp' else 'Brevo'}) está a funcionar."
+                        ],
+                    ),
                 )
-        s = await send_pending(pool, config.mail, BrevoClient(config.mail))
+        s = await send_pending(pool, config.mail, client_for(config.mail))
         if s.sent or s.failed:
             print(f"enviados {s.sent}, falhados {s.failed}")
         for err in s.errors:

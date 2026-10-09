@@ -260,26 +260,53 @@ sudo serrado payments        # pede as chaves do Stripe e do Moloni; mostra as s
 
 > **Testar antes de abrir:** faz um pagamento real pequeno com cada método e confirma três coisas: a quota fica «Pago», o email com a fatura-recibo chega e o PDF descarrega-se no site.
 
-## 5e. Emails do site: recuperar password e convites (Brevo)
+## 5e. Emails do site: recuperar password, convites e fichas assinadas
 
-Sem isto, «Esqueci-me da password» pede para contactar a secretaria. Com a Brevo (plano grátis: 300 emails por dia):
+Sem isto, «Esqueci-me da password» pede para contactar a secretaria e as fichas assinadas não seguem por email.
 
 - **«Esqueci-me da password»:** a pessoa recebe uma ligação de uso único, válida durante 1 hora. Ao definir a nova password, as sessões abertas noutros dispositivos terminam.
 - **Convites:** em **Backoffice → Utilizadores → Enviar convite**, a pessoa recebe uma ligação (7 dias) para definir a primeira password.
+- **Registos online:** o PDF assinado segue em anexo.
+
+Há duas formas de enviar. Escolhe uma.
+
+### Opção A: a caixa de email do domínio (ex.: dominios.pt)
+
+O site envia pela caixa que já tens (por exemplo `geral@serradofc.pt` ou uma criada só para isto, como `nao-responder@serradofc.pt`).
+
+1. **Dados da caixa:** no painel do alojamento de email vê o **servidor SMTP** (ex.: `mail.serradofc.pt` ou o nome que o painel indicar), a **porta** (465 com SSL, ou 587 com STARTTLS), o **utilizador** (normalmente o endereço completo) e a **password**.
+2. **DNS na Cloudflare** (os valores certos estão no painel do alojamento de email; copia-os tal e qual):
+   - **MX** do domínio para o servidor de email do alojamento;
+   - **SPF** (TXT em `serradofc.pt`): o que o alojamento indicar, por exemplo `v=spf1 include:… ~all`. Só pode haver **um** registo SPF: se já existir, junta-lhe o `include:` em vez de criar outro;
+   - **DKIM** (TXT, ex.: `default._domainkey`): ativa-o no painel do alojamento e copia o valor;
+   - **DMARC** (TXT em `_dmarc`): para começar, `v=DMARC1; p=none; rua=mailto:<a-tua-caixa>`;
+   - registos `A`/`CNAME` de email (`mail`, `smtp`, `imap`, `webmail`, `autodiscover`…) com a **nuvem cinzenta (DNS only)**. A Cloudflare não passa email pelo proxy.
+3. **Na VPS:**
+```bash
+sudo serrado email smtp                  # pede servidor, porta, utilizador, password, remetente e nome
+sudo serrado email test o-teu@email.pt   # envia um email de teste
+```
+A password fica só em `/etc/serrado` (legível apenas pelo root e pelos serviços), nunca no GitHub nem nos registos.
+
+> Os alojamentos partilhados limitam os envios (muitas vezes 100–300 por hora). Chega para passwords, convites e registos; para newsletters usa um serviço próprio.
+
+### Opção B: Brevo (plano grátis: 300 emails por dia)
 
 1. **Conta:** cria a conta do clube em brevo.com (servidores na UE; aceita o contrato de tratamento de dados).
 2. **Domínio:** em **Senders, Domains & Dedicated IPs → Domains**, adiciona `serradofc.pt` e cria na Cloudflare os registos DNS que a Brevo indica (TXT de verificação, DKIM e DMARC). Sem isto, os emails vão para o spam.
 3. **Remetente:** adiciona `nao-responder@serradofc.pt` (ou outro do domínio) como remetente.
 4. **Chave:** em **SMTP & API → API Keys**, cria uma chave só para o site.
-5. **Na VPS:**
+5. **Na VPS:** `sudo serrado email brevo` e depois `sudo serrado email test o-teu@email.pt`.
+
+### Comum
+
 ```bash
-sudo serrado email                       # pede a chave, o remetente e o nome; liga o envio (a cada minuto)
-sudo serrado email test o-teu@email.pt   # envia um email de teste
-sudo serrado email off                   # desliga
+sudo serrado email        # pergunta qual das duas formas
+sudo serrado email off    # desliga
 ```
 Se a VPS já tinha sido instalada antes desta versão, corre outra vez o `bootstrap.sh` (com as mesmas opções) para instalar o serviço `serrado-mail`.
 
-> `sudo serrado status` mostra `mail_failed`: emails que falharam 6 tentativas. A verificação diária avisa.
+> `sudo serrado status` mostra `mail_failed`: emails que falharam 6 tentativas. A verificação diária avisa. Se falhar com «recusou o utilizador ou a password», confirma o utilizador (endereço completo) e corre outra vez `sudo serrado email smtp`.
 
 ## 6. Cópias de segurança
 
@@ -320,7 +347,7 @@ sudo serrado offsite-latest /root/recuperar                  # descarrega a últ
 | `sudo serrado admin <email> "<nome>"` | Criar uma conta de administração ou repor a password |
 | `sudo serrado cf-ips` | Atualizar já os IPs da Cloudflare na firewall |
 | `sudo serrado payments` / `receipts` / `fees AAAA-MM` / `moloni-info` | Pagamentos online e faturas-recibo |
-| `sudo serrado email` / `email test <endereço>` / `email off` | Emails do site (Brevo): recuperar password e convites |
+| `sudo serrado email [smtp\|brevo]` / `email test <endereço>` / `email off` | Emails do site (caixa do domínio ou Brevo): passwords, convites, fichas assinadas |
 | `sudo serrado facebook` / `facebook-sync` / `facebook off` | Ligar, sincronizar agora ou desligar a página de Facebook |
 | `sudo serrado oauth google` / `microsoft` | Ativar a entrada com Google ou Microsoft (`… off` para desativar) |
 
