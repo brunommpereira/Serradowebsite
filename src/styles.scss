@@ -830,6 +830,7 @@ table.table {
 }
 .adm-table-wrap {
   overflow-x: auto;
+  position: relative; /* contém os rótulos «visually-hidden» das tabelas largas */
   background: #fff;
   border: 1px solid var(--color-line);
   border-radius: var(--radius);

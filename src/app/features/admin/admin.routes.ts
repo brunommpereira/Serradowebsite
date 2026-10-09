@@ -48,6 +48,20 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./pages/athletes.page').then((m) => m.AthletesPage),
       },
       {
+        path: 'socios',
+        title: 'Sócios',
+        canActivate: [staffGuard],
+        data: { permissions: ['members.view'] },
+        loadComponent: () => import('./pages/members.page').then((m) => m.MembersPage),
+      },
+      {
+        path: 'importar',
+        title: 'Importar sócios e atletas',
+        canActivate: [staffGuard],
+        data: { permissions: ['members.manage', 'athletes.manage'] },
+        loadComponent: () => import('./pages/registry-import.page').then((m) => m.RegistryImportPage),
+      },
+      {
         path: 'validacoes',
         canActivate: [staffGuard],
         data: { permissions: ['athletes.manage'] },

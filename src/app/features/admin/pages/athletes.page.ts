@@ -5,13 +5,16 @@ import { AuthService } from '../../../core/services/auth.service';
 import { IconComponent } from '../../../shared/icon.component';
 import { DialogComponent } from '../../../shared/dialog.component';
 import { AdminAthlete, AdminAthleteDetail, AdminSource, DOC_LABELS, FIELD_LABELS } from '../data/admin-source';
+import { RouterLink } from '@angular/router';
+import { ApiClient } from '../../../core/api/api-client';
+import { AthleteEditorComponent } from './athlete-editor.component';
 
 const SPORTS: Record<string, string> = { atletismo: 'Atletismo', futsal: 'Futsal', rugby: 'Rugby', formacao: 'Formação', 'escola-de-desporto': 'Escola de Desporto' };
 
 /** Atletas do clube (secretaria e treinadores; o treinador não vê dados sensíveis). */
 @Component({
   selector: 'sfc-admin-athletes',
-  imports: [DatePipe, FormsModule, IconComponent, DialogComponent],
+  imports: [DatePipe, FormsModule, RouterLink, IconComponent, DialogComponent, AthleteEditorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="adm-head">
@@ -19,6 +22,12 @@ const SPORTS: Record<string, string> = { atletismo: 'Atletismo', futsal: 'Futsal
         <h1>Atletas</h1>
         <p>{{ list().length }} atleta(s){{ auth.can('athletes.sensitive') ? '' : ' · vista de treinador (sem dados sensíveis)' }}</p>
       </div>
+      @if (manage) {
+        <div class="quick">
+          <a class="btn btn--outline btn--sm" routerLink="/admin/importar" [queryParams]="{ tipo: 'atletas' }"><sfc-icon name="upload" size="16" />Importar ficheiro</a>
+          <button type="button" class="btn btn--primary btn--sm" (click)="editor.set({ athlete: null })">Novo atleta</button>
+        </div>
+      }
     </div>
 
     <div class="adm-toolbar">
@@ -111,8 +120,15 @@ const SPORTS: Record<string, string> = { atletismo: 'Atletismo', futsal: 'Futsal
             <p>{{ changes(r.changes) }} <span class="caption">({{ r.requestedAt | date: 'dd/MM' }})</span></p>
           }
         }
+        @if (manage) {
+          <div class="actions">
+            <button type="button" class="btn btn--primary btn--sm" (click)="editor.set({ athlete: d }); detail.set(null)">Alterar ficha e acessos</button>
+          </div>
+        }
       }
     </sfc-dialog>
+
+    <sfc-athlete-editor [open]="!!editor()" [athlete]="editor()?.athlete ?? null" (closed)="editor.set(null)" (saved)="onSaved($event)" />
   `,
   styles: `
     .sel {
@@ -125,6 +141,14 @@ const SPORTS: Record<string, string> = { atletismo: 'Atletismo', futsal: 'Futsal
     }
     .sub {
       display: block;
+    }
+    .quick {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .actions {
+      margin-top: 1rem;
     }
     td .st + .st {
       margin-left: 0.3rem;
@@ -177,6 +201,7 @@ export class AthletesPage {
   protected readonly fields: [string, string][] = [
     ['birthDate', 'Nascimento'],
     ['gender', 'Género'],
+    ['memberNumber', 'N.º sócio'],
     ['email', 'Email'],
     ['phone', 'Telemóvel'],
     ['idNumber', 'N.º CC'],
@@ -199,9 +224,14 @@ export class AthletesPage {
   protected readonly loading = signal(true);
   protected readonly error = signal('');
   protected readonly detail = signal<AdminAthleteDetail | null>(null);
+  /** Criar/alterar (backoffice com a API e athletes.manage) */
+  protected readonly manage = inject(ApiClient).enabled && this.auth.can('athletes.manage');
+  protected readonly editor = signal<{ athlete: Record<string, unknown> | null } | null>(null);
+  private readonly reloads = signal(0);
 
   constructor() {
     effect(() => {
+      this.reloads();
       const filter = { q: this.q().trim() || undefined, sport: this.sport() || undefined, pending: this.pending() || undefined };
       this.loading.set(true);
       this.source
@@ -222,6 +252,12 @@ export class AthletesPage {
     Object.entries(c)
       .map(([k, v]) => `${FIELD_LABELS[k] ?? k} → ${v}`)
       .join('; ');
+
+  async onSaved(id: string) {
+    this.editor.set(null);
+    this.reloads.update((n) => n + 1);
+    await this.open(id);
+  }
 
   async open(id: string) {
     try {

@@ -64,7 +64,8 @@ Legenda: **[eu]** faz-se no servidor ou num painel · **[código]** precisa de u
   - webhook com os 4 eventos;
   - Moloni ON com o add-on «API Access», a API Key e os artigos criados **com o contabilista** (IVA/isenção);
   - `sudo serrado payments`;
-  - primeiro em modo de teste. Depois, um pagamento real com cada método: quota «Pago», email com o recibo e PDF no site.
+  - primeiro em modo de teste. Depois, um pagamento real com cada método: quota «Pago», email com o recibo e PDF no site;
+  - um pagamento registado na secretaria (numerário) com fatura-recibo: confirmar no Moloni o método «Numerário» (`cash:ID` em `MOLONI_PAYMENT_METHODS`).
 - [ ] **Emails (Brevo)** (`DEPLOY-VPS.md`, 5e): **[eu]**
   - domínio `serradofc.pt` autenticado na Brevo (DKIM e DMARC na Cloudflare);
   - `sudo serrado email` e `sudo serrado email test …`, confirmando que não chega ao spam.
@@ -89,7 +90,9 @@ Com a API ligada, estas partes do site **ainda não gravam nada no servidor**. E
 ## 6. Dados reais e RGPD
 
 - [ ] **Órgãos Sociais:** nomes reais da direção, **só com autorização** de cada pessoa. **[decidir]**
-- [ ] **Importação dos atletas** (`athletes.csv` gerado pela ferramenta do Troféu de Almada) e ligação de cada conta aos seus atletas (`athlete_access`). Os ficheiros `.xlsx`/`.csv` **nunca** vão para o GitHub. **[eu]**
+- [ ] **Importação dos sócios e depois dos atletas** em **Backoffice → Importar** (CSV ou XLSX; o botão «Descarregar modelo» mostra as colunas). Primeiro «Verificar»: com algum erro não se grava nada. Com o email do encarregado, ele fica com acesso à ficha. Os ficheiros `.xlsx`/`.csv` **nunca** vão para o GitHub nem para pastas partilhadas. **[eu]**
+- [ ] **Convites:** depois de importar, enviar o convite (Backoffice → Sócios → ficha → «Enviar convite», ou Utilizadores) a quem vai usar o site. Precisa do email configurado (secção 4). **[eu]**
+- [ ] **Quotas por categoria** definidas em **Backoffice → Pagamentos** (valor e se é mensal ou anual). São criadas no dia 1 de cada mês, com as mensalidades. **[decidir]**
 - [ ] **Consentimento de imagem** registado para cada atleta, antes de publicar fotos (incluindo as que vêm do Facebook). **[decidir]**
 - [ ] **Política de Privacidade e de Cookies** revistas pela direção:
   - NIPC e morada reais;

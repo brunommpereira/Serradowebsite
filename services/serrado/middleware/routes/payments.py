@@ -2,6 +2,7 @@
 
 import base64
 from typing import Annotated, Any, Literal
+from urllib.parse import quote
 
 from fastapi import APIRouter, Body, Path, Query, Request, Response
 
@@ -72,6 +73,26 @@ def register(r: APIRouter) -> None:
     async def fees(req: Request, month: Annotated[str, Query(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")]) -> Any:
         s = await staff(req)
         return await backend(req).call("GET", "/fees", actor=s, query={"month": month})
+
+    @r.get("/admin/quota-plans", tags=office, summary="Quota por categoria de sócio")
+    async def quota_plans(req: Request) -> Any:
+        s = await staff(req)
+        return await backend(req).call("GET", "/quota-plans", actor=s)
+
+    @r.put("/admin/quota-plans/{category}", tags=office, summary="Definir a quota de uma categoria")
+    async def set_quota_plan(req: Request, category: Annotated[str, Path(min_length=2, max_length=40)], body: JsonObject) -> Any:
+        s = await staff(req)
+        return await backend(req).call("PUT", f"/quota-plans/{quote(category, safe='')}", actor=s, body=body)
+
+    @r.get("/admin/payments/pending", tags=office, summary="Quotas e mensalidades por pagar")
+    async def pending(req: Request, q: Annotated[str | None, Query(max_length=100)] = None) -> Any:
+        s = await staff(req)
+        return await backend(req).call("GET", "/payments/pending", actor=s, query={"q": q})
+
+    @r.post("/admin/payments/manual", tags=office, summary="Registar um pagamento feito na secretaria", status_code=201)
+    async def manual(req: Request, body: JsonObject) -> Any:
+        s = await staff(req)
+        return await backend(req).call("POST", "/payments/manual", actor=s, body=body)
 
     @r.get("/admin/payments", tags=office, summary="Pagamentos online e recibos")
     async def payments(req: Request, status: Literal["open", "paid", "failed", "expired"] | None = None) -> Any:

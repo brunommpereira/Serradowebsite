@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { IconComponent } from '../../../shared/icon.component';
+import { parseCsv } from '../../../shared/tabular';
 import { AdminSource, ImportRow, ImportSummary } from '../data/admin-source';
 
 const COLUMNS = ['athlete_code', 'athlete_name', 'birth_year', 'season', 'round', 'race', 'race_base', 'race_date', 'category', 'place', 'bib', 'time', 'time_s', 'distance_m', 'trophy_points', 'team_points', 'source_url'];
@@ -158,7 +159,7 @@ export class ResultsImportPage {
     this.error.set('');
     this.fileName.set(name);
     try {
-      const table = parseCsv(text.replace(/^﻿/, ''));
+      const table = parseCsv(text, ',');
       const head = table[0]?.map((h) => h.trim()) ?? [];
       const missing = ['athlete_name', 'season', 'round', 'race', 'race_base', 'race_date', 'category'].filter((c) => !head.includes(c));
       if (missing.length) throw new Error(`Colunas em falta: ${missing.join(', ')}. Usa o results.csv gerado por tools/trofeu-almada.`);
@@ -206,35 +207,4 @@ export class ResultsImportPage {
       this.busy.set(false);
     }
   }
-}
-
-/** CSV com aspas («"»), separador vírgula. */
-function parseCsv(text: string): string[][] {
-  const out: string[][] = [];
-  let row: string[] = [];
-  let cell = '';
-  let quoted = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (quoted) {
-      if (c === '"' && text[i + 1] === '"') {
-        cell += '"';
-        i++;
-      } else if (c === '"') quoted = false;
-      else cell += c;
-    } else if (c === '"') quoted = true;
-    else if (c === ',') {
-      row.push(cell);
-      cell = '';
-    } else if (c === '\n' || c === '\r') {
-      if (c === '\r' && text[i + 1] === '\n') i++;
-      row.push(cell);
-      if (row.some((x) => x !== '')) out.push(row);
-      row = [];
-      cell = '';
-    } else cell += c;
-  }
-  row.push(cell);
-  if (row.some((x) => x !== '')) out.push(row);
-  return out;
 }

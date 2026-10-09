@@ -87,6 +87,8 @@ Tabelas principais (ver `services/serrado/db/migrations`):
 | Backoffice: imagens | `GET\|POST /admin/media`, `PATCH\|DELETE /admin/media/{id}`, `GET /admin/media/{id}/usage` | as mesmas, em `/cms/media…` |
 | Imagens públicas | `GET /media/{chave}.{ext}` (cache de 1 ano, endereço aleatório) | `GET /media/{chave}` |
 | Backoffice: atletas | `GET /admin/athletes`, `GET /admin/change-requests`, `POST /admin/change-requests/{id}/approve\|reject`, `POST /admin/documents/{id}/approve\|reject` | as mesmas, sem o prefixo `/admin` |
+| Backoffice: sócios e atletas (gestão) | `GET\|POST /admin/members`, `GET\|PUT /admin/members/{n}`, `POST /admin/members/{n}/quotas`, `POST /admin/athletes`, `PUT /admin/athletes/{id}`, `GET\|POST /admin/athletes/{id}/access`, `DELETE /admin/athletes/{id}/access/{user}`, `POST /admin/registry/import` | `/members…`, `/members/{n}/detail`, `/athletes`, `/athletes/{id}/admin`, `/athletes/{id}/access…`, `/registry/import` |
+| Backoffice: tesouraria | `GET\|PUT /admin/quota-plans…`, `GET /admin/payments/pending`, `POST /admin/payments/manual` | `/quota-plans…`, `/payments/pending`, `/payments/manual` |
 | Backoffice: resultados | `POST /admin/results/import` | `POST /results/import` |
 | Backoffice: gestão | `GET /admin/dashboard` (agregado), `GET /admin/users`, `PUT /admin/users/{id}/roles`, `POST /admin/users/{id}/invite`, `GET /admin/permissions`, `GET\|POST /admin/roles`, `PUT\|DELETE /admin/roles/{key}`, `GET /admin/audit` | `GET /stats`, `GET /users`, `PUT /users/{id}/roles`, `POST /users/{id}/invite`, `GET /permissions`, `…/roles`, `GET /audit` |
 | Password por email | `GET /auth/options`, `POST /auth/password/forgot`, `POST /auth/password/reset` | `POST /auth/password/forgot`, `POST /auth/password/reset` |

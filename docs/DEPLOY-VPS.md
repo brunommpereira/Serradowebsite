@@ -248,7 +248,7 @@ Sócios e encarregados pagam as **quotas** (Área de Sócio) e as **mensalidades
 sudo serrado payments        # pede as chaves do Stripe e do Moloni; mostra as séries, os artigos e os métodos para escolheres
 ```
 - **Artigos:** são indicados como `quota:ID,futsal:ID,rugby:ID`.
-- **Métodos de pagamento:** são indicados como `card:ID,mb_way:ID,multibanco:ID`, com os IDs do Moloni.
+- **Métodos de pagamento:** são indicados como `card:ID,mb_way:ID,multibanco:ID,cash:ID,transfer:ID`, com os IDs do Moloni. `cash` (numerário) e `transfer` (transferência) servem os pagamentos registados na secretaria (**Backoffice → Pagamentos → Registar pagamento**); `cheque:ID` também é aceite.
 - **Timers:** o comando ativa os recibos (de 2 em 2 minutos) e as mensalidades (dia 1 de cada mês).
 
 **Outros comandos:**

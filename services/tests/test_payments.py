@@ -159,7 +159,7 @@ async def test_mensalidades_por_modalidade_e_o_que_cada_conta_pode_pagar(env):
     sec = await m.login("tesouraria@serradofc.pt", "tesouraria2026")
     assert (await sec.put("/api/v1/admin/fee-plans/futsal", json={"amount": 25, "active": True})).status_code == 200
     gen = await sec.post("/api/v1/admin/fees/generate", json={"month": "2026-11"})
-    assert gen.json() == {"month": "2026-11", "created": 1}  # só o Tomás joga futsal
+    assert gen.json() == {"month": "2026-11", "created": 1, "quotas": 0}  # só o Tomás joga futsal; sem planos de quota
     assert (await sec.post("/api/v1/admin/fees/generate", json={"month": "2026-11"})).json()["created"] == 0, "não duplica"
     fees = (await sec.get("/api/v1/admin/fees?month=2026-11")).json()
     assert [(f["athleteName"], f["amount"], f["dueDate"], f["period"]) for f in fees] == [("Tomás Exemplo", 25, "2026-11-08", "Novembro 2026")]

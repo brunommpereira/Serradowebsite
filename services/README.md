@@ -69,7 +69,7 @@ Também se pode subir tudo com Docker: `docker compose up --build` na raiz (incl
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | backend | Pagamentos online (Stripe Checkout); sem elas, os pagamentos ficam desligados |
 | `PAYMENT_METHODS` | backend | Métodos no Checkout (omissão `card,mb_way,multibanco`) |
 | `MOLONI_API_KEY`, `MOLONI_COMPANY_ID`, `MOLONI_DOCUMENT_SET_ID` | recibos | Faturas-recibo no Moloni ON (`python -m serrado.payments receipts`) |
-| `MOLONI_PRODUCTS`, `MOLONI_PAYMENT_METHODS` | recibos | Artigos (`quota:ID,futsal:ID,rugby:ID`) e métodos de pagamento (`card:ID,mb_way:ID,multibanco:ID`) do Moloni |
+| `MOLONI_PRODUCTS`, `MOLONI_PAYMENT_METHODS` | recibos | Artigos (`quota:ID,futsal:ID,rugby:ID`) e métodos de pagamento (`card:ID,mb_way:ID,multibanco:ID,cash:ID,transfer:ID,cheque:ID`) do Moloni. `cash`, `transfer` e `cheque` são os pagamentos registados na secretaria |
 | `FACEBOOK_PAGE_ID`, `FACEBOOK_PAGE_TOKEN` | sincronização | Página de Facebook → notícias e eventos (`python -m serrado.facebook sync`; ver docs/DEPLOY-VPS.md, 5c) |
 | `FACEBOOK_SYNC_MODE` | sincronização | `publish` (omissão: entra logo no site) ou `draft` (fica em rascunho) |
 | `FACEBOOK_SYNC_TAG` | sincronização | Opcional: só importa publicações com esta hashtag (ex.: `site`) |
