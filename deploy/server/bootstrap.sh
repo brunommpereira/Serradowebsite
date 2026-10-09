@@ -205,7 +205,9 @@ $TLS
 	}
 }
 EOF
-caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+# Validar como o utilizador caddy: a validação abre o ficheiro de log, que tem de ficar dele (e não do root)
+runuser -u caddy -- caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+chown -R caddy:caddy /var/log/caddy /var/lib/caddy
 systemctl enable caddy
 systemctl reload-or-restart caddy
 
