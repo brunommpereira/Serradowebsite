@@ -186,6 +186,11 @@ def register(r: APIRouter) -> None:
         s = await staff(req)
         return await backend(req).call("GET", "/users", actor=s)
 
+    @r.post("/users", tags=["Backoffice · Gestão"], summary="Criar um utilizador e enviar o convite", status_code=201)
+    async def user_create(req: Request, body: JsonObject) -> Any:
+        s = await staff(req)
+        return await backend(req).call("POST", "/users", actor=s, body=body)
+
     @r.put("/users/{id}/roles", tags=["Backoffice · Gestão"], summary="Definir papéis")
     async def user_roles(req: Request, id: UserId, body: JsonObject) -> Any:
         s = await staff(req)

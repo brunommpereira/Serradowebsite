@@ -162,6 +162,40 @@ async def test_ligacao_expirada_e_convite(mw, mail_on):
     assert (await sec.post(f"/api/v1/admin/users/{users['joao@exemplo.pt']}/invite")).status_code == 403
 
 
+async def test_criar_utilizador_com_papeis_e_convite(mw, mail_on):
+    admin = await mw.login("admin@serradofc.pt", "admin2026")
+    await execute(mw.pool, "delete from email_outbox")
+    body = {"name": "  Rita   Exemplo Nova ", "email": "Rita.Nova@Exemplo.pt", "roles": ["secretaria"]}
+    r = await admin.post("/api/v1/admin/users", json=body)
+    assert r.status_code == 201, r.text
+    assert r.json()["invited"] is True
+    row = await fetch_one(mw.pool, "select name, email, password_hash from users where id = %s", [r.json()["id"]])
+    assert row == {"name": "Rita Exemplo Nova", "email": "rita.nova@exemplo.pt", "password_hash": "!"}
+    users = {u["email"]: u for u in (await admin.get("/api/v1/admin/users")).json()}
+    assert users["rita.nova@exemplo.pt"]["roles"] == ["secretaria"]
+    mail = await fetch_one(mw.pool, "select to_email, subject from email_outbox")
+    assert mail and mail["to_email"] == "rita.nova@exemplo.pt" and "conta" in mail["subject"]
+    # Email repetido, inválido, papel desconhecido
+    assert (await admin.post("/api/v1/admin/users", json={**body, "email": "rita.nova@exemplo.pt"})).json()["error"] == "email_exists"
+    assert (await admin.post("/api/v1/admin/users", json={**body, "email": "rita"})).status_code == 400
+    assert (await admin.post("/api/v1/admin/users", json={**body, "email": "x@exemplo.pt", "roles": ["nao-existe"]})).status_code == 400
+    # Quem gere utilizadores não cria contas com mais do que tem; a tesouraria não cria contas
+    assert (
+        await admin.post("/api/v1/admin/roles", json={"key": "rh2", "name": "Contas", "permissions": ["users.manage", "cms.edit"]})
+    ).status_code == 201
+    await admin.put(f"/api/v1/admin/users/{users['editor@serradofc.pt']['id']}/roles", json={"roles": ["rh2"]})
+    rh = await mw.login("editor@serradofc.pt", "editor2026")
+    assert (await rh.post("/api/v1/admin/users", json={**body, "email": "a1@exemplo.pt", "roles": ["admin"]})).status_code == 403
+    assert (await rh.post("/api/v1/admin/users", json={**body, "email": "a2@exemplo.pt", "roles": ["tesouraria"]})).status_code == 403
+    ok = await rh.post("/api/v1/admin/users", json={**body, "email": "a3@exemplo.pt", "roles": ["editor"], "invite": False})
+    assert ok.status_code == 201 and ok.json()["invited"] is False
+    await admin.put(f"/api/v1/admin/users/{users['editor@serradofc.pt']['id']}/roles", json={"roles": ["editor"]})
+    tes = await mw.login("tesouraria@serradofc.pt", "tesouraria2026")
+    assert (await tes.post("/api/v1/admin/users", json={**body, "email": "a4@exemplo.pt", "roles": []})).status_code == 403
+    actions = await fetch(mw.pool, "select action from audit_log where action = 'users.create'")
+    assert len(actions) == 2
+
+
 async def test_envio_pela_brevo_com_novas_tentativas(mw):
     await execute(mw.pool, "delete from email_outbox")
     async with mw.pool.connection() as c:

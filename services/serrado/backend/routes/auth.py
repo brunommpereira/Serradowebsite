@@ -3,12 +3,13 @@
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Path, Request
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 from ...config import config
 from ...db.pool import Pool, execute, fetch, fetch_one, tx
 from ...password import DUMMY_HASH, hash_password, verify_password
 from ...permissions import ADMIN, PERMISSIONS, effective
+from ...registry import NO_PASSWORD, _email
 from ..accounts import MIN_PASSWORD, send_link, token_hash
 from ..core import Actor, HttpError, actor, audit, can, forbidden, not_found, pool, require
 
@@ -58,6 +59,13 @@ class RolesBody(BaseModel):
     roles: list[RoleKey] = Field(max_length=20)
 
 
+class NewUser(RolesBody):
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field(min_length=3, max_length=160)
+    email: Annotated[str, BeforeValidator(_email)]
+    invite: bool = True
+
+
 class RoleBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: str = Field(min_length=2, max_length=60)
@@ -83,6 +91,30 @@ class Reset(BaseModel):
 def mail_required() -> None:
     if not config.mail.enabled:
         raise HttpError(503, "mail_disabled", "O envio de emails não está configurado. Contacta a secretaria.")
+
+
+async def check_roles(req: Request, roles: list[str], user_id: str | None) -> None:
+    """Quem pode dar que papéis: só um admin dá «admin»; os outros só dão papéis com permissões que eles próprios têm."""
+    if len(set(roles)) != len(roles):
+        raise HttpError(400, "validation", "roles: valores repetidos")
+    who = actor(req)
+    if user_id == who.id and "admin" in who.roles and "admin" not in roles:
+        raise forbidden()  # não remover o próprio acesso de admin
+    if "admin" in roles and "admin" not in who.roles:
+        raise forbidden()  # só um admin dá o papel de admin
+    known = {
+        r["key"]: set(r["permissions"])
+        for r in await fetch(
+            pool(req),
+            "select key, coalesce((select array_agg(permission) from role_permissions where role = key), '{}') as permissions from roles",
+        )
+    }
+    if not set(roles) <= set(known):
+        raise HttpError(400, "unknown_role", f"Papel desconhecido: {', '.join(sorted(set(roles) - set(known)))}")
+    if ADMIN not in who.roles:
+        current = {r["role"] for r in await fetch(pool(req), "select role from user_roles where user_id = %s", [user_id])} if user_id else set()
+        if any(not known[k] <= who.permissions for k in set(roles) - current):
+            raise forbidden()  # só se atribuem papéis com permissões que o próprio tem
 
 
 def check_permissions(perms: list[str]) -> list[str]:
@@ -261,29 +293,32 @@ def register(r: APIRouter) -> None:
                from users u left join user_roles r on r.user_id = u.id group by u.id order by u.name""",
         )
 
+    @r.post("/users", tags=["Gestão"], summary="Cria uma conta (sem password) com papéis e envia o convite", status_code=201)
+    async def create_user(req: Request, body: NewUser) -> dict[str, Any]:
+        require(req, "users.manage")
+        await check_roles(req, body.roles, None)
+        who = actor(req)
+        name = " ".join(body.name.split())
+        invited = body.invite and config.mail.enabled
+        async with tx(pool(req)) as c:
+            if await (await c.execute("select 1 from users where email = %s", [body.email])).fetchone():
+                raise HttpError(409, "email_exists", "Já existe uma conta com este email. Procura-a na lista e muda os papéis.")
+            cur = await c.execute("insert into users (email, name, password_hash) values (%s, %s, %s) returning id", [body.email, name, NO_PASSWORD])
+            row = await cur.fetchone()
+            assert row is not None
+            uid = str(row["id"])
+            for role in body.roles:
+                await c.execute("insert into user_roles values (%s, %s)", [uid, role])
+            if invited:
+                await send_link(c, user_id=uid, email=body.email, name=name, purpose="invite")
+            await audit(c, who, "users.create", "users", uid, {"roles": body.roles, "invited": invited})
+        return {"id": uid, "invited": invited}
+
     @r.put("/users/{id}/roles", tags=["Gestão"], summary="Define os papéis de backoffice de um utilizador")
     async def set_roles(req: Request, id: UserId, body: RolesBody) -> dict[str, Any]:
         require(req, "users.manage")
-        if len(set(body.roles)) != len(body.roles):
-            raise HttpError(400, "validation", "roles: valores repetidos")
+        await check_roles(req, body.roles, id)
         who = actor(req)
-        if id == who.id and "admin" in who.roles and "admin" not in body.roles:
-            raise forbidden()  # não remover o próprio acesso de admin
-        if "admin" in body.roles and "admin" not in who.roles:
-            raise forbidden()  # só um admin dá o papel de admin
-        known = {
-            r["key"]: set(r["permissions"])
-            for r in await fetch(
-                pool(req),
-                "select key, coalesce((select array_agg(permission) from role_permissions where role = key), '{}') as permissions from roles",
-            )
-        }
-        if not set(body.roles) <= set(known):
-            raise HttpError(400, "unknown_role", f"Papel desconhecido: {', '.join(sorted(set(body.roles) - set(known)))}")
-        if ADMIN not in who.roles:
-            current = {r["role"] for r in await fetch(pool(req), "select role from user_roles where user_id = %s", [id])}
-            if any(not known[k] <= who.permissions for k in set(body.roles) - current):
-                raise forbidden()  # só se atribuem papéis com permissões que o próprio tem
         async with tx(pool(req)) as c:
             await c.execute("delete from user_roles where user_id = %s", [id])
             for role in body.roles:

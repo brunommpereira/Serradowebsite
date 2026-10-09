@@ -94,6 +94,13 @@ export interface AdminUser {
   member: { memberNumber: string } | null;
 }
 
+export interface NewAdminUser {
+  name: string;
+  email: string;
+  roles: string[];
+  invite: boolean;
+}
+
 export interface ImportRow {
   athleteCode: string | null;
   athleteName: string;
@@ -189,6 +196,8 @@ export abstract class AdminSource {
   abstract importResults(rows: ImportRow[]): Promise<ImportSummary>;
   abstract users(): Promise<AdminUser[]>;
   abstract setRoles(id: string, roles: string[]): Promise<void>;
+  /** Cria uma conta sem password, com papéis; `invited` diz se o convite seguiu por email */
+  abstract createUser(user: NewAdminUser): Promise<{ id: string; invited: boolean }>;
   /** Envia por email o convite para a pessoa definir a password */
   abstract invite(id: string): Promise<void>;
   /** Papéis com as permissões e quantos utilizadores têm cada um */

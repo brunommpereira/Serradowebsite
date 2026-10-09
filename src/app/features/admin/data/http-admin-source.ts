@@ -17,6 +17,7 @@ import {
   ImportSummary,
   MediaItem,
   MediaUsage,
+  NewAdminUser,
   PreparedImage,
 } from './admin-source';
 
@@ -107,6 +108,9 @@ export class HttpAdminSource extends AdminSource {
   }
   async setRoles(id: string, roles: string[]) {
     await this.api.put(`/admin/users/${id}/roles`, { roles });
+  }
+  createUser(user: NewAdminUser) {
+    return this.api.post<{ id: string; invited: boolean }>('/admin/users', user);
   }
   async invite(id: string) {
     await this.api.post(`/admin/users/${id}/invite`);

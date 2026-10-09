@@ -20,11 +20,13 @@ import {
   ImportSummary,
   MediaItem,
   MediaUsage,
+  NewAdminUser,
   PreparedImage,
 } from './admin-source';
 
 const AUDIT_KEY = 'sfc.audit.v1';
 const ROLES_KEY = 'sfc.roles.v1';
+const USERS_KEY = 'sfc.users.v1';
 const MEDIA_KEY = 'sfc.media.v1';
 const SENSITIVE = ['idNumber', 'idExpiry', 'taxNumber', 'address', 'postalCode'];
 
@@ -234,13 +236,26 @@ export class DemoAdminSource extends AdminSource {
   async users(): Promise<AdminUser[]> {
     this.guard('users.manage');
     const overrides = this.read<Record<string, string[]>>(ROLES_KEY, {});
-    return AuthService.DEMO.map((d) => ({
+    const demo: AdminUser[] = AuthService.DEMO.map((d) => ({
       id: d.login,
       email: d.login.includes('@') ? d.login : `${d.name.split(' ')[0].toLowerCase()}@exemplo.pt`,
       name: d.name,
-      roles: overrides[d.login] ?? d.roles,
+      roles: d.roles,
       member: d.isMember ? { memberNumber: d.login } : null,
     }));
+    const extra = this.read<AdminUser[]>(USERS_KEY, []);
+    return [...demo, ...extra].map((u) => ({ ...u, roles: overrides[u.id] ?? u.roles }));
+  }
+
+  async createUser(user: NewAdminUser) {
+    this.guard('users.manage');
+    const email = user.email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Email inválido.');
+    if ((await this.users()).some((u) => u.email === email)) throw new Error('Já existe uma conta com este email. Procura-a na lista e muda os papéis.');
+    const created: AdminUser = { id: email, email, name: user.name.trim().replace(/\s+/g, ' '), roles: user.roles, member: null };
+    this.write(USERS_KEY, [...this.read<AdminUser[]>(USERS_KEY, []), created]);
+    this.log('users.create', 'Utilizadores', null, { utilizador: email, roles: user.roles });
+    return { id: email, invited: false };
   }
 
   async setRoles(id: string, roles: string[]) {
