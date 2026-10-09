@@ -11,6 +11,14 @@ Legenda: **[eu]** faz-se no servidor ou num painel · **[código]** precisa de u
 O site já está no ar (VPS OVH, Ubuntu 26.04), mas faltam estes passos:
 
 - [ ] **Password das cópias externas (restic):** copiar para um gestor de passwords (Bitwarden, 1Password…) e, se possível, guardar também uma cópia em papel num sítio seguro. Sem ela, as cópias externas não se recuperam. Se já não estiver no ecrã: `sudo grep RESTIC_PASSWORD /etc/serrado/backup.env`. **[eu]**
+- [ ] **Secrets no gestor de passwords** (Bitwarden, 1Password…), numa pasta «Serrado FC – servidor» partilhada só com quem gere o servidor. As cópias de segurança só levam a base de dados, não o `/etc/serrado`: se a VPS se perder, é daqui que se recupera tudo. **[eu]**
+  - `/etc/serrado/serrado.env` inteiro (`sudo cat /etc/serrado/serrado.env`): inclui `JWT_SECRET` e `SERVICE_TOKEN` (gerados no bootstrap), email (`SMTP_*`), Google e Microsoft (`*_CLIENT_ID/SECRET`) e, quando existirem, Stripe, Moloni e Facebook;
+  - `RESTIC_PASSWORD` e os dados do R2 (`/etc/serrado/backup.env`);
+  - certificado e chave da Cloudflare (`/etc/serrado/tls/origin.pem` e `origin.key`), ou só a nota de que se geram de novo na Cloudflare;
+  - a chave SSH privada do GitHub Actions (`serrado-deploy`) e a tua chave pessoal da VPS;
+  - acessos aos painéis: OVH, Cloudflare, GitHub, dominios.pt, Google Cloud, Microsoft Entra, Stripe, Moloni.
+  - **Sempre que mudares um secret** (`sudo serrado …`), atualiza também o gestor.
+- [ ] **Chaves com o mínimo de acesso:** token do R2 só para o bucket das cópias; no Stripe, chave restrita; no Moloni, um utilizador só para o site; caixa de email própria para o site. Se uma chave escapar, revoga-se só essa no painel do serviço. **[eu]**
 - [ ] **Conta de administração própria:** `sudo serrado admin direcao@serradofc.pt "Direção"` (a password vai para o gestor de passwords). Depois, retirar o papel de admin às contas que não precisam dele. **[eu]**
 - [ ] **Cópias externas no Cloudflare R2:** bucket `serrado-backups` e token só com acesso a esse bucket; preencher `RESTIC_REPOSITORY`, `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` em `/etc/serrado/backup.env` e testar com `sudo serrado backup` (deve aparecer «Cópia externa (cifrada) enviada»). Ver `DEPLOY-VPS.md`, secção 6. **[eu]**
 - [ ] **Entrada por SSH só com chave:**
