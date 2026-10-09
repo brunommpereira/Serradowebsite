@@ -6,6 +6,23 @@ Legenda: **[eu]** faz-se no servidor ou num painel · **[código]** precisa de u
 
 ---
 
+## ⚠️ Pendente: segurança da VPS (fazer antes de abrir ao público)
+
+O site já está no ar (VPS OVH, Ubuntu 26.04), mas faltam estes passos:
+
+- [ ] **Password das cópias externas (restic):** copiar para um gestor de passwords (Bitwarden, 1Password…) e, se possível, guardar também uma cópia em papel num sítio seguro. Sem ela, as cópias externas não se recuperam. Se já não estiver no ecrã: `sudo grep RESTIC_PASSWORD /etc/serrado/backup.env`. **[eu]**
+- [ ] **Conta de administração própria:** `sudo serrado admin direcao@serradofc.pt "Direção"` (a password vai para o gestor de passwords). Depois, retirar o papel de admin às contas que não precisam dele. **[eu]**
+- [ ] **Cópias externas no Cloudflare R2:** bucket `serrado-backups` e token só com acesso a esse bucket; preencher `RESTIC_REPOSITORY`, `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` em `/etc/serrado/backup.env` e testar com `sudo serrado backup` (deve aparecer «Cópia externa (cifrada) enviada»). Ver `DEPLOY-VPS.md`, secção 6. **[eu]**
+- [ ] **Entrada por SSH só com chave:**
+  1. no teu computador: `ssh-keygen -t ed25519 -f %USERPROFILE%\.ssh\serrado-vps` (Windows) ou `ssh-keygen -t ed25519 -f ~/.ssh/serrado-vps`;
+  2. acrescentar a chave **pública** (`serrado-vps.pub`) a `/home/ubuntu/.ssh/authorized_keys` na VPS;
+  3. confirmar, **numa janela nova**, que `ssh -i serrado-vps ubuntu@51.210.245.108` entra sem pedir password;
+  4. só então correr outra vez o `bootstrap.sh` (com as mesmas opções), que desliga a entrada por password. **[eu]**
+- [ ] **Cloudflare → WAF:** regra de rate limit em `/api/v1/auth/login` (10 pedidos em 10 s por IP → bloquear 10 s). **[eu]**
+- [ ] **Confirmar:** `sudo serrado status` todo verde; `nmap 51.210.245.108` só com a porta 22 aberta; `curl -m 5 http://51.210.245.108` falha. **[eu]**
+
+---
+
 ## 1. Antes da instalação
 
 - [ ] **VPS** na UE (França, Alemanha…), com Ubuntu 24.04, x86_64, e a tua chave SSH. **[eu]**
