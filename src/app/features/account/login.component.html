@@ -106,7 +106,7 @@
           </div>
           <div class="field">
             <label for="l-pass">Password</label>
-            <input id="l-pass" type="password" formControlName="password" autocomplete="current-password" />
+            <sfc-password-field><input id="l-pass" type="password" formControlName="password" autocomplete="current-password" /></sfc-password-field>
           </div>
           @if (error()) {
             <p class="alert alert--warning" role="alert">Email / n.º de sócio ou password incorretos.</p>

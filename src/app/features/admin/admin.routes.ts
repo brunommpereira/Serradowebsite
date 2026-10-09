@@ -77,6 +77,13 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./pages/registry-import.page').then((m) => m.RegistryImportPage),
       },
       {
+        path: 'pre-inscricoes',
+        title: 'Pré-inscrições',
+        canActivate: [staffGuard],
+        data: { permissions: ['registrations.manage'] },
+        loadComponent: () => import('./pages/interest.page').then((m) => m.InterestPage),
+      },
+      {
         path: 'registos',
         title: 'Registos online',
         canActivate: [staffGuard],

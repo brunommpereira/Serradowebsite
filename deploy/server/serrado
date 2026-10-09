@@ -23,6 +23,7 @@
 #   serrado fees [AAAA-MM]            cria as mensalidades das escolas do mês
 #   serrado email [smtp|brevo]        liga o envio de emails (caixa do domínio por SMTP, ou Brevo)
 #   serrado email test <endereço>     envia um email de teste
+#   serrado email log [n]             últimos emails (para quem, estado, erro)
 #   serrado email off                 desliga
 #
 # O GitHub Actions só pode correr deploy, rollback, backup e status (ver serrado-ssh-gate).
@@ -329,8 +330,17 @@ cmd_email() {
       [[ ${2:-} =~ ^[^@[:space:]]+@[^@[:space:]]+\.[a-z]{2,}$ ]] || die 'Uso: serrado email test <endereço>'
       (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.mail test "$2")
       return ;;
+    log)
+      [[ ${2:-15} =~ ^[0-9]{1,3}$ ]] || die 'Uso: serrado email log [número de emails]'
+      # Últimos emails da fila: para quem, assunto, estado e o erro (se falhou). Não mostra o conteúdo.
+      as_postgres psql -d "$DB_NAME" -P pager=off -c "select id, to_char(created_at at time zone 'Europe/Lisbon', 'DD/MM HH24:MI') as pedido,
+          to_char(sent_at at time zone 'Europe/Lisbon', 'DD/MM HH24:MI') as enviado, to_email as para, left(subject, 40) as assunto,
+          status as estado, attempts as tentativas, left(coalesce(error, ''), 80) as erro
+        from email_outbox order by id desc limit ${2:-15}"
+      $SYSTEMCTL is-active --quiet serrado-mail.timer && echo '✔ Envio automático ligado (a cada minuto)' || echo '! O envio automático está desligado: sudo serrado email'
+      return ;;
     smtp | brevo | '') ;;
-    *) die 'Uso: serrado email [smtp|brevo|test <endereço>|off]' ;;
+    *) die 'Uso: serrado email [smtp|brevo|test <endereço>|log [n]|off]' ;;
   esac
   local kind=${1:-} from name
   if [ -z "$kind" ]; then

@@ -150,7 +150,7 @@
             <legend>Conta da Área de Sócio</legend>
             <div class="field">
               <label for="r-pass">Password <span class="req">*</span></label>
-              <input id="r-pass" type="password" formControlName="password" autocomplete="new-password" />
+              <sfc-password-field><input id="r-pass" type="password" formControlName="password" autocomplete="new-password" /></sfc-password-field>
               <span class="hint">Mínimo 8 caracteres. Vais entrar com o teu n.º de sócio e esta password.</span>
               @if (invalid('password')) {
                 <span class="error">A password deve ter pelo menos 8 caracteres.</span>

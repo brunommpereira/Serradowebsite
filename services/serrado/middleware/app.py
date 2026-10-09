@@ -18,7 +18,7 @@ from .backend_client import BackendClient, BackendError
 from .cache import TtlCache
 from .net import RateLimiter, client_ip, compile_trust
 from .oauth import OAuthProvider, configured_providers
-from .routes import admin, auth, content, me, payments, registry, signup, site
+from .routes import admin, auth, content, interest, me, payments, registry, signup, site
 from .session import SESSION_COOKIE, session, sign_session, staff
 
 # Limites por rota (por minuto e por IP); as restantes partilham o limite global (RATE_LIMIT_MAX)
@@ -31,6 +31,7 @@ ROUTE_LIMITS: list[tuple[str, re.Pattern[str], str, int]] = [
     ("GET", re.compile(r"^/api/v1/auth/oauth/[^/]+/callback$"), "oauth-callback", 20),
     ("POST", re.compile(r"^/api/v1/me/payments$"), "payments", 10),
     ("POST", re.compile(r"^/api/v1/registrations/[a-z]+$"), "signup", 5),
+    ("POST", re.compile(r"^/api/v1/interest$"), "interest", 5),
     ("POST", re.compile(r"^/api/v1/payments/stripe/webhook$"), "stripe-webhook", 600),
 ]
 # Sem cookie de sessão nem X-Requested-With: autenticados pela assinatura do Stripe
@@ -99,7 +100,7 @@ def build_middleware(*, backend_client: BackendClient | None = None, oauth: dict
         return {"ok": True, "version": config.version}
 
     v1 = APIRouter(prefix="/api/v1")
-    for module in (auth, content, me, payments, registry, signup, site):
+    for module in (auth, content, me, payments, registry, signup, site, interest):
         module.register(v1)
     admin_router = APIRouter(prefix="/admin")
     admin.register(admin_router)
