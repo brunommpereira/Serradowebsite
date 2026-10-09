@@ -63,7 +63,6 @@ export class LoginComponent {
     return code ? (OAUTH_ERRORS[code] ?? OAUTH_ERRORS['falhou']) : null;
   });
 
-  protected readonly roleNames = computed(() => this.names(this.auth.roles()));
   protected names(roles: string[]) {
     return roles.map((r) => roleName(r)).join(', ');
   }

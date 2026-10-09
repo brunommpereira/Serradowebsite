@@ -55,16 +55,6 @@
           <button type="button" class="btn btn--primary btn--sm" (click)="open('atleta')">Entrar</button>
         </article>
 
-        @if (auth.isStaff()) {
-          <article class="area-card area-card--staff">
-            <span class="area-card__icon" aria-hidden="true"><sfc-icon name="shield" size="26" /></span>
-            <div class="area-card__text">
-              <h2>Backoffice</h2>
-              <p>Gestão do site e do clube · {{ roleNames() }}</p>
-            </div>
-            <button type="button" class="btn btn--primary btn--sm" (click)="open('staff')">Entrar</button>
-          </article>
-        }
       </div>
 
       @if (identities().length) {
@@ -195,8 +185,6 @@
       <p class="login__foot">
         @if (profile() === 'staff') {
           <button class="linkish" type="button" (click)="setProfile('socio')">← Entrada de sócios e atletas</button><br />
-        } @else {
-          Equipa do clube? <button class="linkish" type="button" (click)="setProfile('staff')">Entrar no backoffice</button><br />
         }
         Ainda não és sócio? <a routerLink="/socios/registo">Regista-te</a><br />
         Atleta novo? A conta é criada pela secretaria na inscrição — <a routerLink="/contactos">fala connosco</a>.
