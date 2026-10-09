@@ -140,6 +140,9 @@
       </div>
       <p>Estatutos, regulamentos, relatórios e contas, orçamentos, atas e comunicados.</p>
     </div>
+    <p class="statutes-link">
+      <a class="btn btn--primary" routerLink="/clube/estatutos"><sfc-icon name="file" size="18" />Ler os Estatutos e o Regulamento Interno</a>
+    </p>
     <div class="chips" role="group" aria-label="Filtrar documentos">
       <button class="chip" type="button" [attr.aria-pressed]="docFilter() === null" (click)="docFilter.set(null)">Todos</button>
       @for (c of docCategories; track c) {
@@ -154,7 +157,9 @@
             <strong>{{ d.title }}</strong>
             <span class="caption">{{ d.category }} · {{ d.year }}</span>
           </span>
-          @if (d.url) {
+          @if (d.url?.startsWith('/clube/')) {
+            <a class="btn btn--outline btn--sm" [href]="d.url"><sfc-icon name="file" />Ler</a>
+          } @else if (d.url) {
             <a class="btn btn--outline btn--sm" [href]="d.url" target="_blank" rel="noopener"><sfc-icon name="download" />PDF</a>
           } @else {
             <span class="badge badge--neutral">Brevemente</span>

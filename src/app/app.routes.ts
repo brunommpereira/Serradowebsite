@@ -5,6 +5,7 @@ import { accountGuard, memberGuard, staffGuard } from './features/account/member
 export const routes: Routes = [
   { path: '', loadComponent: () => import('./features/home/home.component').then((m) => m.HomeComponent) },
   { path: 'clube', loadComponent: () => import('./features/club/club.component').then((m) => m.ClubComponent) },
+  { path: 'clube/estatutos', loadComponent: () => import('./features/club/statutes.page').then((m) => m.StatutesPage) },
   { path: 'modalidades', loadComponent: () => import('./features/sports/sports-list.component').then((m) => m.SportsListComponent) },
   { path: 'modalidades/:slug', loadComponent: () => import('./features/sports/sport-detail.component').then((m) => m.SportDetailComponent) },
   { path: 'noticias', loadComponent: () => import('./features/news/news-list.component').then((m) => m.NewsListComponent) },
