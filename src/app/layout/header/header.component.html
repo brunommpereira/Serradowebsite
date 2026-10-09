@@ -12,12 +12,18 @@
       <span class="topbar__match">{{ club.tagline }}</span>
     }
     <div class="topbar__right">
-      <a [href]="'tel:' + club.phone.replace(' ', '')"><sfc-icon name="phone" size="15" />{{ club.phone }}</a>
+      <a [href]="'tel:' + tel(club.phone)"><sfc-icon name="phone" size="15" />{{ club.phone }}</a>
       <a [href]="'mailto:' + club.email"><sfc-icon name="mail" size="15" />{{ club.email }}</a>
       <span class="topbar__social">
-        <a [href]="club.social.facebook" target="_blank" rel="noopener" aria-label="Facebook"><sfc-icon name="facebook" size="17" /></a>
-        <a [href]="club.social.instagram" target="_blank" rel="noopener" aria-label="Instagram"><sfc-icon name="instagram" size="17" /></a>
-        <a [href]="club.social.youtube" target="_blank" rel="noopener" aria-label="YouTube"><sfc-icon name="youtube" size="17" /></a>
+        @if (club.social.facebook) {
+            <a [href]="club.social.facebook" target="_blank" rel="noopener" aria-label="Facebook"><sfc-icon name="facebook" size="17" /></a>
+          }
+        @if (club.social.instagram) {
+            <a [href]="club.social.instagram" target="_blank" rel="noopener" aria-label="Instagram"><sfc-icon name="instagram" size="17" /></a>
+          }
+        @if (club.social.youtube) {
+            <a [href]="club.social.youtube" target="_blank" rel="noopener" aria-label="YouTube"><sfc-icon name="youtube" size="17" /></a>
+          }
       </span>
     </div>
   </div>

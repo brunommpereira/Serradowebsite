@@ -41,6 +41,7 @@ Tabelas principais (ver `services/serrado/db/migrations`):
 - **Atletas:** `athletes`, `athlete_access` (encarregado, co-encarregado ou atleta), `athlete_documents`, `athlete_change_requests`.
 - **Competições:** `races`, `results` (Troféu de Almada).
 - **CMS:** `cms_news`, `cms_events`, `cms_pages`, `cms_partners`, `cms_revisions` (histórico de versões de cada conteúdo).
+- **Conteúdos do site:** `site_blocks` (um documento JSON por bloco: contactos, página do clube, órgãos sociais, documentos, sócios, modalidades, jogos, provas, classificações, recordes, outras datas da agenda, loja, multimédia, comunidade) e `site_block_revisions` (histórico). Os campos de cada bloco estão em `src/app/core/site/site-blocks.ts` (o editor do backoffice é gerado a partir deles) e o conteúdo original em `site-defaults.ts`: enquanto um bloco não é editado, o site mostra o original. O backend aceita só os blocos conhecidos e confirma a forma geral (tamanhos, níveis, sem endereços `javascript:`); o site mostra estes valores sempre como texto.
 
 ## Texto rico e imagens
 
@@ -80,11 +81,12 @@ Tabelas principais (ver `services/serrado/db/migrations`):
 | Grupo | Middleware `/api/v1` | Backend `/internal/v1` |
 |---|---|---|
 | Sessão | `POST /auth/login`, `POST /auth/logout`, `GET /me` | `POST /auth/verify`, `GET /users/{id}` |
-| Conteúdo público | `GET /content/home`, `/content/news[/{slug}]`, `/content/events[/{slug}]`, `/content/pages/{slug}`, `/content/partners` (com cache) | `GET /cms/{tipo}?status=published` |
+| Conteúdo público | `GET /content/home`, `/content/news[/{slug}]`, `/content/events[/{slug}]`, `/content/pages/{slug}`, `/content/partners`, `/content/blocks` (com cache) | `GET /cms/{tipo}?status=published`, `GET /site/blocks` |
 | Área de Atletas | `GET /me/athletes`, `GET\|PATCH /athletes/{id}`, `POST /athletes/{id}/confirm`, `POST /athletes/{id}/change-requests`, `GET /athletes/{id}/results` | `GET /athletes?accessibleBy=`, `GET\|PATCH /athletes/{id}`, `POST /athletes/{id}/confirm`, `POST /athletes/{id}/change-requests`, `GET /athletes/{id}/results` |
 | Área de Sócio | `GET /me/member`, `GET /me/quotas` | `GET /members/{number}`, `GET /members/{number}/quotas` |
 | Backoffice: CMS | `GET\|POST /admin/cms/{tipo}`, `GET\|PUT\|DELETE /admin/cms/{tipo}/{id}`, `POST …/publish`, `POST …/unpublish`, `GET …/revisions`, `POST …/revisions/{rev}/restore` | as mesmas, em `/cms/…` |
-| Backoffice: imagens | `GET\|POST /admin/media`, `PATCH\|DELETE /admin/media/{id}`, `GET /admin/media/{id}/usage` | as mesmas, em `/cms/media…` |
+| Backoffice: imagens e PDF | `GET\|POST /admin/media`, `PATCH\|DELETE /admin/media/{id}`, `GET /admin/media/{id}/usage` | as mesmas, em `/cms/media…` |
+| Backoffice: conteúdos do site | `GET\|PUT\|DELETE /admin/site/blocks/{bloco}`, `GET …/revisions`, `POST …/revisions/{rev}/restore` | as mesmas, em `/site/blocks…` |
 | Imagens públicas | `GET /media/{chave}.{ext}` (cache de 1 ano, endereço aleatório) | `GET /media/{chave}` |
 | Backoffice: atletas | `GET /admin/athletes`, `GET /admin/change-requests`, `POST /admin/change-requests/{id}/approve\|reject`, `POST /admin/documents/{id}/approve\|reject` | as mesmas, sem o prefixo `/admin` |
 | Backoffice: sócios e atletas (gestão) | `GET\|POST /admin/members`, `GET\|PUT /admin/members/{n}`, `POST /admin/members/{n}/quotas`, `POST /admin/athletes`, `PUT /admin/athletes/{id}`, `GET\|POST /admin/athletes/{id}/access`, `DELETE /admin/athletes/{id}/access/{user}`, `POST /admin/registry/import` | `/members…`, `/members/{n}/detail`, `/athletes`, `/athletes/{id}/admin`, `/athletes/{id}/access…`, `/registry/import` |
@@ -101,7 +103,7 @@ O catálogo de **permissões** é fixo no código (`services/serrado/permissions
 
 | Permissão | O quê |
 |---|---|
-| `cms.edit` | Notícias, eventos, páginas, parceiros e imagens |
+| `cms.edit` | Notícias, eventos, páginas, parceiros, imagens e conteúdos do site (contactos, clube, loja, jogos…) |
 | `athletes.view` / `athletes.sensitive` / `athletes.manage` | Ver atletas · ver CC, NIF e morada · alterar e validar pedidos e documentos |
 | `members.view` / `members.manage` | Ver sócios e quotas · criar, alterar e importar |
 | `payments.view` / `payments.manage` | Ver pagamentos e recibos · valores, mensalidades, recibos |

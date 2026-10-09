@@ -3,6 +3,8 @@ import { isPlatformBrowser } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
 import { AthleteAreaService } from '../../../core/services/athlete-area.service';
 import { CmsStore } from '../../../core/cms/cms-store';
+import { SiteStore } from '../../../core/site/site-store';
+import { BLOCK_BY_KEY } from '../../../core/site/site-blocks';
 import { CMS_TYPES, CmsEntry, CmsType } from '../../../core/cms/cms.models';
 import { Athlete, CURRENT_SEASON } from '../../../core/data/athletes-data';
 import { ADMIN_ROLE, ALL_PERMISSIONS, demoRoles, Permission, RoleDef, saveDemoRoles } from '../../../core/permissions';
@@ -42,6 +44,7 @@ export class DemoAdminSource extends AdminSource {
   private readonly auth = inject(AuthService);
   private readonly area = inject(AthleteAreaService);
   private readonly cms = inject(CmsStore);
+  private readonly site = inject(SiteStore);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   private get actor() {
@@ -233,6 +236,44 @@ export class DemoAdminSource extends AdminSource {
     return summary;
   }
 
+  // ---------------------------------------------------------------- conteúdos do site
+  private block(key: string) {
+    this.guard('cms.edit');
+    const def = BLOCK_BY_KEY[key];
+    if (!def) throw new Error('Bloco de conteúdo desconhecido');
+    return def;
+  }
+
+  async siteBlock(key: string) {
+    this.block(key);
+    return this.site.demoGet(key);
+  }
+
+  async siteSave(key: string, data: Record<string, unknown>) {
+    const def = this.block(key);
+    const out = this.site.demoSave(key, data, this.actor);
+    this.log('site.block.save', 'Conteúdos do site', null, { bloco: def.label });
+    return out;
+  }
+
+  async siteReset(key: string) {
+    const def = this.block(key);
+    this.site.demoSave(key, null, this.actor);
+    this.log('site.block.reset', 'Conteúdos do site', null, { bloco: def.label });
+  }
+
+  async siteRevisions(key: string) {
+    this.block(key);
+    return this.site.demoRevisions(key);
+  }
+
+  async siteRestore(key: string, rev: number) {
+    const def = this.block(key);
+    const out = this.site.demoRestore(key, rev, this.actor);
+    this.log('site.block.restore', 'Conteúdos do site', null, { bloco: def.label });
+    return out;
+  }
+
   async users(): Promise<AdminUser[]> {
     this.guard('users.manage');
     const overrides = this.read<Record<string, string[]>>(ROLES_KEY, {});
@@ -348,6 +389,11 @@ export class DemoAdminSource extends AdminSource {
     }
     this.log('cms.media.upload', 'Imagens', null, { nome: item.name });
     return item;
+  }
+
+  async mediaUploadFile(): Promise<MediaItem> {
+    this.guard('cms.edit');
+    throw new Error('Os documentos em PDF só se carregam com o site ligado ao servidor.');
   }
 
   async mediaUpdate(id: number, alt: string) {

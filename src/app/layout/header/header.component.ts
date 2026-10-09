@@ -5,7 +5,7 @@ import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../../shared/icon.component';
-import { ContentService } from '../../core/services/content.service';
+import { ContentService, tel } from '../../core/services/content.service';
 import { AuthService } from '../../core/services/auth.service';
 import { MAIN_NAV } from '../nav';
 
@@ -23,7 +23,11 @@ export class HeaderComponent {
   protected readonly auth = inject(AuthService);
 
   protected readonly nav = MAIN_NAV;
-  protected readonly club = this.content.club;
+  /** Lido a cada verificação: muda logo quando os contactos são editados no backoffice */
+  protected get club() {
+    return this.content.club;
+  }
+  protected readonly tel = tel;
   protected readonly nextMatch = computed(() => this.content.upcomingMatches(undefined, 1)[0]);
   protected readonly sportName = (slug: string) => this.content.sport(slug)?.name ?? '';
 

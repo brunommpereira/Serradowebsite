@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, effect, inject, input, signal } fro
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { DomSanitizer } from '@angular/platform-browser';
-import { ContentService } from '../../core/services/content.service';
+import { ContentService, tel } from '../../core/services/content.service';
 import { SeoService } from '../../core/services/seo.service';
 import { PageHeroComponent } from '../../shared/page-hero.component';
 import { IconComponent } from '../../shared/icon.component';
@@ -20,7 +20,14 @@ const SUBJECTS = ['Informações gerais', 'Inscrição numa modalidade', 'Ser s�
         <div class="stack">
           <ul class="info">
             <li><sfc-icon name="pin" /><span><strong>Morada</strong>{{ club.name }}<br />{{ club.address }}<br />{{ club.postalCode }} {{ club.locality }}</span></li>
-            <li><sfc-icon name="phone" /><span><strong>Telefone</strong><a [href]="'tel:' + club.phone.replace(' ', '')">{{ club.phone }}</a></span></li>
+            <li>
+              <sfc-icon name="phone" /><span
+                ><strong>Telefone</strong><a [href]="'tel:' + tel(club.phone)">{{ club.phone }}</a>
+                @if (club.phone2) {
+                  <br /><a [href]="'tel:' + tel(club.phone2)">{{ club.phone2 }}</a>
+                }
+              </span>
+            </li>
             <li><sfc-icon name="mail" /><span><strong>Email</strong><a [href]="'mailto:' + club.email">{{ club.email }}</a></span></li>
           </ul>
           <div>
@@ -36,9 +43,15 @@ const SUBJECTS = ['Informações gerais', 'Inscrição numa modalidade', 'Ser s�
           <div>
             <h2 class="h-s">Redes sociais</h2>
             <p class="social">
-              <a [href]="club.social.facebook" target="_blank" rel="noopener"><sfc-icon name="facebook" />Facebook</a>
-              <a [href]="club.social.instagram" target="_blank" rel="noopener"><sfc-icon name="instagram" />Instagram</a>
-              <a [href]="club.social.youtube" target="_blank" rel="noopener"><sfc-icon name="youtube" />YouTube</a>
+              @if (club.social.facebook) {
+                <a [href]="club.social.facebook" target="_blank" rel="noopener"><sfc-icon name="facebook" />Facebook</a>
+              }
+              @if (club.social.instagram) {
+                <a [href]="club.social.instagram" target="_blank" rel="noopener"><sfc-icon name="instagram" />Instagram</a>
+              }
+              @if (club.social.youtube) {
+                <a [href]="club.social.youtube" target="_blank" rel="noopener"><sfc-icon name="youtube" />YouTube</a>
+              }
             </p>
           </div>
         </div>
@@ -105,12 +118,11 @@ export class ContactsComponent {
   /** ?assunto= pré-preenche o assunto */
   readonly assunto = input<string>();
   protected readonly club = inject(ContentService).club;
+  protected readonly tel = tel;
   protected readonly subjects = SUBJECTS;
   protected readonly sent = signal(false);
-  // URL fixo do OpenStreetMap (sem dados do utilizador).
-  protected readonly mapUrl = inject(DomSanitizer).bypassSecurityTrustResourceUrl(
-    `https://www.openstreetmap.org/export/embed.html?bbox=-9.215%2C38.645%2C-9.185%2C38.665&layer=mapnik&marker=${this.club.map.lat}%2C${this.club.map.lng}`,
-  );
+  // Mapa do OpenStreetMap à volta das coordenadas do clube (só números; sem dados do utilizador).
+  protected readonly mapUrl = inject(DomSanitizer).bypassSecurityTrustResourceUrl(mapEmbed(this.club.map.lat, this.club.map.lng));
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     name: ['', Validators.required],
@@ -146,4 +158,10 @@ export class ContactsComponent {
     // POST /api/contact
     this.sent.set(true);
   }
+}
+
+function mapEmbed(lat: number, lng: number) {
+  const [y, x] = Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? [lat, lng] : [38.655, -9.2];
+  const f = (n: number) => n.toFixed(5);
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${f(x - 0.015)}%2C${f(y - 0.01)}%2C${f(x + 0.015)}%2C${f(y + 0.01)}&layer=mapnik&marker=${f(y)}%2C${f(x)}`;
 }

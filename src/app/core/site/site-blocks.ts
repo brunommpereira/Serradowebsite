@@ -1,0 +1,710 @@
+import { BlockDef, BlockField } from './site.models';
+
+const SPORT_OPTIONS = ['atletismo', 'futsal', 'rugby', 'formacao', 'escola-de-desporto'] as const;
+const SPORT_LABELS: Record<string, string> = {
+  atletismo: 'Atletismo',
+  futsal: 'Futsal',
+  rugby: 'Rugby',
+  formacao: 'Formação',
+  'escola-de-desporto': 'Escola de Desporto',
+};
+const SPORT: BlockField = {
+  key: 'sportSlug',
+  label: 'Modalidade',
+  kind: 'select',
+  options: SPORT_OPTIONS,
+  optionLabels: SPORT_LABELS,
+  required: true,
+};
+/** Jogos: as modalidades de equipa primeiro (a primeira é a escolhida num jogo novo) */
+const TEAM_SPORT: BlockField = {
+  ...SPORT,
+  options: ['futsal', 'rugby', 'formacao', 'escola-de-desporto', 'atletismo'],
+};
+const ICONS = [
+  'users',
+  'star',
+  'trophy',
+  'heart',
+  'shield',
+  'check',
+  'ball',
+  'run',
+  'school',
+  'home',
+  'calendar',
+  'euro',
+] as const;
+const ICON_LABELS: Record<string, string> = {
+  users: 'Pessoas',
+  star: 'Estrela',
+  trophy: 'Troféu',
+  heart: 'Coração',
+  shield: 'Escudo',
+  check: 'Visto',
+  ball: 'Bola',
+  run: 'Corrida',
+  school: 'Escola',
+  home: 'Casa',
+  calendar: 'Calendário',
+  euro: 'Euro',
+};
+const DOC_CATEGORIES = [
+  'Estatutos',
+  'Regulamentos',
+  'Relatórios e Contas',
+  'Orçamentos',
+  'Atas',
+  'Eleições',
+  'Comunicados',
+] as const;
+const PRODUCT_CATEGORIES = [
+  'Equipamentos',
+  'T-Shirts',
+  'Casacos',
+  'Bonés',
+  'Mochilas',
+  'Merchandising',
+] as const;
+const GALLERY_CATEGORIES = ['Atletismo', 'Futsal', 'Rugby', 'Eventos', 'Comunidade'] as const;
+const s = (v: unknown) => (v === null || v === undefined ? '' : String(v));
+const day = (v: unknown) => s(v).slice(0, 16).replace('T', ' ');
+
+function sportBlock(slug: string, name: string, external = false): BlockDef {
+  return {
+    key: `sport-${slug}`,
+    label: name,
+    group: 'Modalidades',
+    description: 'Apresentação, horários de treino, equipas, treinadores e contacto da modalidade.',
+    icon: 'ball',
+    publicPath: `/modalidades/${slug}`,
+    fields: [
+      { key: 'name', label: 'Nome', kind: 'text', required: true, max: 60 },
+      { key: 'tagline', label: 'Frase curta', kind: 'text', max: 120 },
+      { key: 'description', label: 'Apresentação', kind: 'textarea', max: 2000, wide: true },
+      { key: 'highlights', label: 'Destaques (um por linha)', kind: 'lines', wide: true },
+      { key: 'contactEmail', label: 'Email de contacto', kind: 'email', max: 120 },
+      { key: 'active', label: 'Mostrar no site', kind: 'checkbox' },
+      { key: 'featured', label: 'Em destaque na página inicial', kind: 'checkbox' },
+      {
+        key: 'trainings',
+        label: 'Horários de treino',
+        kind: 'list',
+        singular: 'horário',
+        wide: true,
+        summary: (i) => `${s(i['team'])} · ${s(i['days'])} ${s(i['time'])}`,
+        fields: [
+          { key: 'team', label: 'Equipa / escalão', kind: 'text', required: true, max: 80 },
+          { key: 'days', label: 'Dias', kind: 'text', max: 80 },
+          { key: 'time', label: 'Horário', kind: 'text', max: 40 },
+          { key: 'location', label: 'Local', kind: 'text', max: 120 },
+        ],
+      },
+      {
+        key: 'teams',
+        label: 'Equipas',
+        kind: 'list',
+        singular: 'equipa',
+        wide: true,
+        summary: (i) => `${s(i['name'])} · ${s(i['category'])} · ${s(i['season'])}`,
+        fields: [
+          { key: 'name', label: 'Nome', kind: 'text', required: true, max: 80 },
+          { key: 'category', label: 'Escalão', kind: 'text', max: 80 },
+          { key: 'coach', label: 'Treinador', kind: 'text', max: 120 },
+          { key: 'season', label: 'Época', kind: 'text', max: 20, hint: 'Ex.: 2026/27' },
+        ],
+      },
+      {
+        key: 'coaches',
+        label: 'Equipa técnica',
+        kind: 'list',
+        singular: 'pessoa',
+        wide: true,
+        summary: (i) => `${s(i['name'])} · ${s(i['role'])}`,
+        fields: [
+          { key: 'name', label: 'Nome', kind: 'text', required: true, max: 120 },
+          { key: 'role', label: 'Função', kind: 'text', max: 120 },
+        ],
+      },
+      {
+        key: 'levels',
+        label: 'Escalões (descrição curta)',
+        kind: 'list',
+        singular: 'escalão',
+        wide: true,
+        summary: (i) => s(i['name']),
+        fields: [
+          { key: 'name', label: 'Escalão', kind: 'text', required: true, max: 40 },
+          { key: 'text', label: 'Descrição', kind: 'textarea', max: 400, wide: true },
+        ],
+      },
+      ...(external
+        ? ([
+            { key: 'externalName', label: 'Nome do site próprio', kind: 'text', max: 80 },
+            {
+              key: 'externalUrl',
+              label: 'Site próprio',
+              kind: 'url',
+              max: 300,
+              hint: 'Com site próprio, as ligações apontam para lá.',
+            },
+            { key: 'instagram', label: 'Instagram', kind: 'url', max: 300 },
+            {
+              key: 'links',
+              label: 'Atalhos para o site próprio',
+              kind: 'list',
+              singular: 'atalho',
+              wide: true,
+              summary: (i) => s(i['label']),
+              fields: [
+                { key: 'label', label: 'Texto', kind: 'text', required: true, max: 60 },
+                { key: 'url', label: 'Endereço', kind: 'url', required: true, max: 300 },
+              ],
+            },
+          ] satisfies BlockField[])
+        : []),
+    ],
+  };
+}
+
+export const BLOCKS: BlockDef[] = [
+  {
+    key: 'contacts',
+    label: 'Contactos e redes sociais',
+    group: 'Geral',
+    description:
+      'Telefone, email, morada, horário e redes sociais. Aparecem no topo, no rodapé, em Contactos e no Clube.',
+    icon: 'phone',
+    publicPath: '/contactos',
+    fields: [
+      { key: 'phone', label: 'Telefone', kind: 'text', required: true, max: 40 },
+      { key: 'phone2', label: 'Outro telefone (opcional)', kind: 'text', max: 40 },
+      { key: 'email', label: 'Email', kind: 'email', required: true, max: 120 },
+      { key: 'address', label: 'Morada', kind: 'text', required: true, max: 160 },
+      { key: 'postalCode', label: 'Código postal', kind: 'text', max: 20 },
+      { key: 'locality', label: 'Localidade', kind: 'text', max: 80 },
+      {
+        key: 'hours',
+        label: 'Horário da secretaria',
+        kind: 'list',
+        singular: 'linha',
+        wide: true,
+        summary: (i) => `${s(i['days'])}: ${s(i['time'])}`,
+        fields: [
+          { key: 'days', label: 'Dias', kind: 'text', required: true, max: 60 },
+          { key: 'time', label: 'Horário', kind: 'text', required: true, max: 80 },
+        ],
+      },
+      { key: 'facebook', label: 'Facebook', kind: 'url', max: 300 },
+      { key: 'instagram', label: 'Instagram', kind: 'url', max: 300 },
+      { key: 'youtube', label: 'YouTube', kind: 'url', max: 300 },
+      {
+        key: 'mapLat',
+        label: 'Mapa: latitude',
+        kind: 'number',
+        hint: 'No Google Maps, clique direito no local → copiar as coordenadas.',
+      },
+      { key: 'mapLng', label: 'Mapa: longitude', kind: 'number' },
+      { key: 'tagline', label: 'Frase do clube', kind: 'text', max: 120, wide: true },
+      { key: 'name', label: 'Nome oficial', kind: 'text', required: true, max: 120 },
+      { key: 'shortName', label: 'Nome curto', kind: 'text', required: true, max: 40 },
+      { key: 'nipc', label: 'NIPC', kind: 'text', max: 20 },
+    ],
+  },
+  {
+    key: 'club',
+    label: 'Página do Clube',
+    group: 'Clube',
+    description: 'Apresentação, história, missão, visão, valores, emblema e instalações.',
+    icon: 'home',
+    publicPath: '/clube',
+    fields: [
+      { key: 'heroSubtitle', label: 'Texto do topo', kind: 'textarea', max: 300, wide: true },
+      { key: 'introTitle', label: 'Título da apresentação', kind: 'text', max: 120, wide: true },
+      {
+        key: 'intro',
+        label: 'Apresentação',
+        kind: 'textarea',
+        max: 4000,
+        wide: true,
+        hint: 'Parágrafos separados por uma linha em branco.',
+      },
+      {
+        key: 'timeline',
+        label: 'História (cronologia)',
+        kind: 'list',
+        singular: 'marco',
+        wide: true,
+        summary: (i) => `${s(i['year']) || '—'} · ${s(i['title'])}`,
+        fields: [
+          { key: 'year', label: 'Ano', kind: 'text', max: 20, hint: 'Pode ficar vazio.' },
+          { key: 'title', label: 'Título', kind: 'text', required: true, max: 120 },
+          { key: 'text', label: 'Texto', kind: 'textarea', max: 1000, wide: true },
+        ],
+      },
+      { key: 'mission', label: 'Missão', kind: 'textarea', max: 600, wide: true },
+      { key: 'vision', label: 'Visão', kind: 'textarea', max: 600, wide: true },
+      {
+        key: 'values',
+        label: 'Valores',
+        kind: 'list',
+        singular: 'valor',
+        wide: true,
+        summary: (i) => s(i['title']),
+        fields: [
+          { key: 'title', label: 'Valor', kind: 'text', required: true, max: 60 },
+          {
+            key: 'icon',
+            label: 'Ícone',
+            kind: 'select',
+            options: ICONS,
+            optionLabels: ICON_LABELS,
+            required: true,
+          },
+          { key: 'text', label: 'Texto', kind: 'textarea', max: 300, wide: true },
+        ],
+      },
+      { key: 'emblem', label: 'O emblema', kind: 'textarea', max: 1000, wide: true },
+      {
+        key: 'facilities',
+        label: 'Instalações',
+        kind: 'list',
+        singular: 'instalação',
+        wide: true,
+        summary: (i) => s(i['name']),
+        fields: [
+          { key: 'name', label: 'Nome', kind: 'text', required: true, max: 120 },
+          { key: 'text', label: 'Descrição', kind: 'textarea', max: 600, wide: true },
+          { key: 'imageUrl', label: 'Fotografia', kind: 'image', wide: true },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'boards',
+    label: 'Órgãos Sociais',
+    group: 'Clube',
+    description:
+      'Direção, Conselho Fiscal e Mesa da Assembleia Geral. Os membros agrupam-se pelo órgão, pela ordem da lista.',
+    icon: 'users',
+    publicPath: '/clube#orgaos-sociais',
+    fields: [
+      { key: 'note', label: 'Nota (mandato)', kind: 'textarea', max: 400, wide: true },
+      {
+        key: 'members',
+        label: 'Membros',
+        kind: 'list',
+        singular: 'membro',
+        wide: true,
+        summary: (i) => `${s(i['group'])} · ${s(i['role'])} · ${s(i['name'])}`,
+        fields: [
+          {
+            key: 'group',
+            label: 'Órgão',
+            kind: 'text',
+            required: true,
+            max: 80,
+            hint: 'Ex.: Direção, Conselho Fiscal, Mesa da Assembleia Geral.',
+          },
+          { key: 'role', label: 'Cargo', kind: 'text', required: true, max: 80 },
+          { key: 'name', label: 'Nome', kind: 'text', required: true, max: 120 },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'documents',
+    label: 'Estatutos e documentos',
+    group: 'Clube',
+    description:
+      'Estatutos, regulamentos, relatórios e contas, orçamentos, atas e comunicados, em PDF.',
+    icon: 'file',
+    publicPath: '/clube#transparencia',
+    fields: [
+      {
+        key: 'items',
+        label: 'Documentos',
+        kind: 'list',
+        singular: 'documento',
+        wide: true,
+        newFirst: true,
+        summary: (i) =>
+          `${s(i['title'])} · ${s(i['category'])} · ${s(i['year'])}${i['url'] ? '' : ' (sem PDF)'}`,
+        fields: [
+          { key: 'title', label: 'Título', kind: 'text', required: true, max: 160, wide: true },
+          {
+            key: 'category',
+            label: 'Categoria',
+            kind: 'select',
+            options: DOC_CATEGORIES,
+            required: true,
+          },
+          { key: 'year', label: 'Ano', kind: 'text', max: 20 },
+          {
+            key: 'url',
+            label: 'Ficheiro PDF',
+            kind: 'file',
+            wide: true,
+            hint: 'Sem PDF, aparece «Brevemente».',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'membership',
+    label: 'Ser sócio',
+    group: 'Sócios',
+    description:
+      'Categorias e valores apresentados, vantagens e perguntas frequentes da página Sócios.',
+    icon: 'card',
+    publicPath: '/socios',
+    fields: [
+      {
+        key: 'categories',
+        label: 'Categorias',
+        kind: 'list',
+        singular: 'categoria',
+        wide: true,
+        summary: (i) => `${s(i['name'])} · ${s(i['monthly'])} €/mês · ${s(i['yearly'])} €/ano`,
+        fields: [
+          { key: 'name', label: 'Nome', kind: 'text', required: true, max: 60 },
+          { key: 'ageRule', label: 'Quem', kind: 'text', max: 80 },
+          { key: 'monthly', label: 'Mensal (€)', kind: 'number' },
+          { key: 'yearly', label: 'Anual (€)', kind: 'number' },
+          { key: 'description', label: 'Descrição', kind: 'textarea', max: 300, wide: true },
+        ],
+      },
+      {
+        key: 'benefits',
+        label: 'Vantagens',
+        kind: 'list',
+        singular: 'vantagem',
+        wide: true,
+        summary: (i) => s(i['title']),
+        fields: [
+          { key: 'title', label: 'Título', kind: 'text', required: true, max: 80 },
+          { key: 'text', label: 'Texto', kind: 'textarea', max: 300, wide: true },
+        ],
+      },
+      {
+        key: 'faq',
+        label: 'Perguntas frequentes',
+        kind: 'list',
+        singular: 'pergunta',
+        wide: true,
+        summary: (i) => s(i['q']),
+        fields: [
+          { key: 'q', label: 'Pergunta', kind: 'text', required: true, max: 200, wide: true },
+          { key: 'a', label: 'Resposta', kind: 'textarea', required: true, max: 1500, wide: true },
+        ],
+      },
+    ],
+  },
+  sportBlock('futsal', 'Futsal'),
+  sportBlock('atletismo', 'Atletismo'),
+  sportBlock('rugby', 'Rugby', true),
+  sportBlock('formacao', 'Formação'),
+  sportBlock('escola-de-desporto', 'Escola de Desporto'),
+  {
+    key: 'matches',
+    label: 'Jogos e resultados',
+    group: 'Agenda e resultados',
+    description:
+      'Calendário e resultados das modalidades de equipa. Os jogos agendados aparecem na Agenda, no topo do site e na página inicial; os terminados, em Resultados.',
+    icon: 'calendar',
+    publicPath: '/resultados',
+    fields: [
+      {
+        key: 'items',
+        label: 'Jogos',
+        kind: 'list',
+        singular: 'jogo',
+        wide: true,
+        newFirst: true,
+        summary: (i) =>
+          `${day(i['date'])} · ${s(i['team'])} ${i['homeAway'] === 'fora' ? '@' : 'vs'} ${s(i['opponent'])}` +
+          (i['status'] === 'terminado'
+            ? ` · ${s(i['scoreHome'])}-${s(i['scoreAway'])}`
+            : i['status'] === 'adiado'
+              ? ' · adiado'
+              : ''),
+        fields: [
+          TEAM_SPORT,
+          {
+            key: 'team',
+            label: 'Equipa',
+            kind: 'text',
+            required: true,
+            max: 60,
+            hint: 'Ex.: Seniores, Sub-13.',
+          },
+          { key: 'opponent', label: 'Adversário', kind: 'text', required: true, max: 80 },
+          { key: 'date', label: 'Data e hora', kind: 'datetime', required: true },
+          {
+            key: 'homeAway',
+            label: 'Casa ou fora',
+            kind: 'select',
+            options: ['casa', 'fora'],
+            optionLabels: { casa: 'Em casa', fora: 'Fora' },
+            required: true,
+          },
+          { key: 'venue', label: 'Local', kind: 'text', max: 120 },
+          { key: 'competition', label: 'Competição', kind: 'text', max: 80 },
+          { key: 'season', label: 'Época', kind: 'text', max: 20, hint: 'Ex.: 2026/27' },
+          {
+            key: 'status',
+            label: 'Estado',
+            kind: 'select',
+            options: ['agendado', 'terminado', 'adiado'],
+            optionLabels: { agendado: 'Agendado', terminado: 'Terminado', adiado: 'Adiado' },
+            required: true,
+          },
+          {
+            key: 'scoreHome',
+            label: 'Golos/pontos do Serrado',
+            kind: 'number',
+            hint: 'Só para jogos terminados.',
+          },
+          { key: 'scoreAway', label: 'Golos/pontos do adversário', kind: 'number' },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'athletics',
+    label: 'Provas de atletismo',
+    group: 'Agenda e resultados',
+    description:
+      'Provas futuras (na Agenda) e destaques das provas já realizadas (em Resultados e no Atletismo).',
+    icon: 'run',
+    publicPath: '/resultados',
+    fields: [
+      {
+        key: 'items',
+        label: 'Provas',
+        kind: 'list',
+        singular: 'prova',
+        wide: true,
+        newFirst: true,
+        summary: (i) => `${day(i['date'])} · ${s(i['event'])} · ${s(i['location'])}`,
+        fields: [
+          { key: 'event', label: 'Prova', kind: 'text', required: true, max: 120, wide: true },
+          { key: 'date', label: 'Data e hora', kind: 'datetime', required: true },
+          { key: 'location', label: 'Local', kind: 'text', max: 120 },
+          { key: 'season', label: 'Época', kind: 'text', max: 20 },
+          {
+            key: 'highlights',
+            label: 'Destaques (um por linha)',
+            kind: 'lines',
+            wide: true,
+            hint: 'Sem destaques, a prova só aparece na Agenda.',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'standings',
+    label: 'Classificações',
+    group: 'Agenda e resultados',
+    description: 'Tabelas classificativas mostradas em Resultados e na página da modalidade.',
+    icon: 'trophy',
+    publicPath: '/resultados',
+    fields: [
+      {
+        key: 'tables',
+        label: 'Tabelas',
+        kind: 'list',
+        singular: 'tabela',
+        wide: true,
+        summary: (i) => s(i['competition']),
+        fields: [
+          TEAM_SPORT,
+          { key: 'competition', label: 'Competição', kind: 'text', required: true, max: 120 },
+          {
+            key: 'rows',
+            label: 'Classificação (uma equipa por linha, por ordem)',
+            kind: 'lines',
+            wide: true,
+            hint: 'Formato: Equipa | Jogos | Pontos. Ex.: Serrado FC | 4 | 9',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'records',
+    label: 'Recordes do clube',
+    group: 'Agenda e resultados',
+    description: 'Recordes do atletismo, na página da modalidade.',
+    icon: 'trophy',
+    publicPath: '/modalidades/atletismo',
+    fields: [
+      {
+        key: 'items',
+        label: 'Recordes',
+        kind: 'list',
+        singular: 'recorde',
+        wide: true,
+        summary: (i) => `${s(i['discipline'])} · ${s(i['athlete'])} · ${s(i['mark'])}`,
+        fields: [
+          { key: 'discipline', label: 'Disciplina', kind: 'text', required: true, max: 60 },
+          { key: 'athlete', label: 'Atleta', kind: 'text', max: 120 },
+          { key: 'mark', label: 'Marca', kind: 'text', max: 40 },
+          { key: 'year', label: 'Ano', kind: 'text', max: 10 },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'agenda',
+    label: 'Outras datas da agenda',
+    group: 'Agenda e resultados',
+    description:
+      'Assembleias, reuniões e outras datas que não são jogos, provas nem eventos (os eventos editam-se em Eventos).',
+    icon: 'calendar',
+    publicPath: '/agenda',
+    fields: [
+      {
+        key: 'items',
+        label: 'Datas',
+        kind: 'list',
+        singular: 'data',
+        wide: true,
+        newFirst: true,
+        summary: (i) => `${day(i['date'])} · ${s(i['title'])}`,
+        fields: [
+          { key: 'title', label: 'Título', kind: 'text', required: true, max: 120, wide: true },
+          { key: 'date', label: 'Data e hora', kind: 'datetime', required: true },
+          {
+            key: 'type',
+            label: 'Tipo',
+            kind: 'select',
+            options: ['Reunião', 'Treino', 'Competição', 'Evento'],
+            required: true,
+          },
+          { key: 'location', label: 'Local', kind: 'text', max: 120 },
+          { ...SPORT, required: false },
+          {
+            key: 'link',
+            label: 'Ligação',
+            kind: 'text',
+            max: 300,
+            hint: 'Página do site (ex.: /clube#transparencia) ou endereço https://',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'shop',
+    label: 'Loja',
+    group: 'Loja e multimédia',
+    description: 'Produtos da loja do clube, com fotografia, preços e tamanhos.',
+    icon: 'bag',
+    publicPath: '/loja',
+    fields: [
+      { key: 'notice', label: 'Aviso (como encomendar)', kind: 'textarea', max: 600, wide: true },
+      {
+        key: 'products',
+        label: 'Produtos',
+        kind: 'list',
+        singular: 'produto',
+        wide: true,
+        summary: (i) =>
+          `${s(i['name'])} · ${s(i['price'])} €${i['available'] === false ? ' · esgotado' : ''}`,
+        fields: [
+          { key: 'name', label: 'Nome', kind: 'text', required: true, max: 120 },
+          {
+            key: 'category',
+            label: 'Categoria',
+            kind: 'select',
+            options: PRODUCT_CATEGORIES,
+            required: true,
+          },
+          { key: 'price', label: 'Preço (€)', kind: 'number', required: true },
+          { key: 'memberPrice', label: 'Preço para sócios (€)', kind: 'number' },
+          { key: 'sizes', label: 'Tamanhos (um por linha)', kind: 'lines' },
+          { key: 'available', label: 'Disponível', kind: 'checkbox' },
+          { key: 'description', label: 'Descrição', kind: 'textarea', max: 600, wide: true },
+          { key: 'imageUrl', label: 'Fotografia', kind: 'image', wide: true },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'gallery',
+    label: 'Multimédia',
+    group: 'Loja e multimédia',
+    description: 'Fotografias e vídeos da página Multimédia.',
+    icon: 'image',
+    publicPath: '/multimedia',
+    fields: [
+      {
+        key: 'items',
+        label: 'Fotografias e vídeos',
+        kind: 'list',
+        singular: 'elemento',
+        wide: true,
+        newFirst: true,
+        summary: (i) =>
+          `${s(i['date'])} · ${s(i['title'])} (${i['kind'] === 'video' ? 'vídeo' : 'foto'})`,
+        fields: [
+          { key: 'title', label: 'Título', kind: 'text', required: true, max: 120, wide: true },
+          {
+            key: 'category',
+            label: 'Categoria',
+            kind: 'select',
+            options: GALLERY_CATEGORIES,
+            required: true,
+          },
+          { key: 'date', label: 'Data', kind: 'date', required: true },
+          {
+            key: 'kind',
+            label: 'Tipo',
+            kind: 'select',
+            options: ['foto', 'video'],
+            optionLabels: { foto: 'Fotografia', video: 'Vídeo' },
+            required: true,
+          },
+          { key: 'imageUrl', label: 'Fotografia (ou capa do vídeo)', kind: 'image', wide: true },
+          {
+            key: 'videoUrl',
+            label: 'Ligação do vídeo ou do álbum',
+            kind: 'url',
+            max: 300,
+            wide: true,
+            hint: 'YouTube, Facebook, Instagram… Abre numa janela nova.',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'community',
+    label: 'Comunidade',
+    group: 'Loja e multimédia',
+    description: 'Projetos da página Comunidade.',
+    icon: 'heart',
+    publicPath: '/comunidade',
+    fields: [
+      {
+        key: 'projects',
+        label: 'Projetos',
+        kind: 'list',
+        singular: 'projeto',
+        wide: true,
+        summary: (i) => s(i['title']),
+        fields: [
+          { key: 'title', label: 'Título', kind: 'text', required: true, max: 80 },
+          { key: 'text', label: 'Texto', kind: 'textarea', max: 600, wide: true },
+        ],
+      },
+    ],
+  },
+];
+
+export const BLOCK_BY_KEY: Record<string, BlockDef> = Object.fromEntries(
+  BLOCKS.map((b) => [b.key, b]),
+);

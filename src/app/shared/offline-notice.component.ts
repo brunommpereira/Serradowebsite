@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { ContentService } from '../core/services/content.service';
+import { ContentService, tel } from '../core/services/content.service';
 import { IconComponent } from './icon.component';
 
 /**
@@ -41,5 +41,5 @@ export class OfflineNoticeComponent {
   readonly title = input('Trata disto com a secretaria');
   readonly text = input('Este pedido ainda não pode ser feito pelo site. Fala connosco por email, telefone ou no secretariado.');
   protected readonly club = inject(ContentService).club;
-  protected readonly tel = this.club.phone.replace(/\s/g, '');
+  protected readonly tel = tel(this.club.phone);
 }

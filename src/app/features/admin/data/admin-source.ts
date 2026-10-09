@@ -1,5 +1,6 @@
 import { CmsEntry, CmsRevision, CmsType } from '../../../core/cms/cms.models';
 import { RoleDef } from '../../../core/permissions';
+import { BlockRevision, BlockState } from '../../../core/site/site.models';
 
 /**
  * Contrato de dados do backoffice. Duas implementações:
@@ -180,6 +181,8 @@ export abstract class AdminSource {
 
   abstract mediaList(q?: string): Promise<MediaItem[]>;
   abstract mediaUpload(img: PreparedImage): Promise<MediaItem>;
+  /** Documento em PDF (estatutos, relatórios…), sem alterações */
+  abstract mediaUploadFile(file: { name: string; base64: string }): Promise<MediaItem>;
   abstract mediaUpdate(id: number, alt: string): Promise<MediaItem>;
   abstract mediaUsage(id: number): Promise<MediaUsage[]>;
   abstract mediaDelete(id: number): Promise<void>;
@@ -194,6 +197,14 @@ export abstract class AdminSource {
   abstract reviewDocument(id: number | string, approve: boolean, note?: string): Promise<void>;
 
   abstract importResults(rows: ImportRow[]): Promise<ImportSummary>;
+  /** Conteúdos do site (blocos): Backoffice → Conteúdos do site */
+  abstract siteBlock(key: string): Promise<BlockState>;
+  abstract siteSave(key: string, data: Record<string, unknown>): Promise<BlockState>;
+  /** Volta ao conteúdo original (a versão atual fica no histórico) */
+  abstract siteReset(key: string): Promise<void>;
+  abstract siteRevisions(key: string): Promise<BlockRevision[]>;
+  abstract siteRestore(key: string, rev: number): Promise<BlockState>;
+
   abstract users(): Promise<AdminUser[]>;
   abstract setRoles(id: string, roles: string[]): Promise<void>;
   /** Cria uma conta sem password, com papéis; `invited` diz se o convite seguiu por email */
