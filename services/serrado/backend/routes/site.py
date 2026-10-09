@@ -7,15 +7,20 @@ Aqui confirma-se a forma geral: só blocos conhecidos, só texto/números/listas
 e nenhum endereço «javascript:». O site mostra estes valores sempre como texto (nunca como HTML).
 """
 
+import base64
+import io
 import json
 import math
 import re
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Path, Request, Response
+from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, ConfigDict
 
+from ...config import config
 from ...db.pool import Jsonb, fetch, fetch_one, tx
+from ...mail import enqueue, layout
 from ..core import HttpError, actor, audit, camel, not_found, pool, require
 
 SPORTS = ("atletismo", "futsal", "rugby", "formacao", "escola-de-desporto")
@@ -33,6 +38,7 @@ BLOCKS = (
     "standings",
     "records",
     "agenda",
+    "email",
     *(f"sport-{s}" for s in SPORTS),
 )
 
@@ -44,6 +50,8 @@ _FIELD = re.compile(r"^[A-Za-z][A-Za-z0-9]{0,40}$")
 _SCRIPT_URL = re.compile(r"^\s*(javascript|vbscript|data:text)", re.IGNORECASE)
 
 Key = Annotated[str, Path(pattern=r"^[a-z][a-z0-9-]{1,40}$")]
+_MEDIA_KEY = re.compile(r"/media/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})")
+LOGO_MAX = 480
 
 
 def check(value: Any, path: str = "data", depth: int = 0) -> None:
@@ -154,3 +162,40 @@ def register(r: APIRouter) -> None:
             await reset(req, key)
             return await one(req, key)
         return await save(req, key, BlockBody(data=row["data"]))
+
+    # ------------------------------------------------------------ assinatura dos emails
+    @r.get("/site/email-logo", tags=tags, summary="Símbolo da assinatura dos emails, em PNG (público)")
+    async def email_logo(req: Request) -> dict[str, str]:
+        row = await fetch_one(pool(req), "select data->>'logoUrl' as url from site_blocks where key = 'email'")
+        found = _MEDIA_KEY.search(str(row["url"] or "")) if row else None
+        media = await fetch_one(pool(req), "select data from cms_media where key = %s and mime like 'image/%%'", [found.group(1)]) if found else None
+        if not media:
+            raise not_found("Símbolo")
+        try:
+            img = Image.open(io.BytesIO(media["data"]))
+            img.thumbnail((LOGO_MAX, LOGO_MAX))
+            out = io.BytesIO()
+            img.convert("RGBA").save(out, format="PNG", optimize=True)
+        except (UnidentifiedImageError, OSError, ValueError):
+            raise not_found("Símbolo") from None
+        return {"data": base64.b64encode(out.getvalue()).decode()}
+
+    @r.post("/site/email-test", tags=tags, summary="Envia um email de teste (com a assinatura atual) a quem pede", status_code=202)
+    async def email_test(req: Request) -> dict[str, str]:
+        require(req, "cms.edit")
+        if not config.mail.enabled:
+            raise HttpError(503, "mail_disabled", "O envio de emails não está configurado no servidor (sudo serrado email).")
+        who = actor(req)
+        me = await fetch_one(pool(req), "select email, name from users where id = %s", [who.id])
+        if not me:
+            raise not_found("Utilizador")
+        async with tx(pool(req)) as c:
+            await enqueue(
+                c,
+                to_email=me["email"],
+                to_name=me["name"],
+                subject="Teste da assinatura — site do Serrado FC",
+                html_body=layout("Email de teste", [f"Olá {me['name']},", "É assim que os emails automáticos do site terminam."]),
+            )
+            await audit(c, who, "site.email.test", "site_blocks", None, {})
+        return {"email": me["email"]}

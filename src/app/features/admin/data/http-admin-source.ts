@@ -129,6 +129,9 @@ export class HttpAdminSource extends AdminSource {
     this.site.applyFromApi(key, out.data);
     return out;
   }
+  async siteEmailTest() {
+    return (await this.api.post<{ email: string }>('/admin/site/email-test')).email;
+  }
   users() {
     return this.api.get<AdminUser[]>('/admin/users');
   }

@@ -274,6 +274,11 @@ export class DemoAdminSource extends AdminSource {
     return out;
   }
 
+  async siteEmailTest(): Promise<string> {
+    this.guard('cms.edit');
+    throw new Error('O email de teste só se envia com o site ligado ao servidor.');
+  }
+
   async users(): Promise<AdminUser[]> {
     this.guard('users.manage');
     const overrides = this.read<Record<string, string[]>>(ROLES_KEY, {});

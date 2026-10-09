@@ -19,13 +19,14 @@ import { AdminSource } from '../data/admin-source';
 import { HasUnsavedChanges } from '../pages/unsaved.guard';
 import { BlockFieldComponent } from './block-field.component';
 import { BlockListComponent } from './block-list.component';
+import { EmailPreviewComponent } from './email-preview.component';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Editor de um bloco de conteúdo do site (formulário gerado a partir de BLOCKS). */
 @Component({
   selector: 'sfc-admin-site-editor',
-  imports: [DatePipe, RouterLink, IconComponent, BlockFieldComponent, BlockListComponent],
+  imports: [DatePipe, RouterLink, IconComponent, BlockFieldComponent, BlockListComponent, EmailPreviewComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @let d = def();
@@ -76,6 +77,11 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         </form>
 
         <aside class="side">
+          @if (d.key === 'email') {
+            <section class="adm-panel">
+              <sfc-email-preview [model]="model" />
+            </section>
+          }
           <section class="adm-panel">
             <h2>Publicação</h2>
             <p class="caption">

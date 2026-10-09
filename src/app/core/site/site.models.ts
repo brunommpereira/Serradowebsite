@@ -198,6 +198,15 @@ export interface SportBlock {
   links: { label: string; url: string }[];
 }
 
+export interface EmailBlock {
+  /** **negrito**, *itálico*; uma linha em branco separa parágrafos */
+  text: string;
+  showLogo: boolean;
+  /** imagem da biblioteca; sem imagem usa o emblema do clube */
+  logoUrl: string | null;
+  logoSize: number;
+}
+
 export interface SiteData {
   contacts: ContactsBlock;
   club: ClubBlock;
@@ -212,6 +221,7 @@ export interface SiteData {
   standings: StandingsBlock;
   records: RecordsBlock;
   agenda: AgendaBlock;
+  email: EmailBlock;
   'sport-atletismo': SportBlock;
   'sport-futsal': SportBlock;
   'sport-rugby': SportBlock;

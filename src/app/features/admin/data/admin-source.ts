@@ -204,6 +204,8 @@ export abstract class AdminSource {
   abstract siteReset(key: string): Promise<void>;
   abstract siteRevisions(key: string): Promise<BlockRevision[]>;
   abstract siteRestore(key: string, rev: number): Promise<BlockState>;
+  /** Envia a quem está a editar um email de teste com a assinatura atual; devolve o endereço */
+  abstract siteEmailTest(): Promise<string>;
 
   abstract users(): Promise<AdminUser[]>;
   abstract setRoles(id: string, roles: string[]): Promise<void>;

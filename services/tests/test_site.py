@@ -4,6 +4,8 @@ import base64
 
 from serrado.db.pool import fetch
 
+PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+
 
 async def test_blocos_editados_aparecem_no_site_e_ficam_no_historico(mw):
     public = mw.client()
@@ -79,3 +81,51 @@ async def test_documentos_em_pdf_na_biblioteca(mw):
     # Outros formatos continuam recusados
     html = base64.b64encode(b"<html><script>alert(1)</script></html>").decode()
     assert (await ed.post("/api/v1/admin/media", json={"name": "x.html", "data": html})).status_code == 415
+
+
+async def test_assinatura_dos_emails(mw, monkeypatch):
+    from serrado.config import MailConfig, config
+    from serrado.db.pool import execute
+    from serrado.mail import SIGNATURE_MARK, enqueue, layout, send_pending, signature_html
+
+    # Texto escapado, com **negrito**, *itálico*, parágrafos e o símbolo no fim (só com endereço https)
+    html = signature_html({"text": "**SERRADO** <b>x</b>\n*Desporto*\n\n🏆 Campeão", "logoUrl": None, "logoSize": 500}, "https://www.serradofc.pt")
+    assert "<strong>SERRADO</strong> &lt;b&gt;x&lt;/b&gt;<br><em>Desporto</em></p><p" in html and "🏆 Campeão" in html
+    assert 'src="https://www.serradofc.pt/brand/email-logo.png"' in html and 'width="240"' in html
+    assert "<img" not in signature_html({"showLogo": True}, "")
+    assert "<img" not in signature_html({"showLogo": False}, "https://www.serradofc.pt")
+    assert SIGNATURE_MARK in layout("Título", ["Texto"])
+
+    # O envio põe a assinatura guardada no backoffice (a da fila tem só o marcador)
+    monkeypatch.setattr(config.oauth, "site_url", "https://www.serradofc.pt")
+    ed = await mw.login("editor@serradofc.pt", "editor2026")
+    up = await ed.post("/api/v1/admin/media", json={"name": "simbolo.png", "data": PNG})
+    url = f"/api/v1/media/{up.json()['key']}.png"
+    sig = {"text": "**Direção do Serrado FC**", "showLogo": True, "logoUrl": url, "logoSize": 80}
+    assert (await ed.put("/api/v1/admin/site/blocks/email", json={"data": sig})).status_code == 200
+    logo = await mw.client().get("/api/v1/email/logo.png")
+    assert logo.status_code == 200 and logo.headers["content-type"] == "image/png" and logo.content.startswith(b"\x89PNG")
+
+    await execute(mw.pool, "delete from email_outbox")
+    async with mw.pool.connection() as c:
+        await enqueue(c, to_email="socio@exemplo.pt", to_name="Sócio", subject="Olá", html_body=layout("Olá", ["Texto"]))
+    seen: list[dict] = []
+
+    class Client:
+        async def send(self, row: dict) -> None:
+            seen.append(row)
+
+    cfg = MailConfig(brevo_api_key="k", from_email="site@serradofc.pt", from_name="Serrado FC")
+    assert (await send_pending(mw.pool, cfg, Client())).sent == 1
+    sent = seen[0]["html"]
+    assert SIGNATURE_MARK not in sent and "<strong>Direção do Serrado FC</strong>" in sent
+    assert "https://www.serradofc.pt/api/v1/email/logo.png?v=" in sent and 'width="80"' in sent
+
+    # Email de teste: só com o envio configurado e para quem pede
+    assert (await ed.post("/api/v1/admin/site/email-test")).json()["error"] == "mail_disabled"
+    monkeypatch.setattr(config.mail, "brevo_api_key", "xkeysib-teste")
+    monkeypatch.setattr(config.mail, "from_email", "site@serradofc.pt")
+    r = await ed.post("/api/v1/admin/site/email-test")
+    assert r.status_code == 202 and r.json() == {"email": "editor@serradofc.pt"}
+    tes = await mw.login("tesouraria@serradofc.pt", "tesouraria2026")
+    assert (await tes.post("/api/v1/admin/site/email-test")).status_code == 403

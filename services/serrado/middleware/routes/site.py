@@ -3,6 +3,7 @@ Conteúdos do site (blocos): público em /content/blocks e edição em /admin/si
 Registado antes do router /admin (a rota genérica «/{kind}/{id}/{action}» apanharia estes caminhos).
 """
 
+import base64
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, Path, Request, Response
@@ -23,7 +24,21 @@ def register(r: APIRouter) -> None:
         resp.headers["cache-control"] = "public, max-age=60"
         return await cache(req).get("content:blocks", load)
 
+    @r.get("/email/logo.png", tags=["Conteúdo público"], summary="Símbolo da assinatura dos emails (PNG)")
+    async def email_logo(req: Request) -> Response:
+        out = await backend(req).call("GET", "/site/email-logo")
+        return Response(
+            content=base64.b64decode(out["data"]),
+            media_type="image/png",
+            headers={"cache-control": "public, max-age=86400", "x-content-type-options": "nosniff", "content-security-policy": "default-src 'none'"},
+        )
+
     tags: list[str | Any] = ["Backoffice · Conteúdos do site"]
+
+    @r.post("/admin/site/email-test", tags=tags, summary="Enviar a mim um email de teste com a assinatura", status_code=202)
+    async def email_test(req: Request) -> Any:
+        s = await staff(req)
+        return await backend(req).call("POST", "/site/email-test", actor=s)
 
     @r.get("/admin/site/blocks/{key}", tags=tags, summary="Um bloco")
     async def get(req: Request, key: Key) -> Any:

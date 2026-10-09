@@ -212,6 +212,27 @@ export const BLOCKS: BlockDef[] = [
     ],
   },
   {
+    key: 'email',
+    label: 'Assinatura dos emails',
+    group: 'Geral',
+    description: 'Texto e símbolo no fim dos emails automáticos (recuperar password, convites, inscrições).',
+    icon: 'mail',
+    publicPath: '/',
+    fields: [
+      {
+        key: 'text',
+        label: 'Texto da assinatura',
+        kind: 'textarea',
+        max: 2000,
+        wide: true,
+        hint: 'Escreve **assim** para negrito e *assim* para itálico. Podes usar emojis (🏆 🥈 🏅). Uma linha em branco separa blocos.',
+      },
+      { key: 'showLogo', label: 'Mostrar o símbolo no fim', kind: 'checkbox' },
+      { key: 'logoSize', label: 'Largura do símbolo (píxeis)', kind: 'number', hint: 'Entre 24 e 240.' },
+      { key: 'logoUrl', label: 'Símbolo', kind: 'image', wide: true, hint: 'Sem imagem, usa o emblema do clube.' },
+    ],
+  },
+  {
     key: 'club',
     label: 'Página do Clube',
     group: 'Clube',
