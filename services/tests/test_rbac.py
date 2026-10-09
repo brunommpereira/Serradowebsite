@@ -195,3 +195,71 @@ async def test_envio_pela_brevo_com_novas_tentativas(mw):
     assert seen[-1]["to"] == [{"email": "socio@exemplo.pt", "name": "Sócio"}] and seen[-1]["attachment"][0]["name"] == "a.pdf"
     row = await fetch_one(mw.pool, "select status, html, attachments from email_outbox")
     assert row == {"status": "sent", "html": "", "attachments": []}, "o conteúdo não fica guardado depois de enviado"
+
+
+class FakeSmtp:
+    """smtplib.SMTP falso: guarda o login e as mensagens; pode recusar a autenticação."""
+
+    sent: list = []
+    logins: list = []
+    refuse = False
+
+    def __init__(self, host: str, port: int) -> None:
+        assert (host, port) == ("mail.serradofc.pt", 465)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc) -> None:
+        return None
+
+    def login(self, user: str, password: str) -> None:
+        if FakeSmtp.refuse:
+            import smtplib
+
+            raise smtplib.SMTPAuthenticationError(535, b"Authentication failed")
+        FakeSmtp.logins.append((user, password))
+
+    def send_message(self, msg) -> None:
+        FakeSmtp.sent.append(msg)
+
+
+async def test_envio_por_smtp_da_caixa_do_dominio(mw):
+    from serrado.mail import SmtpClient, enqueue
+
+    await execute(mw.pool, "delete from email_outbox")
+    async with mw.pool.connection() as c:
+        await enqueue(
+            c,
+            to_email="socio@exemplo.pt",
+            to_name="Sócio Exemplo",
+            subject="Olá «sócio»",
+            html_body="<p>Primeira linha</p><p>Segunda &amp; última</p>",
+            attachments=[{"name": "registo.pdf", "content": "JVBERi0xLjQ="}],
+        )
+    cfg = MailConfig(
+        brevo_api_key="",
+        from_email="geral@serradofc.pt",
+        from_name="Serrado FC",
+        smtp_host="mail.serradofc.pt",
+        smtp_port=465,
+        smtp_user="geral@serradofc.pt",
+        smtp_password="segredo-de-teste",
+    )
+    assert cfg.provider == "smtp" and cfg.enabled and "segredo" not in repr(cfg)
+    client = SmtpClient(cfg, smtp_factory=FakeSmtp)
+    FakeSmtp.sent, FakeSmtp.logins, FakeSmtp.refuse = [], [], True
+    s = await send_pending(mw.pool, cfg, client)
+    assert s.failed == 1 and "recusou o utilizador ou a password" in s.errors[0] and "segredo" not in s.errors[0]
+    await execute(mw.pool, "update email_outbox set tried_at = now() - interval '1 hour'")
+    FakeSmtp.refuse = False
+    assert (await send_pending(mw.pool, cfg, client)).sent == 1
+    assert FakeSmtp.logins == [("geral@serradofc.pt", "segredo-de-teste")]
+    msg = FakeSmtp.sent[0]
+    assert msg["From"] == "Serrado FC <geral@serradofc.pt>" and "socio@exemplo.pt" in msg["To"] and msg["Subject"] == "Olá «sócio»"
+    assert msg["Message-ID"].endswith("@serradofc.pt>")
+    text = msg.get_body(("plain",)).get_content()
+    assert "Primeira linha" in text and "Segunda & última" in text and "<p>" not in text
+    assert "<p>Primeira linha</p>" in msg.get_body(("html",)).get_content()
+    att = next(msg.iter_attachments())
+    assert att.get_filename() == "registo.pdf" and att.get_content_type() == "application/pdf" and att.get_content().startswith(b"%PDF")

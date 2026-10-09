@@ -1,5 +1,6 @@
 """Configuração por variáveis de ambiente (com valores de desenvolvimento)."""
 
+import base64
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -112,15 +113,28 @@ class PaymentsConfig:
 
 @dataclass
 class MailConfig:
-    """Emails do site (Brevo, API transacional). Sem chave, nada é enviado (ficam na fila)."""
+    """Emails do site: por SMTP (a caixa do próprio domínio, ex.: dominios.pt) ou pela API da Brevo.
+    Sem nenhum dos dois configurado, nada é enviado (ficam na fila)."""
 
     brevo_api_key: str
     from_email: str
     from_name: str
+    smtp_host: str = ""
+    smtp_port: int = 465
+    # «ssl» (porta 465) ou «starttls» (porta 587)
+    smtp_security: Literal["ssl", "starttls"] = "ssl"
+    smtp_user: str = ""
+    smtp_password: str = field(default="", repr=False)
+
+    @property
+    def provider(self) -> Literal["smtp", "brevo", ""]:
+        if self.smtp_host:
+            return "smtp"
+        return "brevo" if self.brevo_api_key else ""
 
     @property
     def enabled(self) -> bool:
-        return bool(self.brevo_api_key and self.from_email)
+        return bool(self.provider and self.from_email)
 
 
 @dataclass
@@ -198,5 +212,11 @@ config = Config(
         brevo_api_key=env.get("BREVO_API_KEY", ""),
         from_email=env.get("MAIL_FROM_EMAIL", ""),
         from_name=env.get("MAIL_FROM_NAME", "Serrado FC"),
+        smtp_host=env.get("SMTP_HOST", ""),
+        smtp_port=int(env.get("SMTP_PORT", "465") or 465),
+        smtp_security="starttls" if env.get("SMTP_SECURITY") == "starttls" else "ssl",
+        smtp_user=env.get("SMTP_USER", ""),
+        # Em base64 no serrado.env: uma password com « $ " ' \ # » não estraga o ficheiro (lido pelo systemd e pela shell)
+        smtp_password=base64.b64decode(env["SMTP_PASSWORD_B64"]).decode() if env.get("SMTP_PASSWORD_B64") else env.get("SMTP_PASSWORD", ""),
     ),
 )
