@@ -1,14 +1,16 @@
 """Sessão: credenciais, entrada com Google/Microsoft, perfis, contas ligadas e papéis."""
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Path, Request
 from pydantic import BaseModel, ConfigDict, Field
 
-from ...config import ROLES
+from ...config import config
 from ...db.pool import Pool, execute, fetch, fetch_one, tx
-from ...password import DUMMY_HASH, verify_password
-from ..core import Actor, HttpError, actor, audit, forbidden, not_found, pool, require_role
+from ...password import DUMMY_HASH, hash_password, verify_password
+from ...permissions import ADMIN, PERMISSIONS, effective
+from ..accounts import MIN_PASSWORD, send_link, token_hash
+from ..core import Actor, HttpError, actor, audit, can, forbidden, not_found, pool, require
 
 UUID_PATTERN = r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
 UserId = Annotated[str, Path(pattern=UUID_PATTERN)]
@@ -16,11 +18,13 @@ Provider = Annotated[str, Path(pattern=r"^[a-z0-9-]{1,32}$")]
 
 
 async def load_profile(db: Pool, user_id: str) -> dict[str, Any] | None:
-    """Perfil completo de um utilizador: papéis, sócio (opcional) e atletas a que tem acesso."""
-    return await fetch_one(
+    """Perfil completo de um utilizador: papéis, permissões, sócio (opcional) e atletas a que tem acesso."""
+    row = await fetch_one(
         db,
         """select u.id, u.email, u.name,
              coalesce((select array_agg(role order by role) from user_roles where user_id = u.id), '{}') as roles,
+             coalesce((select array_agg(distinct rp.permission) from user_roles ur join role_permissions rp on rp.role = ur.role
+                        where ur.user_id = u.id), '{}') as permissions,
              (select json_build_object('memberNumber', m.member_number, 'category', m.category, 'status', m.status, 'joinedOn', m.joined_on)
                 from members m where m.user_id = u.id) as member,
              coalesce((select json_agg(json_build_object('id', a.id, 'name', a.name, 'role', aa.role) order by a.name)
@@ -28,6 +32,9 @@ async def load_profile(db: Pool, user_id: str) -> dict[str, Any] | None:
            from users u where u.id = %s and not u.disabled""",
         [user_id],
     )
+    if row:
+        row["permissions"] = sorted(effective(list(row["roles"]), set(row["permissions"])))
+    return row
 
 
 class Credentials(BaseModel):
@@ -44,8 +51,45 @@ class ExternalIdentity(BaseModel):
     emailVerified: bool
 
 
+RoleKey = Annotated[str, Field(pattern=r"^[a-z][a-z0-9-]{1,30}$")]
+
+
 class RolesBody(BaseModel):
-    roles: list[Literal["admin", "editor", "secretaria", "treinador"]]
+    roles: list[RoleKey] = Field(max_length=20)
+
+
+class RoleBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field(min_length=2, max_length=60)
+    description: str = Field(default="", max_length=300)
+    permissions: list[Annotated[str, Field(max_length=40)]] = Field(max_length=len(PERMISSIONS))
+
+
+class NewRole(RoleBody):
+    key: RoleKey
+
+
+class Forgot(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    email: str = Field(min_length=3, max_length=200)
+
+
+class Reset(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    token: str = Field(min_length=20, max_length=100)
+    password: str = Field(min_length=MIN_PASSWORD, max_length=200)
+
+
+def mail_required() -> None:
+    if not config.mail.enabled:
+        raise HttpError(503, "mail_disabled", "O envio de emails não está configurado. Contacta a secretaria.")
+
+
+def check_permissions(perms: list[str]) -> list[str]:
+    unknown = sorted(set(perms) - set(PERMISSIONS))
+    if unknown:
+        raise HttpError(400, "unknown_permission", f"Permissão desconhecida: {', '.join(unknown)}")
+    return sorted(set(perms))
 
 
 def register(r: APIRouter) -> None:
@@ -68,6 +112,52 @@ def register(r: APIRouter) -> None:
         if not profile:
             raise HttpError(401, "invalid_credentials", "Credenciais inválidas")
         return profile
+
+    @r.post("/auth/password/forgot", tags=["Sessão"], summary="Envia por email uma ligação para repor a password", status_code=202)
+    async def forgot(req: Request, body: Forgot) -> dict[str, bool]:
+        mail_required()
+        email = body.email.strip().lower()
+        async with tx(pool(req)) as c:
+            cur = await c.execute("select id, name, email from users where email = %s and not disabled", [email])
+            row = await cur.fetchone()
+            # No máximo um email de reposição a cada 2 minutos por conta (não enche a caixa de ninguém)
+            recent = (
+                row
+                and await (
+                    await c.execute(
+                        "select 1 from password_tokens where user_id = %s and purpose = 'reset' and created_at > now() - interval '2 minutes'",
+                        [row["id"]],
+                    )
+                ).fetchone()
+            )
+            if row and not recent:
+                await send_link(c, user_id=row["id"], email=row["email"], name=row["name"], purpose="reset")
+                await audit(c, Actor(id=row["id"]), "auth.password_forgot", "users", row["id"], {})
+        return {"ok": True}  # a mesma resposta com ou sem conta: não revela que emails existem
+
+    @r.post("/auth/password/reset", tags=["Sessão"], summary="Define a password com a ligação recebida por email (reposição ou convite)")
+    async def reset(req: Request, body: Reset) -> dict[str, Any]:
+        password_hash = await hash_password(body.password)
+        async with tx(pool(req)) as c:
+            cur = await c.execute(
+                """update password_tokens set used_at = now()
+                    where token_hash = %s and used_at is null and expires_at > now() returning user_id, purpose""",
+                [token_hash(body.token)],
+            )
+            tok = await cur.fetchone()
+            if not tok:
+                raise HttpError(400, "invalid_token", "A ligação é inválida, já foi usada ou expirou. Pede uma nova.")
+            cur = await c.execute(
+                "update users set password_hash = %s, password_changed_at = now() where id = %s and not disabled returning email",
+                [password_hash, tok["user_id"]],
+            )
+            user = await cur.fetchone()
+            if not user:
+                raise HttpError(400, "invalid_token", "A ligação é inválida, já foi usada ou expirou. Pede uma nova.")
+            # As outras ligações deixam de valer e as sessões abertas terminam (password_changed_at)
+            await c.execute("update password_tokens set used_at = now() where user_id = %s and used_at is null", [tok["user_id"]])
+            await audit(c, Actor(id=tok["user_id"]), f"auth.password_{tok['purpose']}", "users", tok["user_id"], {})
+        return {"ok": True, "email": user["email"]}
 
     @r.post(
         "/auth/oauth",
@@ -117,7 +207,7 @@ def register(r: APIRouter) -> None:
     @r.get("/users/{id}/identities", tags=["Sessão"], summary="Contas externas ligadas (o próprio ou admin)")
     async def identities(req: Request, id: UserId) -> list[dict[str, Any]]:
         who = actor(req)
-        if who.id != id and "admin" not in who.roles:
+        if who.id != id and not can(req, "users.manage"):
             raise forbidden()
         return await fetch(
             pool(req),
@@ -128,7 +218,7 @@ def register(r: APIRouter) -> None:
     @r.delete("/users/{id}/identities/{provider}", tags=["Sessão"], summary="Desligar uma conta externa (o próprio ou admin)")
     async def unlink(req: Request, id: UserId, provider: Provider) -> dict[str, bool]:
         who = actor(req)
-        if who.id != id and "admin" not in who.roles:
+        if who.id != id and not can(req, "users.manage"):
             raise forbidden()
         async with tx(pool(req)) as c:
             cur = await c.execute("delete from user_identities where user_id = %s and provider = %s", [id, provider])
@@ -140,16 +230,29 @@ def register(r: APIRouter) -> None:
     @r.get("/users/{id}", tags=["Sessão"], summary="Perfil de um utilizador")
     async def user(req: Request, id: UserId) -> dict[str, Any]:
         who = actor(req)
-        if who.id != id and "admin" not in who.roles:
+        if who.id != id and not can(req, "users.manage"):
             raise forbidden()
         profile = await load_profile(pool(req), id)
         if not profile:
             raise not_found("Utilizador")
         return profile
 
-    @r.get("/users", tags=["Gestão"], summary="Lista de utilizadores (admin)")
+    @r.post("/users/{id}/invite", tags=["Gestão"], summary="Envia por email o convite para definir a password", status_code=202)
+    async def invite(req: Request, id: UserId) -> dict[str, bool]:
+        require(req, "users.manage", "members.manage", "athletes.manage")
+        mail_required()
+        async with tx(pool(req)) as c:
+            cur = await c.execute("select id, name, email from users where id = %s and not disabled", [id])
+            row = await cur.fetchone()
+            if not row:
+                raise not_found("Utilizador")
+            await send_link(c, user_id=row["id"], email=row["email"], name=row["name"], purpose="invite")
+            await audit(c, actor(req), "users.invite", "users", id, {})
+        return {"ok": True}
+
+    @r.get("/users", tags=["Gestão"], summary="Lista de utilizadores (gestão de utilizadores)")
     async def users(req: Request) -> list[dict[str, Any]]:
-        require_role(req, "admin")
+        require(req, "users.manage")
         return await fetch(
             pool(req),
             """select u.id, u.email, u.name, coalesce(array_agg(r.role order by r.role) filter (where r.role is not null), '{}') as roles,
@@ -158,14 +261,29 @@ def register(r: APIRouter) -> None:
                from users u left join user_roles r on r.user_id = u.id group by u.id order by u.name""",
         )
 
-    @r.put("/users/{id}/roles", tags=["Gestão"], summary="Define os papéis de backoffice de um utilizador (admin)")
+    @r.put("/users/{id}/roles", tags=["Gestão"], summary="Define os papéis de backoffice de um utilizador")
     async def set_roles(req: Request, id: UserId, body: RolesBody) -> dict[str, Any]:
-        require_role(req, "admin")
+        require(req, "users.manage")
         if len(set(body.roles)) != len(body.roles):
             raise HttpError(400, "validation", "roles: valores repetidos")
         who = actor(req)
-        if id == who.id and "admin" not in body.roles:
+        if id == who.id and "admin" in who.roles and "admin" not in body.roles:
             raise forbidden()  # não remover o próprio acesso de admin
+        if "admin" in body.roles and "admin" not in who.roles:
+            raise forbidden()  # só um admin dá o papel de admin
+        known = {
+            r["key"]: set(r["permissions"])
+            for r in await fetch(
+                pool(req),
+                "select key, coalesce((select array_agg(permission) from role_permissions where role = key), '{}') as permissions from roles",
+            )
+        }
+        if not set(body.roles) <= set(known):
+            raise HttpError(400, "unknown_role", f"Papel desconhecido: {', '.join(sorted(set(body.roles) - set(known)))}")
+        if ADMIN not in who.roles:
+            current = {r["role"] for r in await fetch(pool(req), "select role from user_roles where user_id = %s", [id])}
+            if any(not known[k] <= who.permissions for k in set(body.roles) - current):
+                raise forbidden()  # só se atribuem papéis com permissões que o próprio tem
         async with tx(pool(req)) as c:
             await c.execute("delete from user_roles where user_id = %s", [id])
             for role in body.roles:
@@ -173,5 +291,72 @@ def register(r: APIRouter) -> None:
             await audit(c, who, "users.roles", "users", id, {"roles": body.roles})
         return {"id": id, "roles": body.roles}
 
+    # ------------------------------------------------------------- papéis e permissões
+    @r.get("/permissions", tags=["Gestão"], summary="Catálogo de permissões (fixo no código)")
+    async def permissions(req: Request) -> list[dict[str, str]]:
+        require(req, "users.manage")
+        return [{"key": k, "description": v} for k, v in PERMISSIONS.items()]
 
-assert set(ROLES) == {"admin", "editor", "secretaria", "treinador"}
+    @r.get("/roles", tags=["Gestão"], summary="Papéis, as suas permissões e quantos utilizadores têm cada um")
+    async def roles(req: Request) -> list[dict[str, Any]]:
+        require(req, "users.manage")
+        rows = await fetch(
+            pool(req),
+            """select r.key, r.name, r.description, r.builtin,
+                      coalesce((select array_agg(permission order by permission) from role_permissions where role = r.key), '{}') as permissions,
+                      (select count(*)::int from user_roles where role = r.key) as users
+                 from roles r order by r.builtin desc, r.name""",
+        )
+        for row in rows:
+            if row["key"] == ADMIN:
+                row["permissions"] = sorted(PERMISSIONS)
+        return rows
+
+    async def _save_permissions(c: Any, key: str, perms: list[str]) -> None:
+        await c.execute("delete from role_permissions where role = %s", [key])
+        for p in perms:
+            await c.execute("insert into role_permissions values (%s, %s)", [key, p])
+
+    @r.post("/roles", tags=["Gestão"], summary="Cria um papel", status_code=201)
+    async def create_role(req: Request, body: NewRole) -> dict[str, Any]:
+        require(req, "users.manage")
+        perms = check_permissions(body.permissions)
+        who = actor(req)
+        if ADMIN not in who.roles and not set(perms) <= who.permissions:
+            raise forbidden()  # ninguém dá permissões que não tem
+        async with tx(pool(req)) as c:
+            await c.execute("insert into roles (key, name, description) values (%s, %s, %s)", [body.key, body.name, body.description])
+            await _save_permissions(c, body.key, perms)
+            await audit(c, who, "roles.create", "roles", body.key, {"permissions": perms})
+        return {"key": body.key, "name": body.name, "description": body.description, "builtin": False, "permissions": perms, "users": 0}
+
+    @r.put("/roles/{key}", tags=["Gestão"], summary="Altera o nome, a descrição e as permissões de um papel")
+    async def update_role(req: Request, key: Annotated[str, Path(pattern=r"^[a-z][a-z0-9-]{1,30}$")], body: RoleBody) -> dict[str, Any]:
+        require(req, "users.manage")
+        perms = check_permissions(body.permissions)
+        who = actor(req)
+        if key == ADMIN:
+            perms = sorted(PERMISSIONS)  # o admin tem sempre tudo
+        elif ADMIN not in who.roles and not set(perms) <= who.permissions:
+            raise forbidden()  # ninguém dá permissões que não tem
+        async with tx(pool(req)) as c:
+            cur = await c.execute("update roles set name = %s, description = %s where key = %s", [body.name, body.description, key])
+            if not cur.rowcount:
+                raise not_found("Papel")
+            if key != ADMIN:
+                await _save_permissions(c, key, perms)
+            await audit(c, who, "roles.update", "roles", key, {"permissions": perms})
+        return {"key": key, "name": body.name, "description": body.description, "permissions": perms}
+
+    @r.delete("/roles/{key}", tags=["Gestão"], summary="Apaga um papel criado no backoffice (os de origem não se apagam)", status_code=204)
+    async def delete_role(req: Request, key: Annotated[str, Path(pattern=r"^[a-z][a-z0-9-]{1,30}$")]) -> None:
+        require(req, "users.manage")
+        async with tx(pool(req)) as c:
+            cur = await c.execute("select builtin from roles where key = %s for update", [key])
+            row = await cur.fetchone()
+            if not row:
+                raise not_found("Papel")
+            if row["builtin"]:
+                raise HttpError(409, "builtin_role", "Os papéis de origem não se apagam; podes mudar as permissões")
+            await c.execute("delete from roles where key = %s", [key])
+            await audit(c, actor(req), "roles.delete", "roles", key, {})

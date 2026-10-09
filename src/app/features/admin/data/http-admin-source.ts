@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { ApiClient } from '../../../core/api/api-client';
 import { CmsStore } from '../../../core/cms/cms-store';
 import { CmsEntry, CmsRevision, CmsType } from '../../../core/cms/cms.models';
-import { StaffRole } from '../../../core/models';
+import { RoleDef } from '../../../core/permissions';
 import {
   AdminAthlete,
   AdminAthleteDetail,
@@ -105,8 +105,22 @@ export class HttpAdminSource extends AdminSource {
   users() {
     return this.api.get<AdminUser[]>('/admin/users');
   }
-  async setRoles(id: string, roles: StaffRole[]) {
+  async setRoles(id: string, roles: string[]) {
     await this.api.put(`/admin/users/${id}/roles`, { roles });
+  }
+  async invite(id: string) {
+    await this.api.post(`/admin/users/${id}/invite`);
+  }
+  roles() {
+    return this.api.get<RoleDef[]>('/admin/roles');
+  }
+  async saveRole(role: RoleDef, isNew: boolean) {
+    const body = { name: role.name, description: role.description, permissions: role.permissions };
+    if (isNew) await this.api.post('/admin/roles', { key: role.key, ...body });
+    else await this.api.put(`/admin/roles/${role.key}`, body);
+  }
+  async deleteRole(key: string) {
+    await this.api.delete(`/admin/roles/${key}`);
   }
   audit() {
     return this.api.get<AuditEntry[]>('/admin/audit', { limit: 200 });

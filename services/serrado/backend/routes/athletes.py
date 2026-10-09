@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_vali
 
 from ...db.pool import Jsonb, fetch, fetch_one, tx
 from ...validation import current_season, is_valid_id_number, is_valid_nif, is_valid_phone
-from ..core import HttpError, actor, audit, camel, forbidden, has_role, not_found, pool, require_role, require_user, snake
+from ..core import HttpError, actor, audit, camel, can, forbidden, not_found, pool, require, require_user, snake
 
 EMAIL = r"^[^\s@]+@[^\s@]+\.[^\s@]+$"
 DATE = r"^\d{4}-\d{2}-\d{2}$"
@@ -82,14 +82,14 @@ Access = Literal["staff", "treinador", "encarregado", "co-encarregado", "atleta"
 
 async def access_of(req: Request, athlete_id: str) -> str | None:
     """Relação de quem pede com o atleta (None = sem acesso)."""
-    if has_role(req, "secretaria"):
+    if can(req, "athletes.manage"):
         return "staff"
     who = actor(req)
     if who.id:
         row = await fetch_one(pool(req), "select role from athlete_access where user_id = %s and athlete_id = %s", [who.id, athlete_id])
         if row:
             return str(row["role"])
-    return "treinador" if "treinador" in who.roles else None
+    return "treinador" if can(req, "athletes.view") else None
 
 
 async def require_access(req: Request, athlete_id: str, write: bool = False) -> str:
@@ -133,7 +133,7 @@ def register(r: APIRouter) -> None:
         where: list[str] = []
         args: list[Any] = []
         if scope == "all":
-            require_role(req, "secretaria", "treinador")
+            require(req, "athletes.view", "athletes.manage")
         else:
             where.append("a.id in (select athlete_id from athlete_access where user_id = %s)")
             args.append(require_user(req))
@@ -172,7 +172,7 @@ def register(r: APIRouter) -> None:
         if not row:
             raise not_found("Atleta")
         a = camel(row)
-        if access == "treinador":
+        if access in ("staff", "treinador") and not can(req, "athletes.sensitive"):
             for k in SENSITIVE:
                 a.pop(k, None)
         docs = await fetch(pool(req), "select id, kind, status, note, updated_at from athlete_documents where athlete_id = %s order by id", [id])
@@ -266,7 +266,7 @@ def register(r: APIRouter) -> None:
     # ------------------------------------------------------------- backoffice: pedidos e documentos
     @r.get("/change-requests", tags=office, summary="Pedidos de alteração (secretaria)")
     async def change_requests(req: Request, status: Literal["pendente", "aprovado", "rejeitado"] = "pendente") -> list[dict[str, Any]]:
-        require_role(req, "secretaria")
+        require(req, "athletes.manage")
         rows = await fetch(
             pool(req),
             """select r.id, r.athlete_id, a.name as athlete_name, a.code as athlete_code, r.changes, r.status, r.note, r.requested_at, u.name as requested_by,
@@ -279,7 +279,7 @@ def register(r: APIRouter) -> None:
 
     @r.post("/change-requests/{id}/approve", tags=office, summary="Aprova e aplica a alteração")
     async def approve(req: Request, id: Id) -> dict[str, Any]:
-        require_role(req, "secretaria")
+        require(req, "athletes.manage")
         who = actor(req)
         async with tx(pool(req)) as c:
             cur = await c.execute("select * from athlete_change_requests where id = %s and status = 'pendente' for update", [id])
@@ -301,7 +301,7 @@ def register(r: APIRouter) -> None:
 
     @r.post("/change-requests/{id}/reject", tags=office, summary="Rejeita com motivo")
     async def reject(req: Request, id: Id, body: Note) -> dict[str, Any]:
-        require_role(req, "secretaria")
+        require(req, "athletes.manage")
         who = actor(req)
         async with tx(pool(req)) as c:
             cur = await c.execute(
@@ -316,7 +316,7 @@ def register(r: APIRouter) -> None:
 
     @r.get("/documents", tags=office, summary="Documentos de inscrição por estado")
     async def documents(req: Request, status: Literal["Em análise", "Rejeitado", "Em falta", "Aprovado"] = "Em análise") -> list[dict[str, Any]]:
-        require_role(req, "secretaria")
+        require(req, "athletes.manage")
         rows = await fetch(
             pool(req),
             """select d.id, d.kind, d.status, d.note, d.updated_at, d.athlete_id, a.name as athlete_name, a.code as athlete_code
@@ -326,7 +326,7 @@ def register(r: APIRouter) -> None:
         return [camel(x) for x in rows]
 
     async def _set_document(req: Request, id: int, action: str, status: str, note: str | None) -> dict[str, Any]:
-        require_role(req, "secretaria")
+        require(req, "athletes.manage")
         who = actor(req)
         async with tx(pool(req)) as c:
             cur = await c.execute(

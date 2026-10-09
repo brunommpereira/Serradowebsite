@@ -156,7 +156,7 @@ async def last_payment(pool: Pool) -> dict[str, Any]:
 
 async def test_mensalidades_por_modalidade_e_o_que_cada_conta_pode_pagar(env):
     m, pool = env
-    sec = await m.login("secretaria@serradofc.pt", "secretaria2026")
+    sec = await m.login("tesouraria@serradofc.pt", "tesouraria2026")
     assert (await sec.put("/api/v1/admin/fee-plans/futsal", json={"amount": 25, "active": True})).status_code == 200
     gen = await sec.post("/api/v1/admin/fees/generate", json={"month": "2026-11"})
     assert gen.json() == {"month": "2026-11", "created": 1}  # só o Tomás joga futsal
@@ -287,7 +287,7 @@ async def test_recibo_no_moloni_email_e_pdf_no_site(env):
     assert "no-store" in pdf.headers["cache-control"]
     joao = await m.login("joao@exemplo.pt", "atleta2026")
     assert (await joao.get(f"/api/v1/me/payments/{p['id']}/receipt")).status_code == 404
-    sec = await m.login("secretaria@serradofc.pt", "secretaria2026")
+    sec = await m.login("tesouraria@serradofc.pt", "tesouraria2026")
     assert (await sec.get(f"/api/v1/admin/payments/{p['id']}/receipt")).content == PDF
     assert (await issue_receipts(pool, CFG, moloni())).issued == 0, "nada mais por emitir"
 
@@ -335,7 +335,7 @@ async def test_falha_a_meio_do_recibo_nunca_emite_dois_documentos(env):
     assert s.failed == 1 and "email" in s.errors[0]
     p = await fetch_one(pool, "select * from payments where receipt_status = 'failed'")
     assert p and p["moloni_document_id"] == 1234 and p["receipt_attempts"] == 1 and p["receipt_emailed_at"] is None
-    sec = await m.login("secretaria@serradofc.pt", "secretaria2026")
+    sec = await m.login("tesouraria@serradofc.pt", "tesouraria2026")
     listing = (await sec.get("/api/v1/admin/payments?status=paid")).json()
     assert any(x["receiptStatus"] == "failed" and "email" in x["receiptError"] for x in listing)
     assert (await sec.post(f"/api/v1/admin/payments/{p['id']}/retry-receipt")).json()["receiptStatus"] == "pending"

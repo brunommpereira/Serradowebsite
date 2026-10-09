@@ -8,7 +8,7 @@ import { HttpAdminSource } from './data/http-admin-source';
 import { AdminShellComponent } from './admin-shell.component';
 import { unsavedChangesGuard } from './pages/unsaved.guard';
 
-/** Backoffice /admin — cada secção exige os papéis indicados em data.roles. */
+/** Backoffice /admin — cada secção exige uma das permissões indicadas em data.permissions. */
 export const ADMIN_ROUTES: Routes = [
   {
     path: '',
@@ -24,48 +24,55 @@ export const ADMIN_ROUTES: Routes = [
       {
         path: 'conteudos/:type',
         canActivate: [staffGuard],
-        data: { roles: ['editor'] },
+        data: { permissions: ['cms.edit'] },
         loadComponent: () => import('./pages/cms-list.page').then((m) => m.CmsListPage),
       },
       {
         path: 'conteudos/:type/:id',
         canActivate: [staffGuard],
         canDeactivate: [unsavedChangesGuard],
-        data: { roles: ['editor'] },
+        data: { permissions: ['cms.edit'] },
         loadComponent: () => import('./pages/cms-editor.page').then((m) => m.CmsEditorPage),
       },
       {
         path: 'imagens',
         title: 'Imagens',
         canActivate: [staffGuard],
-        data: { roles: ['editor'] },
+        data: { permissions: ['cms.edit'] },
         loadComponent: () => import('./pages/media.page').then((m) => m.MediaPage),
       },
       {
         path: 'atletas',
         canActivate: [staffGuard],
-        data: { roles: ['secretaria', 'treinador'] },
+        data: { permissions: ['athletes.view', 'athletes.manage'] },
         loadComponent: () => import('./pages/athletes.page').then((m) => m.AthletesPage),
       },
       {
         path: 'validacoes',
         canActivate: [staffGuard],
-        data: { roles: ['secretaria'] },
+        data: { permissions: ['athletes.manage'] },
         loadComponent: () => import('./pages/reviews.page').then((m) => m.ReviewsPage),
       },
       {
         path: 'resultados',
         canActivate: [staffGuard],
-        data: { roles: ['secretaria'] },
+        data: { permissions: ['results.import'] },
         loadComponent: () => import('./pages/results-import.page').then((m) => m.ResultsImportPage),
       },
       {
         path: 'pagamentos',
         canActivate: [staffGuard],
-        data: { roles: ['secretaria'] },
+        data: { permissions: ['payments.view'] },
         loadComponent: () => import('./pages/payments.page').then((m) => m.PaymentsPage),
       },
-      { path: 'utilizadores', canActivate: [staffGuard], data: { roles: ['admin'] }, loadComponent: () => import('./pages/users.page').then((m) => m.UsersPage) },
+      { path: 'utilizadores', canActivate: [staffGuard], data: { permissions: ['users.manage'] }, loadComponent: () => import('./pages/users.page').then((m) => m.UsersPage) },
+      {
+        path: 'papeis',
+        title: 'Papéis e permissões',
+        canActivate: [staffGuard],
+        data: { permissions: ['users.manage'] },
+        loadComponent: () => import('./pages/roles.page').then((m) => m.RolesPage),
+      },
       { path: 'auditoria', loadComponent: () => import('./pages/audit.page').then((m) => m.AuditPage) },
     ],
   },

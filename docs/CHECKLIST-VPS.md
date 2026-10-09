@@ -32,7 +32,8 @@ Legenda: **[eu]** faz-se no servidor ou num painel · **[código]** precisa de u
 - [ ] **Primeiro deploy:** *Actions → Deploy VPS → Run workflow*, com resultado verde. **[eu]**
 - [ ] **Conta de administração:** `sudo serrado admin direcao@serradofc.pt "Direção"`. A password fica guardada no gestor. **[eu]**
 - [ ] **Conteúdo inicial**, só se o CMS estiver vazio: `sudo serrado content`. **[eu]**
-- [ ] **Contas da equipa** criadas no backoffice (**Utilizadores**), cada uma só com os papéis de que precisa. **[eu]**
+- [ ] **Contas da equipa** criadas no backoffice (**Utilizadores**), cada uma só com os papéis de que precisa (secretaria, tesouraria, comunicação, treinador…). **[eu]**
+- [ ] **Papéis e permissões** revistos em **Backoffice → Papéis e permissões**: quem vê dados sensíveis (`athletes.sensitive`) e quem mexe nos pagamentos (`payments.manage`). **[decidir]**
 - [ ] **Nunca** correr o seed de demonstração no servidor: apaga tudo e cria contas com passwords públicas. **[eu]**
 
 ## 3. Cópias de segurança
@@ -64,6 +65,9 @@ Legenda: **[eu]** faz-se no servidor ou num painel · **[código]** precisa de u
   - Moloni ON com o add-on «API Access», a API Key e os artigos criados **com o contabilista** (IVA/isenção);
   - `sudo serrado payments`;
   - primeiro em modo de teste. Depois, um pagamento real com cada método: quota «Pago», email com o recibo e PDF no site.
+- [ ] **Emails (Brevo)** (`DEPLOY-VPS.md`, 5e): **[eu]**
+  - domínio `serradofc.pt` autenticado na Brevo (DKIM e DMARC na Cloudflare);
+  - `sudo serrado email` e `sudo serrado email test …`, confirmando que não chega ao spam.
 - [ ] **Valores das mensalidades:** futsal e rugby definidos em **Backoffice → Pagamentos**. **[decidir]**
 
 ## 5. Antes de abrir ao público: o que ainda é demonstração
@@ -72,7 +76,7 @@ Com a API ligada, estas partes do site **ainda não gravam nada no servidor**. E
 
 - [x] **`/entrar`:** a caixa «Contas de demonstração» não aparece em modo API.
 - [x] **«Esqueci-me da password»:** em modo API, mostra um aviso para contactar a secretaria, que repõe a password.
-- [ ] **Recuperação da password por email:** precisa de um serviço de email (o domínio não tem MX) e do fluxo de reposição. **[código] [decidir]**
+- [x] **Recuperação da password por email:** feita (Brevo). Falta configurar (ver a secção 4).
 - [x] **Registo de novos sócios** (`/socios/registo`): em modo API, mostra um aviso para tratar na secretaria.
 - [ ] Decidir se o registo online passa a ser um pedido que a secretaria valida. **[decidir]**
 - [x] **Inscrição nas modalidades e em eventos:** em modo API, mostra um aviso para tratar na secretaria.
@@ -91,8 +95,8 @@ Com a API ligada, estas partes do site **ainda não gravam nada no servidor**. E
   - NIPC e morada reais;
   - email de contacto que funcione;
   - prazos de conservação. **[decidir]**
-- [ ] **Contratos de tratamento de dados (DPA)** aceites com a OVH/Hostinger, a Cloudflare e, se usados, a Google, a Microsoft e a Meta. **[eu]**
-- [ ] **Quem tem acesso a quê:** só a secretaria e a administração com acesso a CC, NIF e moradas. **[decidir]**
+- [ ] **Contratos de tratamento de dados (DPA)** aceites com a OVH/Hostinger, a Cloudflare, a Brevo e, se usados, a Google, a Microsoft, a Meta, o Stripe e o Moloni. **[eu]**
+- [ ] **Quem tem acesso a quê:** só quem tem `athletes.sensitive` vê CC, NIF e moradas (de origem: secretaria e administração). Confirmar em **Papéis e permissões**. **[decidir]**
 - [ ] **Registo das atividades de tratamento** (RGPD, art. 30.º) atualizado com o site. **[decidir]**
 
 ## 7. Verificações depois do primeiro deploy
@@ -120,7 +124,7 @@ Com a API ligada, estas partes do site **ainda não gravam nada no servidor**. E
 | Todos os dias (automático) | Cópia às 03:30 e verificação às 07:17 UTC (*Operações VPS*). **Se chegar um email de falha do GitHub, ver logo.** |
 | Todas as semanas | Rever e aceitar os pedidos do Dependabot com o CI verde. A lista de IPs da Cloudflare é atualizada sozinha. |
 | Todos os meses | `sudo serrado status` (disco abaixo de 85%). Testar um restauro da cópia externa a cada 3 meses. |
-| Quando mudar alguém na direção | Retirar os papéis no backoffice a quem sai. Se essa pessoa for admin da página de Facebook, gerar um token novo. |
+| Quando mudar alguém na direção | Retirar os papéis no backoffice a quem sai (vale logo, mesmo com a sessão aberta). Se essa pessoa for admin da página de Facebook, gerar um token novo. |
 | A cada 24 meses | Renovar o secret da Microsoft (se usado). |
 | A cada cerca de 2 anos | Atualizar `FACEBOOK_GRAPH_VERSION` quando a Meta retirar a versão em uso. |
 | Quando a verificação diária avisar de recibos encravados | **Backoffice → Pagamentos**: ver o erro do Moloni e carregar em «Tentar outra vez». |

@@ -17,7 +17,7 @@ const SPORTS: Record<string, string> = { atletismo: 'Atletismo', futsal: 'Futsal
     <div class="adm-head">
       <div>
         <h1>Atletas</h1>
-        <p>{{ list().length }} atleta(s){{ auth.hasRole('secretaria') ? '' : ' · vista de treinador (sem dados sensíveis)' }}</p>
+        <p>{{ list().length }} atleta(s){{ auth.can('athletes.sensitive') ? '' : ' · vista de treinador (sem dados sensíveis)' }}</p>
       </div>
     </div>
 

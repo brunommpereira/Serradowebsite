@@ -7,6 +7,7 @@ import { SeoService } from '../../core/services/seo.service';
 import { IconComponent } from '../../shared/icon.component';
 import { OfflineNoticeComponent } from '../../shared/offline-notice.component';
 import { ApiClient } from '../../core/api/api-client';
+import { roleName } from '../../core/permissions';
 
 export type Profile = 'socio' | 'atleta' | 'staff';
 
@@ -52,11 +53,20 @@ export class LoginComponent {
   protected readonly apiMode = inject(ApiClient).enabled;
   /** Entrar com Google / Microsoft (só quando o servidor os tem configurados) */
   protected readonly providers = signal<LoginProvider[]>([]);
+  /** O servidor envia emails: «Esqueci-me da password» envia a ligação; senão, pede para contactar a secretaria */
+  protected readonly passwordReset = signal(false);
+  protected readonly resetForm = inject(FormBuilder).nonNullable.group({ email: ['', [Validators.required, Validators.email]] });
+  protected readonly resetError = signal<string | null>(null);
   protected readonly identities = signal<LinkedIdentity[]>([]);
   protected readonly oauthError = computed(() => {
     const code = this.params.get('erro');
     return code ? (OAUTH_ERRORS[code] ?? OAUTH_ERRORS['falhou']) : null;
   });
+
+  protected readonly roleNames = computed(() => this.names(this.auth.roles()));
+  protected names(roles: string[]) {
+    return roles.map((r) => roleName(r)).join(', ');
+  }
 
   /** Quantos atletas a conta acompanha (educandos e/ou o próprio). */
   protected readonly athleteCount = computed(() => this.area.athletes().length);
@@ -75,7 +85,10 @@ export class LoginComponent {
     inject(SeoService).set({ title: 'Entrar', description: 'Entra na área reservada do Serrado FC: Área de Sócio e Área de Atletas.', path: '/entrar' });
     // Veio de uma página protegida e já tem acesso: segue diretamente
     if (this.voltar && this.canOpen(this.profile())) this.router.navigateByUrl(this.voltar);
-    this.auth.loadProviders().then((p) => this.providers.set(p));
+    this.auth.loadOptions().then((o) => {
+      this.providers.set(o.providers);
+      this.passwordReset.set(o.passwordReset);
+    });
     this.refreshIdentities();
   }
 
@@ -95,6 +108,20 @@ export class LoginComponent {
 
   private refreshIdentities() {
     this.auth.loadIdentities().then((list) => this.identities.set(list));
+  }
+
+  async sendReset() {
+    if (this.resetForm.invalid || this.busy()) return;
+    this.busy.set(true);
+    this.resetError.set(null);
+    try {
+      await this.auth.forgotPassword(this.resetForm.getRawValue().email);
+      this.resetSent.set(true);
+    } catch (e) {
+      this.resetError.set(e instanceof Error ? e.message : 'Não foi possível enviar. Tenta mais tarde.');
+    } finally {
+      this.busy.set(false);
+    }
   }
 
   setProfile(p: Profile) {

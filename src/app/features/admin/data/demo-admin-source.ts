@@ -5,7 +5,7 @@ import { AthleteAreaService } from '../../../core/services/athlete-area.service'
 import { CmsStore } from '../../../core/cms/cms-store';
 import { CMS_TYPES, CmsEntry, CmsType } from '../../../core/cms/cms.models';
 import { Athlete, CURRENT_SEASON } from '../../../core/data/athletes-data';
-import { StaffRole } from '../../../core/models';
+import { ADMIN_ROLE, ALL_PERMISSIONS, demoRoles, Permission, RoleDef, saveDemoRoles } from '../../../core/permissions';
 import {
   AdminAthlete,
   AdminAthleteDetail,
@@ -46,19 +46,20 @@ export class DemoAdminSource extends AdminSource {
     return this.auth.account()?.name ?? 'Desconhecido';
   }
 
-  private guard(...roles: StaffRole[]) {
-    if (!this.auth.hasRole(...roles)) throw new Error('Sem permissão para esta operação');
+  /** Sem argumentos: basta ser da equipa (ter alguma permissão). */
+  private guard(...permissions: Permission[]) {
+    if (!this.auth.can(...permissions)) throw new Error('Sem permissão para esta operação');
   }
 
   async dashboard(): Promise<Dashboard> {
-    this.guard('editor', 'secretaria', 'treinador');
+    this.guard();
     const athletes = this.area.allAthletes();
     const now = new Date().toISOString().slice(0, 16);
-    const isSec = this.auth.hasRole('secretaria');
+    const isSec = this.auth.can('athletes.manage');
     const requests = isSec ? await this.changeRequests() : [];
     const documents = isSec ? await this.documents() : [];
     return {
-      user: { name: this.actor, roles: this.auth.roles() },
+      user: { name: this.actor, roles: this.auth.roles(), permissions: this.auth.permissions() },
       stats: {
         newsPublished: this.cms.entries('news').filter((e) => e.status === 'published').length,
         newsDrafts: this.cms.entries('news').filter((e) => e.status === 'draft').length,
@@ -79,7 +80,7 @@ export class DemoAdminSource extends AdminSource {
 
   // ---------------------------------------------------------------- CMS
   async cmsList(type: CmsType, filter: { status?: string; q?: string }) {
-    this.guard('editor');
+    this.guard('cms.edit');
     const q = (filter.q ?? '').toLowerCase();
     const titleKey = CMS_TYPES[type].titleKey;
     const items = this.cms
@@ -91,47 +92,47 @@ export class DemoAdminSource extends AdminSource {
   }
 
   async cmsGet(type: CmsType, id: number) {
-    this.guard('editor');
+    this.guard('cms.edit');
     const e = this.cms.entries(type).find((x) => x.id === id);
     if (!e) throw new Error('Conteúdo não encontrado');
     return e;
   }
 
   async cmsCreate(type: CmsType, data: Record<string, unknown>) {
-    this.guard('editor');
+    this.guard('cms.edit');
     const e = this.cms.demoSave(type, data, this.actor);
     this.log(`cms.${type}.create`, CMS_TYPES[type].label, e);
     return e;
   }
 
   async cmsUpdate(type: CmsType, id: number, data: Record<string, unknown>) {
-    this.guard('editor');
+    this.guard('cms.edit');
     const e = this.cms.demoSave(type, data, this.actor, id);
     this.log(`cms.${type}.update`, CMS_TYPES[type].label, e);
     return e;
   }
 
   async cmsStatus(type: CmsType, id: number, action: CmsAction) {
-    this.guard('editor');
+    this.guard('cms.edit');
     const e = this.cms.demoSetStatus(type, id, action === 'publish' ? 'published' : action === 'archive' ? 'archived' : 'draft');
     this.log(`cms.${type}.${action}`, CMS_TYPES[type].label, e);
     return e;
   }
 
   async cmsDelete(type: CmsType, id: number) {
-    this.guard('editor');
+    this.guard('cms.edit');
     const e = await this.cmsGet(type, id);
     this.cms.demoRemove(type, id);
     this.log(`cms.${type}.delete`, CMS_TYPES[type].label, e);
   }
 
   async cmsRevisions(type: CmsType, id: number) {
-    this.guard('editor');
+    this.guard('cms.edit');
     return this.cms.demoRevisions(type, id);
   }
 
   async cmsRestore(type: CmsType, id: number, revision: number) {
-    this.guard('editor');
+    this.guard('cms.edit');
     const e = this.cms.demoRestore(type, id, revision, this.actor);
     this.log(`cms.${type}.restore`, CMS_TYPES[type].label, e);
     return e;
@@ -139,7 +140,7 @@ export class DemoAdminSource extends AdminSource {
 
   // ---------------------------------------------------------------- atletas
   async athletes(filter: { q?: string; sport?: string; pending?: string }): Promise<AdminAthlete[]> {
-    this.guard('secretaria', 'treinador');
+    this.guard('athletes.view', 'athletes.manage');
     const q = (filter.q ?? '').toLowerCase();
     return this.area
       .allAthletes()
@@ -153,7 +154,7 @@ export class DemoAdminSource extends AdminSource {
   }
 
   async athlete(id: string): Promise<AdminAthleteDetail> {
-    this.guard('secretaria', 'treinador');
+    this.guard('athletes.view', 'athletes.manage');
     const all = this.area.allAthletes();
     const i = all.findIndex((a) => a.id === id);
     if (i < 0) throw new Error('Atleta não encontrado');
@@ -167,18 +168,18 @@ export class DemoAdminSource extends AdminSource {
       sportSlug: a.sportSlug,
       category: a.level,
       confirmedAt: a.confirmedAt ?? null,
-      access: this.auth.hasRole('secretaria') ? 'staff' : 'treinador',
+      access: this.auth.can('athletes.manage') ? 'staff' : 'treinador',
       confirmed: this.area.isConfirmed(a),
       missing: this.area.missingFields(a),
       documents: a.documents.map((d) => ({ id: `${a.id}:${d.id}`, kind: d.id, status: d.status, note: d.note ?? null })),
       pendingRequests: a.pendingReview ? [{ id: a.id, changes: a.pendingReview.changes as Record<string, string>, requestedAt: a.pendingReview.requestedAt }] : [],
     };
-    if (!this.auth.hasRole('secretaria')) for (const k of SENSITIVE) delete detail[k];
+    if (!this.auth.can('athletes.sensitive')) for (const k of SENSITIVE) delete detail[k];
     return detail;
   }
 
   async changeRequests(): Promise<IdentityRequest[]> {
-    this.guard('secretaria');
+    this.guard('athletes.manage');
     return this.area
       .allAthletes()
       .map((a, i) => ({ a, i }))
@@ -196,7 +197,7 @@ export class DemoAdminSource extends AdminSource {
   }
 
   async resolveChange(id: number | string, approve: boolean, note?: string) {
-    this.guard('secretaria');
+    this.guard('athletes.manage');
     const a = this.area.allAthletes().find((x) => x.id === id);
     if (!a?.pendingReview) throw new Error('Pedido não encontrado');
     this.area.resolveChange(a.id, approve);
@@ -204,7 +205,7 @@ export class DemoAdminSource extends AdminSource {
   }
 
   async documents(): Promise<DocumentToReview[]> {
-    this.guard('secretaria');
+    this.guard('athletes.manage');
     return this.area.allAthletes().flatMap((a, i) =>
       a.documents
         .filter((d) => d.status === 'Em análise')
@@ -213,7 +214,7 @@ export class DemoAdminSource extends AdminSource {
   }
 
   async reviewDocument(id: number | string, approve: boolean, note?: string) {
-    this.guard('secretaria');
+    this.guard('athletes.manage');
     const [athleteId, docId] = String(id).split(':');
     const a = this.area.allAthletes().find((x) => x.id === athleteId);
     if (!a) throw new Error('Documento não encontrado');
@@ -223,7 +224,7 @@ export class DemoAdminSource extends AdminSource {
 
   // ---------------------------------------------------------------- resultados, utilizadores, auditoria
   async importResults(rows: ImportRow[]): Promise<ImportSummary> {
-    this.guard('secretaria');
+    this.guard('results.import');
     const linked = rows.filter((r) => r.athleteCode).length;
     const summary = { rows: rows.length, inserted: rows.length, updated: 0, linked, unlinked: rows.length - linked, races: new Set(rows.map((r) => `${r.season}#${r.round}`)).size };
     this.log('results.import', 'Resultados', null, summary);
@@ -231,8 +232,8 @@ export class DemoAdminSource extends AdminSource {
   }
 
   async users(): Promise<AdminUser[]> {
-    this.guard();
-    const overrides = this.read<Record<string, StaffRole[]>>(ROLES_KEY, {});
+    this.guard('users.manage');
+    const overrides = this.read<Record<string, string[]>>(ROLES_KEY, {});
     return AuthService.DEMO.map((d) => ({
       id: d.login,
       email: d.login.includes('@') ? d.login : `${d.name.split(' ')[0].toLowerCase()}@exemplo.pt`,
@@ -242,29 +243,75 @@ export class DemoAdminSource extends AdminSource {
     }));
   }
 
-  async setRoles(id: string, roles: StaffRole[]) {
-    this.guard();
-    if (id === this.auth.account()?.email && !roles.includes('admin')) throw new Error('Não podes retirar o teu próprio acesso de administração.');
-    const overrides = this.read<Record<string, StaffRole[]>>(ROLES_KEY, {});
+  async setRoles(id: string, roles: string[]) {
+    this.guard('users.manage');
+    if (id === this.auth.account()?.email && !roles.includes(ADMIN_ROLE)) throw new Error('Não podes retirar o teu próprio acesso de administração.');
+    const known = new Set(demoRoles().map((r) => r.key));
+    if (roles.some((r) => !known.has(r))) throw new Error('Papel desconhecido');
+    const overrides = this.read<Record<string, string[]>>(ROLES_KEY, {});
     this.write(ROLES_KEY, { ...overrides, [id]: roles });
     this.log('users.roles', 'Utilizadores', null, { utilizador: id, roles });
   }
 
+  async invite(id: string) {
+    this.guard('users.manage', 'members.manage', 'athletes.manage');
+    this.log('users.invite', 'Utilizadores', null, { utilizador: id });
+  }
+
+  async roles(): Promise<RoleDef[]> {
+    this.guard('users.manage');
+    const users = await this.users();
+    return demoRoles().map((r) => ({
+      ...r,
+      permissions: r.key === ADMIN_ROLE ? [...ALL_PERMISSIONS] : r.permissions,
+      users: users.filter((u) => u.roles.includes(r.key)).length,
+    }));
+  }
+
+  async saveRole(role: RoleDef, isNew: boolean) {
+    this.guard('users.manage');
+    const list = demoRoles();
+    if (!/^[a-z][a-z0-9-]{1,30}$/.test(role.key)) throw new Error('Identificador inválido: letras minúsculas, números e hífens.');
+    if (isNew && list.some((r) => r.key === role.key)) throw new Error('Já existe um papel com esse identificador.');
+    if (!isNew && !list.some((r) => r.key === role.key)) throw new Error('Papel não encontrado');
+    const clean: RoleDef = {
+      key: role.key,
+      name: role.name.trim(),
+      description: role.description.trim(),
+      builtin: isNew ? false : (list.find((r) => r.key === role.key)?.builtin ?? false),
+      permissions: role.key === ADMIN_ROLE ? [...ALL_PERMISSIONS] : ALL_PERMISSIONS.filter((p) => role.permissions.includes(p)),
+    };
+    saveDemoRoles(isNew ? [...list, clean] : list.map((r) => (r.key === role.key ? clean : r)));
+    this.log(isNew ? 'roles.create' : 'roles.update', 'Papéis', null, { papel: role.key, permissions: clean.permissions });
+  }
+
+  async deleteRole(key: string) {
+    this.guard('users.manage');
+    const list = demoRoles();
+    const role = list.find((r) => r.key === key);
+    if (!role) throw new Error('Papel não encontrado');
+    if (role.builtin) throw new Error('Os papéis de origem não se apagam; podes mudar as permissões.');
+    saveDemoRoles(list.filter((r) => r.key !== key));
+    const overrides = this.read<Record<string, string[]>>(ROLES_KEY, {});
+    this.write(ROLES_KEY, Object.fromEntries(Object.entries(overrides).map(([u, rs]) => [u, rs.filter((r) => r !== key)])));
+    this.log('roles.delete', 'Papéis', null, { papel: key });
+  }
+
   async audit(): Promise<AuditEntry[]> {
-    this.guard('editor', 'secretaria', 'treinador');
+    this.guard();
     const all = this.read<AuditEntry[]>(AUDIT_KEY, []);
-    return this.auth.hasRole() ? all : all.filter((l) => l.actor === this.actor);
+    return this.auth.can('audit.all') ? all : all.filter((l) => l.actor === this.actor);
   }
 
   // ---------------------------------------------------------------- imagens (guardadas no browser)
   async mediaList(q?: string) {
-    this.guard('editor');
+    this.guard('cms.edit');
     const term = (q ?? '').toLowerCase();
     return this.read<MediaItem[]>(MEDIA_KEY, []).filter((m) => !term || m.name.toLowerCase().includes(term) || m.alt.toLowerCase().includes(term));
   }
 
   async mediaUpload(img: PreparedImage) {
-    this.guard('editor');
+    this.guard('cms.edit');
     const all = this.read<MediaItem[]>(MEDIA_KEY, []);
     const item: MediaItem = {
       id: Math.max(0, ...all.map((m) => m.id)) + 1,
@@ -289,7 +336,7 @@ export class DemoAdminSource extends AdminSource {
   }
 
   async mediaUpdate(id: number, alt: string) {
-    this.guard('editor');
+    this.guard('cms.edit');
     const all = this.read<MediaItem[]>(MEDIA_KEY, []);
     const item = all.find((m) => m.id === id);
     if (!item) throw new Error('Imagem não encontrada');
@@ -299,7 +346,7 @@ export class DemoAdminSource extends AdminSource {
   }
 
   async mediaUsage(id: number): Promise<MediaUsage[]> {
-    this.guard('editor');
+    this.guard('cms.edit');
     const item = this.read<MediaItem[]>(MEDIA_KEY, []).find((m) => m.id === id);
     if (!item) return [];
     return (['news', 'events', 'pages'] as CmsType[]).flatMap((type) =>

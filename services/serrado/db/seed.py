@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from ..password import hash_password
+from ..permissions import DEFAULT_ROLES
 from .pool import Conn, Jsonb, Pool, create_pool, tx
 
 DEMO_USERS: list[dict[str, Any]] = [
@@ -23,6 +24,7 @@ DEMO_USERS: list[dict[str, Any]] = [
     {"email": "admin@serradofc.pt", "name": "Administração", "password": "admin2026", "member": None, "roles": ["admin"]},
     {"email": "editor@serradofc.pt", "name": "Equipa de Comunicação", "password": "editor2026", "member": None, "roles": ["editor"]},
     {"email": "secretaria@serradofc.pt", "name": "Secretaria", "password": "secretaria2026", "member": None, "roles": ["secretaria"]},
+    {"email": "tesouraria@serradofc.pt", "name": "Tesouraria", "password": "tesouraria2026", "member": None, "roles": ["tesouraria"]},
     {"email": "treinador@serradofc.pt", "name": "Treinador Exemplo", "password": "treinador2026", "member": None, "roles": ["treinador"]},
 ]
 
@@ -43,8 +45,14 @@ async def seed(pool: Pool, log: Callable[[str], None] = print) -> None:
     async with tx(pool) as c:
         await c.execute(
             """truncate users, user_roles, audit_log, members, quotas, athletes, athlete_access, athlete_documents,
-               athlete_change_requests, races, results, cms_news, cms_events, cms_pages, cms_partners, cms_revisions restart identity cascade"""
+               athlete_change_requests, races, results, cms_news, cms_events, cms_pages, cms_partners, cms_revisions, email_outbox restart identity cascade"""
         )
+        # Papéis: só os de origem, com as permissões de origem
+        await c.execute("delete from roles where not builtin")
+        await c.execute("delete from role_permissions")
+        for role, perms in DEFAULT_ROLES.items():
+            for p in perms:
+                await c.execute("insert into role_permissions values (%s, %s)", [role, p])
         ids: dict[str, str] = {}
         for u, pw in zip(DEMO_USERS, hashes, strict=True):
             cur = await c.execute("insert into users (email, name, password_hash) values (%s, %s, %s) returning id", [u["email"], u["name"], pw])

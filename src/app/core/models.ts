@@ -3,6 +3,8 @@
  * para que a troca dos dados de demonstração pela API REST seja direta.
  */
 
+import { Permission } from './permissions';
+
 export type SportSlug = 'atletismo' | 'futsal' | 'rugby' | 'formacao' | 'escola-de-desporto';
 
 export type NewsCategory =
@@ -244,11 +246,11 @@ export interface Account {
   email: string;
   /** null = não é sócio (ex.: atleta ou encarregado sem quota de sócio) */
   member: Member | null;
-  /** Papéis no backoffice (vazio = utilizador normal do site) */
-  roles: StaffRole[];
+  /** Papéis no backoffice (vazio = utilizador normal do site); configuráveis no backoffice */
+  roles: string[];
+  /** Permissões efetivas dos papéis (ver core/permissions.ts) */
+  permissions: Permission[];
 }
-
-export type StaffRole = 'admin' | 'editor' | 'secretaria' | 'treinador';
 
 export interface SearchResult {
   type: 'Página' | 'Notícia' | 'Evento' | 'Modalidade' | 'Equipa' | 'Documento';

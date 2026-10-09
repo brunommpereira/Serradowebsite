@@ -6,13 +6,13 @@ from fastapi import APIRouter, Query, Request
 
 from ...db.pool import fetch, fetch_one
 from ...validation import current_season
-from ..core import actor, camel, has_role, pool, require_role
+from ..core import actor, camel, can, pool, require
 
 
 def register(r: APIRouter) -> None:
     @r.get("/stats", tags=["Gestão"], summary="Indicadores do backoffice (contagens)")
     async def stats(req: Request) -> dict[str, Any]:
-        require_role(req, "editor", "secretaria", "treinador")
+        require(req)
         season = current_season()
         row = await fetch_one(
             pool(req),
@@ -32,10 +32,10 @@ def register(r: APIRouter) -> None:
         )
         return {**camel(row or {}), "season": season.label}
 
-    @r.get("/audit", tags=["Gestão"], summary="Registo de auditoria (admin; restantes staff veem o próprio)")
+    @r.get("/audit", tags=["Gestão"], summary="Registo de auditoria (com audit.all vê tudo; a restante equipa vê o próprio)")
     async def audit_log(req: Request, limit: Annotated[int, Query(ge=1, le=500)] = 100) -> list[dict[str, Any]]:
-        require_role(req, "editor", "secretaria", "treinador")
-        everything = has_role(req)  # só admin (has_role sem papéis extra = admin)
+        require(req)
+        everything = can(req, "audit.all")
         where = "" if everything else "where l.actor_id = %s"
         args: list[Any] = [] if everything else [actor(req).id]
         rows = await fetch(

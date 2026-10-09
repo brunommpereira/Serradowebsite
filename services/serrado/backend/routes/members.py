@@ -5,7 +5,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Path, Request
 
 from ...db.pool import Row, fetch, fetch_one
-from ..core import actor, camel, forbidden, has_role, not_found, pool
+from ..core import actor, camel, can, forbidden, not_found, pool
 
 Number = Annotated[str, Path(pattern=r"^\d{1,8}$")]
 
@@ -14,7 +14,7 @@ async def _check(req: Request, number: str) -> Row:
     row = await fetch_one(pool(req), "select * from members where member_number = %s", [number])
     if not row:
         raise not_found("Sócio")
-    if row["user_id"] != actor(req).id and not has_role(req, "secretaria"):
+    if row["user_id"] != actor(req).id and not can(req, "members.view"):
         raise forbidden()
     return row
 

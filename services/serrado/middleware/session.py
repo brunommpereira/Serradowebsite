@@ -1,4 +1,4 @@
-"""Sessão: JWT assinado (HS256) num cookie httpOnly; permissões por papel."""
+"""Sessão: JWT assinado (HS256) num cookie httpOnly. As permissões decide-as o backend, a cada pedido."""
 
 import time
 
@@ -46,14 +46,14 @@ async def session(req: Request) -> Session:
             audience=JWT_AUDIENCE,
             options={"require": ["iss", "aud", "exp", "iat", "sub"]},
         )
-        return Session(sub=str(payload["sub"]), name=str(payload.get("name", "")), roles=[str(r) for r in payload.get("roles", [])])
+        return Session(
+            sub=str(payload["sub"]), name=str(payload.get("name", "")), roles=[str(r) for r in payload.get("roles", [])], iat=int(payload["iat"])
+        )
     except jwt.PyJWTError:
         raise HttpError(401, "unauthenticated", "Sessão inválida ou expirada") from None
 
 
-async def staff(req: Request, *roles: str) -> Session:
-    """Exige sessão com um dos papéis (admin passa sempre)."""
-    s = await session(req)
-    if not any(r == "admin" or r in roles for r in s.roles):
-        raise HttpError(403, "forbidden", "Sem permissão para esta área")
-    return s
+async def staff(req: Request) -> Session:
+    """Exige sessão para o backoffice. Quem decide o que cada um pode fazer é o backend, pelas
+    permissões dos papéis (editáveis no backoffice): assim uma mudança vale logo, sem nova sessão."""
+    return await session(req)

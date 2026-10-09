@@ -45,7 +45,7 @@ describe('Áreas reservadas (modo API)', () => {
         if (path === '/me/athletes') return [{ id: ID }];
         if (path === `/athletes/${ID}`) return ATHLETE;
         if (path === `/athletes/${ID}/results`) return [{ id: 3, season: '2025/2026', round: 1, race: '6º GP', raceBase: 'GP', date: '2025-11-09', category: 'Veteranas I', place: 5, time: '29:05.31', distanceM: 5850, trophyPoints: 6 }];
-        if (path === '/auth/providers') return [{ id: 'google', name: 'Google' }];
+        if (path === '/auth/options') return { providers: [{ id: 'google', name: 'Google' }], passwordReset: true };
         if (path === '/me/identities') return [{ provider: 'google', email: 'atleta@exemplo.pt', linkedAt: '2026-10-08T10:00:00.000Z' }];
         if (path === '/me/quotas') return [{ id: 1, period: 'Outubro 2026', amount: 20, dueDate: '2026-10-08', paidAt: '2026-10-02', paymentMethod: 'MB WAY', receiptNumber: 'R1', status: 'Pago' }];
         throw new Error(`inesperado: ${path}`);
@@ -119,7 +119,7 @@ describe('Áreas reservadas (modo API)', () => {
 
   it('entrar com Google: fornecedores, endereço de entrada e contas ligadas', async () => {
     const auth = TestBed.inject(AuthService);
-    expect(await auth.loadProviders()).toEqual([{ id: 'google', name: 'Google' }]);
+    expect(await auth.loadOptions()).toEqual({ providers: [{ id: 'google', name: 'Google' }], passwordReset: true });
     expect(auth.providerUrl('google', '/area-socio?x=1')).toBe('/api/v1/auth/oauth/google?voltar=%2Farea-socio%3Fx%3D1');
     expect(await auth.loadIdentities()).toEqual([]); // sem sessão não pergunta
     await auth.login('atleta@exemplo.pt', 'x');

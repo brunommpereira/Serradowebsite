@@ -1,29 +1,24 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { StaffRole } from '../../../core/models';
+import { RouterLink } from '@angular/router';
+import { RoleDef } from '../../../core/permissions';
 import { AdminSource, AdminUser } from '../data/admin-source';
 
-const ROLES: { id: StaffRole; label: string; hint: string }[] = [
-  { id: 'admin', label: 'Admin', hint: 'Tudo, incluindo utilizadores' },
-  { id: 'editor', label: 'Editor', hint: 'Conteúdos do site (CMS)' },
-  { id: 'secretaria', label: 'Secretaria', hint: 'Atletas, validações, resultados' },
-  { id: 'treinador', label: 'Treinador', hint: 'Consulta de atletas (sem dados sensíveis)' },
-];
-
-/** Utilizadores e papéis do backoffice (só admin). */
+/** Utilizadores e os seus papéis no backoffice (permissão users.manage). */
 @Component({
   selector: 'sfc-admin-users',
+  imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="adm-head">
       <div>
         <h1>Utilizadores</h1>
-        <p>Papéis de acesso ao backoffice. Uma conta sem papéis só usa o site (sócio, atleta, encarregado).</p>
+        <p>Papéis de acesso ao backoffice. Uma conta sem papéis só usa o site (sócio, atleta, encarregado). O que cada papel pode fazer define-se em <a routerLink="/admin/papeis">Papéis e permissões</a>.</p>
       </div>
     </div>
 
     <ul class="legend">
-      @for (r of roles; track r.id) {
-        <li><strong>{{ r.label }}</strong> — {{ r.hint }}</li>
+      @for (r of roles(); track r.key) {
+        <li><strong>{{ r.name }}</strong> — {{ r.description }}</li>
       }
     </ul>
 
@@ -36,8 +31,8 @@ const ROLES: { id: StaffRole; label: string; hint: string }[] = [
         <thead>
           <tr>
             <th scope="col">Utilizador</th>
-            @for (r of roles; track r.id) {
-              <th scope="col" class="c">{{ r.label }}</th>
+            @for (r of roles(); track r.key) {
+              <th scope="col" class="c">{{ r.name }}</th>
             }
             <th scope="col" class="act"><span class="visually-hidden">Ações</span></th>
           </tr>
@@ -49,13 +44,14 @@ const ROLES: { id: StaffRole; label: string; hint: string }[] = [
                 <strong>{{ u.name }}</strong>
                 <span class="caption sub">{{ u.email }}{{ u.member ? ' · sócio ' + u.member.memberNumber : '' }}</span>
               </td>
-              @for (r of roles; track r.id) {
+              @for (r of roles(); track r.key) {
                 <td class="c">
-                  <input type="checkbox" [checked]="draft[u.id].includes(r.id)" (change)="toggle(u.id, r.id)" [attr.aria-label]="r.label + ' — ' + u.name" />
+                  <input type="checkbox" [checked]="draft[u.id].includes(r.key)" (change)="toggle(u.id, r.key)" [attr.aria-label]="r.name + ' — ' + u.name" />
                 </td>
               }
               <td class="act">
                 <button type="button" class="btn btn--outline btn--sm" [disabled]="!changed(u)" (click)="save(u)">Guardar</button>
+                <button type="button" class="btn btn--outline btn--sm" (click)="invite(u)" title="Envia por email uma ligação para definir a password">Enviar convite</button>
               </td>
             </tr>
           }
@@ -88,20 +84,32 @@ const ROLES: { id: StaffRole; label: string; hint: string }[] = [
     .sub {
       display: block;
     }
+    /* Com muitos papéis a tabela desliza na horizontal: o nome fica sempre visível */
+    th:first-child,
+    td:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      background: var(--color-surface);
+      box-shadow: 1px 0 0 var(--color-line);
+    }
+    .act {
+      white-space: nowrap;
+    }
   `,
 })
 export class UsersPage {
   private readonly source = inject(AdminSource);
-  protected readonly roles = ROLES;
+  protected readonly roles = signal<RoleDef[]>([]);
   protected readonly users = signal<AdminUser[]>([]);
   protected readonly message = signal<{ ok: boolean; text: string } | null>(null);
-  protected draft: Record<string, StaffRole[]> = {};
+  protected draft: Record<string, string[]> = {};
 
   constructor() {
     this.load();
   }
 
-  protected toggle(id: string, role: StaffRole) {
+  protected toggle(id: string, role: string) {
     const cur = this.draft[id];
     this.draft = { ...this.draft, [id]: cur.includes(role) ? cur.filter((r) => r !== role) : [...cur, role] };
     this.users.set([...this.users()]); // força nova verificação do botão «Guardar»
@@ -121,9 +129,19 @@ export class UsersPage {
     }
   }
 
+  async invite(u: AdminUser) {
+    try {
+      await this.source.invite(u.id);
+      this.message.set({ ok: true, text: `Convite enviado para ${u.email}. A ligação vale 7 dias.` });
+    } catch (e) {
+      this.message.set({ ok: false, text: (e as Error).message });
+    }
+  }
+
   private async load() {
     try {
-      const list = await this.source.users();
+      const [list, roles] = await Promise.all([this.source.users(), this.source.roles()]);
+      this.roles.set(roles);
       this.draft = Object.fromEntries(list.map((u) => [u.id, [...u.roles]]));
       this.users.set(list);
     } catch (e) {

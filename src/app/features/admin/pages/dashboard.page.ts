@@ -18,11 +18,11 @@ import { actionLabel } from './labels';
         <p>Resumo do site e do clube{{ data() ? ' · época ' + data()!.stats.season : '' }}.</p>
       </div>
       <div class="quick">
-        @if (auth.hasRole('editor')) {
+        @if (auth.can('cms.edit')) {
           <a class="btn btn--primary btn--sm" routerLink="/admin/conteudos/news/novo"><sfc-icon name="file" size="16" />Nova notícia</a>
           <a class="btn btn--outline btn--sm" routerLink="/admin/conteudos/events/novo"><sfc-icon name="calendar" size="16" />Novo evento</a>
         }
-        @if (auth.hasRole('secretaria')) {
+        @if (auth.can('results.import')) {
           <a class="btn btn--outline btn--sm" routerLink="/admin/resultados"><sfc-icon name="trophy" size="16" />Importar resultados</a>
         }
       </div>
@@ -34,7 +34,7 @@ import { actionLabel } from './labels';
 
     @if (data(); as d) {
       <div class="tiles">
-        @if (auth.hasRole('editor')) {
+        @if (auth.can('cms.edit')) {
           <a class="tile" routerLink="/admin/conteudos/news">
             <span class="tile__label">Notícias publicadas</span>
             <span class="tile__value">{{ d.stats.newsPublished }}</span>
@@ -46,14 +46,14 @@ import { actionLabel } from './labels';
             <span class="tile__hint">{{ d.stats.otherDrafts }} outros rascunhos</span>
           </a>
         }
-        @if (auth.hasRole('secretaria', 'treinador')) {
+        @if (auth.can('athletes.view', 'athletes.manage')) {
           <a class="tile" routerLink="/admin/atletas">
             <span class="tile__label">Atletas</span>
             <span class="tile__value">{{ d.stats.athletes }}</span>
             <span class="tile__hint">{{ d.stats.athletesToConfirm }} fichas por confirmar</span>
           </a>
         }
-        @if (auth.hasRole('secretaria')) {
+        @if (auth.can('athletes.manage')) {
           <a class="tile" [class.tile--alert]="d.stats.changeRequests + d.stats.documentsToReview > 0" routerLink="/admin/validacoes">
             <span class="tile__label">Por validar</span>
             <span class="tile__value">{{ d.stats.changeRequests + d.stats.documentsToReview }}</span>
@@ -63,7 +63,7 @@ import { actionLabel } from './labels';
       </div>
 
       <div class="cols">
-        @if (auth.hasRole('secretaria')) {
+        @if (auth.can('athletes.manage')) {
           <section class="adm-panel">
             <h2>Precisa de atenção</h2>
             @if (!d.attention.requests.length && !d.attention.documents.length) {

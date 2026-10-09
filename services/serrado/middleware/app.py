@@ -24,6 +24,8 @@ from .session import SESSION_COOKIE, session, sign_session, staff
 # Limites por rota (por minuto e por IP); as restantes partilham o limite global (RATE_LIMIT_MAX)
 ROUTE_LIMITS: list[tuple[str, re.Pattern[str], str, int]] = [
     ("POST", re.compile(r"^/api/v1/auth/login$"), "login", 10),
+    ("POST", re.compile(r"^/api/v1/auth/password/forgot$"), "password-forgot", 5),
+    ("POST", re.compile(r"^/api/v1/auth/password/reset$"), "password-reset", 10),
     ("POST", re.compile(r"^/api/v1/admin/media$"), "media-upload", 30),
     ("GET", re.compile(r"^/api/v1/auth/oauth/[^/]+$"), "oauth-start", 20),
     ("GET", re.compile(r"^/api/v1/auth/oauth/[^/]+/callback$"), "oauth-callback", 20),

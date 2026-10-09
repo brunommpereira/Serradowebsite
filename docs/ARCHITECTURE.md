@@ -19,7 +19,7 @@ Três camadas com responsabilidades separadas, e uma base de dados. O front é A
 | Camada | Faz | Não faz |
 |---|---|---|
 | **Front** (`src/`) | Interface, navegação e validação de formulários (para a experiência do utilizador). Fala **só** com o middleware. | Não guarda segredos e não acede à base de dados. Nunca decide permissões sozinho. |
-| **Middleware** (`services/serrado/middleware`) | Login e sessão (JWT em cookie `httpOnly`); papéis (`admin`, `editor`, `secretaria`, `treinador`); validação de pedidos; rate limit; CORS; cache do conteúdo público; agregação de dados para o front (por exemplo `/home`, `/me` e o dashboard). | Não tem SQL nem regras de negócio. |
+| **Middleware** (`services/serrado/middleware`) | Login e sessão (JWT em cookie `httpOnly`); recuperação da password por email; validação de pedidos; rate limit; CORS; cache do conteúdo público; agregação de dados para o front (por exemplo `/home`, `/me` e o dashboard). | Não tem SQL nem regras de negócio. |
 | **Backend** (`services/serrado/backend`) | Regras de negócio, por exemplo: pedidos de alteração validados pela secretaria; no máximo 2 co-encarregados; confirmação de dados por época; publicação e revisões do CMS. Faz o acesso a PostgreSQL e escreve a auditoria. | Não fica exposto à Internet. Só aceita pedidos com o token de serviço do middleware. |
 | **Base de dados** (`services/serrado/db`) | Esquema versionado (migrações), integridade (chaves estrangeiras e `check`) e dados de demonstração (seed). | — |
 
@@ -36,7 +36,7 @@ Três camadas com responsabilidades separadas, e uma base de dados. O front é A
 
 Tabelas principais (ver `services/serrado/db/migrations`):
 
-- **Identidade:** `users` (uma conta por pessoa; o n.º de sócio é opcional), `user_roles`, `audit_log`.
+- **Identidade:** `users` (uma conta por pessoa; o n.º de sócio é opcional), `roles` e `role_permissions` (papéis editáveis), `user_roles`, `password_tokens` (ligações de uso único), `email_outbox` (fila de emails), `audit_log`.
 - **Sócios:** `members`, `quotas`.
 - **Atletas:** `athletes`, `athlete_access` (encarregado, co-encarregado ou atleta), `athlete_documents`, `athlete_change_requests`.
 - **Competições:** `races`, `results` (Troféu de Almada).
@@ -88,16 +88,35 @@ Tabelas principais (ver `services/serrado/db/migrations`):
 | Imagens públicas | `GET /media/{chave}.{ext}` (cache de 1 ano, endereço aleatório) | `GET /media/{chave}` |
 | Backoffice: atletas | `GET /admin/athletes`, `GET /admin/change-requests`, `POST /admin/change-requests/{id}/approve\|reject`, `POST /admin/documents/{id}/approve\|reject` | as mesmas, sem o prefixo `/admin` |
 | Backoffice: resultados | `POST /admin/results/import` | `POST /results/import` |
-| Backoffice: gestão | `GET /admin/dashboard` (agregado), `GET /admin/users`, `PUT /admin/users/{id}/roles`, `GET /admin/audit` | `GET /stats`, `GET /users`, `PUT /users/{id}/roles`, `GET /audit` |
+| Backoffice: gestão | `GET /admin/dashboard` (agregado), `GET /admin/users`, `PUT /admin/users/{id}/roles`, `POST /admin/users/{id}/invite`, `GET /admin/permissions`, `GET\|POST /admin/roles`, `PUT\|DELETE /admin/roles/{key}`, `GET /admin/audit` | `GET /stats`, `GET /users`, `PUT /users/{id}/roles`, `POST /users/{id}/invite`, `GET /permissions`, `…/roles`, `GET /audit` |
+| Password por email | `GET /auth/options`, `POST /auth/password/forgot`, `POST /auth/password/reset` | `POST /auth/password/forgot`, `POST /auth/password/reset` |
 
-### Papéis no backoffice
+### Papéis e permissões no backoffice
 
-| Papel | CMS | Atletas e documentos | Pedidos de alteração | Resultados | Utilizadores e auditoria |
-|---|---|---|---|---|---|
-| `admin` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `editor` | ✅ | — | — | — | — |
-| `secretaria` | — | ✅ | ✅ | ✅ | — |
-| `treinador` | — | ver | — | — | — |
+O catálogo de **permissões** é fixo no código (`services/serrado/permissions.py` e `src/app/core/permissions.ts`). Os **papéis** e as permissões de cada um configuram-se no backoffice (**Gestão → Papéis e permissões**); cada conta pode ter vários papéis e fica com a soma.
+
+| Permissão | O quê |
+|---|---|
+| `cms.edit` | Notícias, eventos, páginas, parceiros e imagens |
+| `athletes.view` / `athletes.sensitive` / `athletes.manage` | Ver atletas · ver CC, NIF e morada · alterar e validar pedidos e documentos |
+| `members.view` / `members.manage` | Ver sócios e quotas · criar, alterar e importar |
+| `payments.view` / `payments.manage` | Ver pagamentos e recibos · valores, mensalidades, recibos |
+| `results.import` | Importar resultados |
+| `registrations.manage` | Documentos legais e registos online |
+| `users.manage` | Utilizadores, papéis e permissões |
+| `audit.all` | Toda a auditoria (sem ela, cada um vê só as suas ações) |
+
+Papéis de origem (podem mudar de permissões, mas não se apagam):
+
+| Papel | Permissões |
+|---|---|
+| `admin` (Administração) | todas, sempre |
+| `secretaria` | atletas (todas), sócios (todas), `payments.view`, `results.import`, `registrations.manage` |
+| `tesouraria` | `members.view`, `payments.view`, `payments.manage` |
+| `editor` (Comunicação) | `cms.edit` |
+| `treinador` | `athletes.view` |
+
+Regras: só um admin dá o papel de admin; ninguém se tira a si próprio o admin; quem gere utilizadores sem ser admin só atribui papéis e permissões que ele próprio tem.
 
 ## Front: modo demonstração vs API
 
@@ -140,7 +159,8 @@ Ou tudo junto: `docker compose up --build`.
   - na Cloudflare, uma regra extra para o login.
 - **Backend privado:**
   - só aceita pedidos com o `SERVICE_TOKEN`, e o middleware indica qual é o utilizador (`X-Actor-Id`);
-  - os **papéis vêm sempre da base de dados**, a cada pedido. Uma conta desativada ou um papel retirado deixam de valer logo, mesmo com sessão aberta (a resposta passa a ser 401 `session_revoked`).
+  - os **papéis e as permissões vêm sempre da base de dados**, a cada pedido. Uma conta desativada, um papel retirado ou uma permissão alterada valem logo, mesmo com sessão aberta. Depois de repor a password, as sessões abertas antes disso terminam (401 `session_revoked`);
+  - o middleware só confirma a sessão; quem decide o que cada um pode fazer é o backend.
 - **Segredos:** em produção, `SERVICE_TOKEN` e `JWT_SECRET` são obrigatórios e têm pelo menos 32 caracteres. Os serviços recusam arrancar sem eles.
 - **XSS e CSP:**
   - o HTML do CMS é limpo no backend (`nh3`) e outra vez pelo Angular;

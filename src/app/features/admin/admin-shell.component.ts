@@ -3,7 +3,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
-import { StaffRole } from '../../core/models';
+import { Permission, roleName } from '../../core/permissions';
 import { IconComponent } from '../../shared/icon.component';
 import { AdminSource } from './data/admin-source';
 
@@ -11,43 +11,43 @@ interface NavItem {
   label: string;
   link: string;
   icon: string;
-  roles: StaffRole[];
+  /** Uma destas permissões (vazio = toda a equipa) */
+  permissions: Permission[];
   exact?: boolean;
 }
 
 const NAV: { title: string; items: NavItem[] }[] = [
-  { title: 'Geral', items: [{ label: 'Dashboard', link: '/admin', icon: 'home', roles: [], exact: true }] },
+  { title: 'Geral', items: [{ label: 'Dashboard', link: '/admin', icon: 'home', permissions: [], exact: true }] },
   {
     title: 'Conteúdos (CMS)',
     items: [
-      { label: 'Notícias', link: '/admin/conteudos/news', icon: 'file', roles: ['editor'] },
-      { label: 'Eventos', link: '/admin/conteudos/events', icon: 'calendar', roles: ['editor'] },
-      { label: 'Páginas', link: '/admin/conteudos/pages', icon: 'home', roles: ['editor'] },
-      { label: 'Parceiros', link: '/admin/conteudos/partners', icon: 'heart', roles: ['editor'] },
-      { label: 'Imagens', link: '/admin/imagens', icon: 'image', roles: ['editor'] },
+      { label: 'Notícias', link: '/admin/conteudos/news', icon: 'file', permissions: ['cms.edit'] },
+      { label: 'Eventos', link: '/admin/conteudos/events', icon: 'calendar', permissions: ['cms.edit'] },
+      { label: 'Páginas', link: '/admin/conteudos/pages', icon: 'home', permissions: ['cms.edit'] },
+      { label: 'Parceiros', link: '/admin/conteudos/partners', icon: 'heart', permissions: ['cms.edit'] },
+      { label: 'Imagens', link: '/admin/imagens', icon: 'image', permissions: ['cms.edit'] },
     ],
   },
   {
     title: 'Clube',
     items: [
-      { label: 'Atletas', link: '/admin/atletas', icon: 'users', roles: ['secretaria', 'treinador'] },
-      { label: 'Validações', link: '/admin/validacoes', icon: 'check', roles: ['secretaria'] },
-      { label: 'Resultados', link: '/admin/resultados', icon: 'trophy', roles: ['secretaria'] },
-      { label: 'Pagamentos', link: '/admin/pagamentos', icon: 'euro', roles: ['secretaria'] },
+      { label: 'Atletas', link: '/admin/atletas', icon: 'users', permissions: ['athletes.view', 'athletes.manage'] },
+      { label: 'Validações', link: '/admin/validacoes', icon: 'check', permissions: ['athletes.manage'] },
+      { label: 'Resultados', link: '/admin/resultados', icon: 'trophy', permissions: ['results.import'] },
+      { label: 'Pagamentos', link: '/admin/pagamentos', icon: 'euro', permissions: ['payments.view'] },
     ],
   },
   {
     title: 'Gestão',
     items: [
-      { label: 'Utilizadores', link: '/admin/utilizadores', icon: 'shield', roles: ['admin'] },
-      { label: 'Auditoria', link: '/admin/auditoria', icon: 'clock', roles: [] },
+      { label: 'Utilizadores', link: '/admin/utilizadores', icon: 'user', permissions: ['users.manage'] },
+      { label: 'Papéis e permissões', link: '/admin/papeis', icon: 'shield', permissions: ['users.manage'] },
+      { label: 'Auditoria', link: '/admin/auditoria', icon: 'clock', permissions: [] },
     ],
   },
 ];
 
-const ROLE_LABEL: Record<StaffRole, string> = { admin: 'Administrador', editor: 'Editor', secretaria: 'Secretaria', treinador: 'Treinador' };
-
-/** Layout do backoffice: barra lateral filtrada pelos papéis da conta. */
+/** Layout do backoffice: barra lateral filtrada pelas permissões da conta. */
 @Component({
   selector: 'sfc-admin-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent],
@@ -313,9 +313,9 @@ export class AdminShellComponent {
   protected readonly menuOpen = signal(false);
 
   protected readonly nav = computed(() =>
-    NAV.map((g) => ({ ...g, items: g.items.filter((i) => !i.roles.length || this.auth.hasRole(...i.roles)) })).filter((g) => g.items.length),
+    NAV.map((g) => ({ ...g, items: g.items.filter((i) => !i.permissions.length || this.auth.can(...i.permissions)) })).filter((g) => g.items.length),
   );
-  protected readonly roleLabels = computed(() => this.auth.roles().map((r) => ROLE_LABEL[r]).join(' · '));
+  protected readonly roleLabels = computed(() => this.auth.roles().map((r) => roleName(r)).join(' · '));
   protected readonly denied = toSignal(
     this.router.events.pipe(
       filter((e) => e instanceof NavigationEnd),

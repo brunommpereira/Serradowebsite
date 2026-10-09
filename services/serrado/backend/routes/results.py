@@ -9,7 +9,7 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 from ...db.pool import tx
-from ..core import actor, audit, require_role
+from ..core import actor, audit, require
 from .athletes import _valid_date
 
 
@@ -42,7 +42,7 @@ class Import(BaseModel):
 def register(r: APIRouter) -> None:
     @r.post("/results/import", tags=["Backoffice · Resultados"], summary="Importa/atualiza resultados (idempotente por prova + atleta)")
     async def import_results(req: Request, body: Import) -> dict[str, Any]:
-        require_role(req, "secretaria")
+        require(req, "results.import")
         inserted = updated = linked = 0
         races: set[str] = set()
         async with tx(req.app.state.pool) as c:

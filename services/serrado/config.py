@@ -111,6 +111,19 @@ class PaymentsConfig:
 
 
 @dataclass
+class MailConfig:
+    """Emails do site (Brevo, API transacional). Sem chave, nada é enviado (ficam na fila)."""
+
+    brevo_api_key: str
+    from_email: str
+    from_name: str
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self.brevo_api_key and self.from_email)
+
+
+@dataclass
 class Config:
     production: bool
     database_url: str
@@ -137,6 +150,7 @@ class Config:
     oauth: OAuthConfig = field(repr=False)
     facebook: FacebookConfig = field(repr=False)
     payments: PaymentsConfig = field(repr=False)
+    mail: MailConfig = field(repr=False)
 
 
 config = Config(
@@ -180,6 +194,9 @@ config = Config(
         moloni_country_id=int(env.get("MOLONI_COUNTRY_ID", "1") or 1),
         moloni_language_id=int(env.get("MOLONI_LANGUAGE_ID", "1") or 1),
     ),
+    mail=MailConfig(
+        brevo_api_key=env.get("BREVO_API_KEY", ""),
+        from_email=env.get("MAIL_FROM_EMAIL", ""),
+        from_name=env.get("MAIL_FROM_NAME", "Serrado FC"),
+    ),
 )
-
-ROLES = ("admin", "editor", "secretaria", "treinador")

@@ -55,35 +55,35 @@ def register(r: APIRouter) -> None:
 
     @r.get("/admin/fee-plans", tags=office, summary="Valor mensal por modalidade")
     async def plans(req: Request) -> Any:
-        s = await staff(req, "secretaria")
+        s = await staff(req)
         return await backend(req).call("GET", "/fee-plans", actor=s)
 
     @r.put("/admin/fee-plans/{sport}", tags=office, summary="Definir o valor mensal de uma modalidade")
     async def set_plan(req: Request, sport: Annotated[str, Path(pattern=r"^[a-z0-9-]{1,40}$")], body: JsonObject) -> Any:
-        s = await staff(req, "secretaria")
+        s = await staff(req)
         return await backend(req).call("PUT", f"/fee-plans/{sport}", actor=s, body=body)
 
     @r.post("/admin/fees/generate", tags=office, summary="Gerar as mensalidades de um mês")
     async def generate(req: Request, body: JsonObject) -> Any:
-        s = await staff(req, "secretaria")
+        s = await staff(req)
         return await backend(req).call("POST", "/fees/generate", actor=s, body=body)
 
     @r.get("/admin/fees", tags=office, summary="Mensalidades de um mês")
     async def fees(req: Request, month: Annotated[str, Query(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")]) -> Any:
-        s = await staff(req, "secretaria")
+        s = await staff(req)
         return await backend(req).call("GET", "/fees", actor=s, query={"month": month})
 
     @r.get("/admin/payments", tags=office, summary="Pagamentos online e recibos")
     async def payments(req: Request, status: Literal["open", "paid", "failed", "expired"] | None = None) -> Any:
-        s = await staff(req, "secretaria")
+        s = await staff(req)
         return await backend(req).call("GET", "/payments", actor=s, query={"status": status})
 
     @r.post("/admin/payments/{id}/retry-receipt", tags=office, summary="Voltar a tentar o recibo")
     async def retry(req: Request, id: PaymentId) -> Any:
-        s = await staff(req, "secretaria")
+        s = await staff(req)
         return await backend(req).call("POST", f"/payments/{id}/retry-receipt", actor=s)
 
     @r.get("/admin/payments/{id}/receipt", tags=office, summary="Fatura-recibo em PDF")
     async def admin_receipt(req: Request, id: PaymentId) -> Response:
-        s = await staff(req, "secretaria")
+        s = await staff(req)
         return _pdf(await backend(req).call("GET", f"/payments/{id}/receipt", actor=s))

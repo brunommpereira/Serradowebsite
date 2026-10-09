@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { ApiClient } from '../../../core/api/api-client';
+import { AuthService } from '../../../core/services/auth.service';
 import { IconComponent } from '../../../shared/icon.component';
 import { OfflineNoticeComponent } from '../../../shared/offline-notice.component';
 
@@ -35,7 +36,7 @@ const STATUS: Record<string, string> = { open: 'Em curso', paid: 'Pago', failed:
 const METHOD: Record<string, string> = { card: 'Cartão', mb_way: 'MB WAY', multibanco: 'Multibanco' };
 const RECEIPT: Record<string, string> = { none: '—', pending: 'Em emissão', failed: 'Falhou', issued: 'Emitido' };
 
-/** Secretaria: valores das mensalidades, geração mensal e pagamentos online com o estado do recibo (Moloni ON). */
+/** Tesouraria: valores das mensalidades, geração mensal e pagamentos online com o estado do recibo (Moloni ON). */
 @Component({
   selector: 'sfc-admin-payments',
   imports: [CurrencyPipe, DatePipe, IconComponent, OfflineNoticeComponent],
@@ -67,16 +68,20 @@ const RECEIPT: Record<string, string> = { none: '—', pending: 'Em emissão', f
               <strong>{{ s.label }}</strong>
               <label>Valor (€) <input #amount type="number" min="1" max="999" step="0.5" [value]="plan(s.slug)?.amount ?? ''" required /></label>
               <label class="check"><input #active type="checkbox" [checked]="plan(s.slug)?.active ?? true" /> Ativa</label>
-              <button class="btn btn--primary btn--sm" type="submit">Guardar</button>
+              @if (manage) {
+                <button class="btn btn--primary btn--sm" type="submit">Guardar</button>
+              }
             </form>
           }
         </div>
+        @if (manage) {
         <form class="plan" (submit)="$event.preventDefault(); generate(month.value)">
           <strong>Gerar mensalidades</strong>
           <label>Mês <input #month type="month" [value]="thisMonth" required /></label>
           <button class="btn btn--outline btn--sm" type="submit">Gerar agora</button>
           <span class="caption">Repetir não duplica.</span>
         </form>
+        }
       </section>
 
       <section class="adm-panel block">
@@ -104,7 +109,9 @@ const RECEIPT: Record<string, string> = { none: '—', pending: 'Em emissão', f
                       {{ receipt(p.receiptStatus) }}
                       @if (p.receiptStatus === 'failed') {
                         <br /><span class="caption">{{ p.receiptError }} ({{ p.receiptAttempts }} tentativas)</span>
-                        <br /><button type="button" class="btn btn--outline btn--sm" (click)="retry(p.id)">Tentar outra vez</button>
+                        @if (manage) {
+                          <br /><button type="button" class="btn btn--outline btn--sm" (click)="retry(p.id)">Tentar outra vez</button>
+                        }
                       }
                     }
                   </td>
@@ -143,6 +150,8 @@ const RECEIPT: Record<string, string> = { none: '—', pending: 'Em emissão', f
 })
 export class PaymentsPage {
   protected readonly api = inject(ApiClient);
+  /** Tesouraria (payments.manage): altera valores, gera mensalidades e repete recibos; os outros só consultam */
+  protected readonly manage = inject(AuthService).can('payments.manage');
   protected readonly sports = SPORTS;
   protected readonly thisMonth = new Date().toISOString().slice(0, 7);
   protected readonly plans = signal<FeePlan[]>([]);

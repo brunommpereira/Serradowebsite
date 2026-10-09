@@ -29,6 +29,17 @@ class Credentials(BaseModel):
     password: str = Field(min_length=1, max_length=200)
 
 
+class Forgot(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    email: str = Field(min_length=3, max_length=200)
+
+
+class Reset(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    token: str = Field(min_length=20, max_length=100)
+    password: str = Field(min_length=10, max_length=200)
+
+
 def _secure() -> bool:
     return config.production or config.session_same_site == "none"
 
@@ -103,6 +114,21 @@ def register(r: APIRouter) -> None:
     async def logout(resp: Response) -> dict[str, bool]:
         resp.delete_cookie(SESSION_COOKIE, path="/", httponly=True, secure=_secure(), samesite=config.session_same_site.capitalize())  # type: ignore[arg-type]
         return {"ok": True}
+
+    @r.get("/auth/options", tags=tags, summary="Formas de entrar ativas: fornecedores externos e recuperação da password por email")
+    async def options(req: Request) -> dict[str, Any]:
+        return {"providers": [{"id": p.id, "name": p.name} for p in req.app.state.oauth.values()], "passwordReset": config.mail.enabled}
+
+    @r.post("/auth/password/forgot", tags=tags, summary="Pede uma ligação para repor a password (resposta igual com ou sem conta)", status_code=202)
+    async def forgot(req: Request, body: Forgot) -> Any:
+        return await req.app.state.backend.call("POST", "/auth/password/forgot", body=body.model_dump())
+
+    @r.post("/auth/password/reset", tags=tags, summary="Define a nova password com a ligação do email; termina as outras sessões")
+    async def reset(req: Request, body: Reset, resp: Response) -> Any:
+        out = await req.app.state.backend.call("POST", "/auth/password/reset", body=body.model_dump())
+        # Sai desta sessão (se houver): a pessoa entra de novo com a nova password
+        resp.delete_cookie(SESSION_COOKIE, path="/", httponly=True, secure=_secure(), samesite=config.session_same_site.capitalize())  # type: ignore[arg-type]
+        return out
 
     # ---------- Entrar com Google / Microsoft (OpenID Connect) ----------
 

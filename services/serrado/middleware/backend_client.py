@@ -1,4 +1,4 @@
-"""Cliente do backend: junta o token de serviço e o contexto do utilizador (X-Actor-Id / X-Actor-Roles) a cada pedido."""
+"""Cliente do backend: junta o token de serviço e o contexto do utilizador (X-Actor-Id / X-Actor-Iat) a cada pedido."""
 
 import json
 from dataclasses import dataclass, field
@@ -17,6 +17,7 @@ class Session:
     sub: str
     name: str
     roles: list[str] = field(default_factory=list)
+    iat: int = 0  # início da sessão: o backend recusa sessões anteriores à última mudança de password
 
 
 class BackendError(Exception):
@@ -40,7 +41,7 @@ class BackendClient:
         headers = {
             "authorization": f"Bearer {config.service_token}",
             "x-actor-id": actor.sub if actor else "",
-            "x-actor-roles": ",".join(actor.roles) if actor else "",
+            "x-actor-iat": str(actor.iat) if actor and actor.iat else "",
         }
         if body is not None:
             headers["content-type"] = "application/json"

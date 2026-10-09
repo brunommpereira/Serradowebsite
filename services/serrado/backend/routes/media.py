@@ -13,7 +13,7 @@ from fastapi import APIRouter, Path, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from ...db.pool import Pool, fetch, fetch_one, tx
-from ..core import HttpError, actor, audit, camel, not_found, pool, require_role
+from ..core import HttpError, actor, audit, camel, not_found, pool, require
 
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 EXT = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif"}
@@ -72,7 +72,7 @@ def register(r: APIRouter) -> None:
     async def list_media(
         req: Request, q: Annotated[str | None, Query(max_length=100)] = None, limit: Annotated[int, Query(ge=1, le=500)] = 200
     ) -> list[dict[str, Any]]:
-        require_role(req, "editor")
+        require(req, "cms.edit")
         pattern = f"%{q}%" if q else None
         rows = await fetch(
             pool(req),
@@ -83,7 +83,7 @@ def register(r: APIRouter) -> None:
 
     @r.post("/cms/media", tags=tags, summary="Carrega uma imagem (conteúdo em base64)", status_code=201)
     async def upload(req: Request, body: Upload) -> dict[str, Any]:
-        require_role(req, "editor")
+        require(req, "cms.edit")
         try:
             data = base64.b64decode(body.data, validate=False)
         except (binascii.Error, ValueError):
@@ -107,7 +107,7 @@ def register(r: APIRouter) -> None:
 
     @r.patch("/cms/media/{id}", tags=tags, summary="Altera o texto alternativo")
     async def set_alt(req: Request, id: Id, body: AltText) -> dict[str, Any]:
-        require_role(req, "editor")
+        require(req, "cms.edit")
         async with tx(pool(req)) as c:
             cur = await c.execute(f"update cms_media set alt = %s where id = %s returning {COLUMNS}", [body.alt.strip(), id])
             row = await cur.fetchone()
@@ -118,7 +118,7 @@ def register(r: APIRouter) -> None:
 
     @r.get("/cms/media/{id}/usage", tags=tags, summary="Conteúdos que usam a imagem")
     async def media_usage(req: Request, id: Id) -> list[dict[str, Any]]:
-        require_role(req, "editor")
+        require(req, "cms.edit")
         row = await fetch_one(pool(req), "select key from cms_media where id = %s", [id])
         if not row:
             raise not_found("Imagem")
@@ -126,7 +126,7 @@ def register(r: APIRouter) -> None:
 
     @r.delete("/cms/media/{id}", tags=tags, summary="Apaga (recusa se estiver a ser usada)", status_code=204)
     async def delete_media(req: Request, id: Id) -> Response:
-        require_role(req, "editor")
+        require(req, "cms.edit")
         row = await fetch_one(pool(req), "select key, name from cms_media where id = %s", [id])
         if not row:
             raise not_found("Imagem")

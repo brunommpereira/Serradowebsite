@@ -13,7 +13,7 @@ import { actionLabel } from './labels';
     <div class="adm-head">
       <div>
         <h1>Auditoria</h1>
-        <p>{{ auth.hasRole() ? 'Todas as alterações feitas no backoffice e nas áreas reservadas.' : 'As tuas alterações (o registo completo é visível para administradores).' }}</p>
+        <p>{{ auth.can('audit.all') ? 'Todas as alterações feitas no backoffice e nas áreas reservadas.' : 'As tuas alterações (o registo completo é visível para quem tem a permissão de auditoria).' }}</p>
       </div>
     </div>
     @if (error()) {

@@ -60,7 +60,7 @@
             <span class="area-card__icon" aria-hidden="true"><sfc-icon name="shield" size="26" /></span>
             <div class="area-card__text">
               <h2>Backoffice</h2>
-              <p>Gestão do site e do clube · {{ auth.roles().join(', ') }}</p>
+              <p>Gestão do site e do clube · {{ roleNames() }}</p>
             </div>
             <button type="button" class="btn btn--primary btn--sm" (click)="open('staff')">Entrar</button>
           </article>
@@ -161,7 +161,7 @@
               @for (d of demos(); track d.login) {
                 <li>
                   <span>
-                    <strong>{{ d.name }}</strong> · {{ d.roles.length ? d.roles.join(', ') : d.isMember ? 'sócio' : 'não sócio' }}<br />
+                    <strong>{{ d.name }}</strong> · {{ d.roles.length ? names(d.roles) : d.isMember ? 'sócio' : 'não sócio' }}<br />
                     <code>{{ d.login }}</code> · <code>{{ d.password }}</code>
                   </span>
                   <button class="linkish" type="button" (click)="useDemo(d.login, d.password, d.isMember)">Usar</button>
@@ -172,18 +172,21 @@
         </div>
         }
       } @else {
-        @if (apiMode) {
+        @if (!passwordReset()) {
           <sfc-offline-notice title="Repor a password" text="Para definir uma nova password, contacta a secretaria: confirmamos a tua identidade e enviamos-te uma password nova." />
         } @else if (resetSent()) {
-          <p class="alert alert--success" role="status">Se o email ou n.º existir, vais receber um email com instruções para definir uma nova password.</p>
+          <p class="alert alert--success" role="status">Se houver uma conta com esse email, vais receber em instantes uma ligação para definires uma nova password. A ligação vale 1 hora. Vê também a pasta de spam.</p>
         } @else {
-          <form class="form" (ngSubmit)="resetSent.set(true)">
-            <p class="muted">Indica o teu email ou n.º de sócio. Enviamos-te uma ligação para definires uma nova password.</p>
+          <form class="form" [formGroup]="resetForm" (ngSubmit)="sendReset()">
+            <p class="muted">Indica o email da tua conta. Enviamos-te uma ligação para definires uma nova password.</p>
             <div class="field">
-              <label for="l-reset">Email ou n.º de sócio</label>
-              <input id="l-reset" name="reset" required autocomplete="username" />
+              <label for="l-reset">Email</label>
+              <input id="l-reset" type="email" formControlName="email" autocomplete="email" autocapitalize="none" spellcheck="false" />
             </div>
-            <button class="btn btn--primary btn--block" type="submit">Enviar instruções</button>
+            @if (resetError(); as e) {
+              <p class="alert alert--warning" role="alert">{{ e }}</p>
+            }
+            <button class="btn btn--primary btn--block" type="submit" [disabled]="resetForm.invalid || busy()">Enviar ligação</button>
           </form>
         }
         <button class="linkish" type="button" (click)="mode.set('login'); resetSent.set(false)">← Voltar à entrada</button>

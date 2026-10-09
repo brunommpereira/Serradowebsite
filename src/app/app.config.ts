@@ -26,7 +26,7 @@ export const appConfig: ApplicationConfig = {
       const auth = inject(AuthService); // inject() só antes do primeiro await
       const cms = inject(CmsStore);
       await auth.restoreFromApi();
-      await cms.loadFromApi(auth.hasRole('editor'));
+      await cms.loadFromApi(auth.can('cms.edit'));
     }),
     { provide: LOCALE_ID, useValue: 'pt-PT' },
   ],
