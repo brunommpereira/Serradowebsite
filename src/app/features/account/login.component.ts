@@ -8,6 +8,7 @@ import { IconComponent } from '../../shared/icon.component';
 import { OfflineNoticeComponent } from '../../shared/offline-notice.component';
 import { ApiClient } from '../../core/api/api-client';
 import { roleName } from '../../core/permissions';
+import { PasswordFieldComponent } from '../../shared/password-field.component';
 
 export type Profile = 'socio' | 'atleta' | 'staff';
 
@@ -28,9 +29,10 @@ const OAUTH_ERRORS: Record<string, string> = {
  * A pessoa escolhe se entra como sócio ou como atleta/encarregado; com sessão
  * iniciada, a página passa a ser o «hub» das áreas a que a conta tem acesso.
  */
+
 @Component({
   selector: 'sfc-login',
-  imports: [ReactiveFormsModule, RouterLink, IconComponent, OfflineNoticeComponent],
+  imports: [ReactiveFormsModule, RouterLink, IconComponent, PasswordFieldComponent, OfflineNoticeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',

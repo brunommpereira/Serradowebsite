@@ -5,6 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { SeoService } from '../../core/services/seo.service';
 import { IconComponent } from '../../shared/icon.component';
+import { PasswordFieldComponent } from '../../shared/password-field.component';
 
 const MIN = 10;
 
@@ -12,9 +13,10 @@ const MIN = 10;
  * /entrar/nova-password?token=… — definir a password com a ligação recebida por email
  * (reposição, válida 1 hora, ou convite de conta nova, válido 7 dias). Uso único.
  */
+
 @Component({
   selector: 'sfc-new-password',
-  imports: [ReactiveFormsModule, RouterLink, IconComponent],
+  imports: [ReactiveFormsModule, RouterLink, IconComponent, PasswordFieldComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="login">
@@ -33,11 +35,11 @@ const MIN = 10;
           <form class="form" [formGroup]="form" (ngSubmit)="submit()">
             <div class="field">
               <label for="np-1">Nova password</label>
-              <input id="np-1" type="password" formControlName="password" autocomplete="new-password" [attr.minlength]="min" />
+              <sfc-password-field><input id="np-1" type="password" formControlName="password" autocomplete="new-password" [attr.minlength]="min" /></sfc-password-field>
             </div>
             <div class="field">
               <label for="np-2">Repetir a password</label>
-              <input id="np-2" type="password" formControlName="confirm" autocomplete="new-password" />
+              <sfc-password-field><input id="np-2" type="password" formControlName="confirm" autocomplete="new-password" /></sfc-password-field>
             </div>
             @if (mismatch()) {
               <p class="alert alert--warning" role="alert">As passwords não coincidem.</p>

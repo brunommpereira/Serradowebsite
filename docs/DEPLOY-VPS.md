@@ -306,7 +306,18 @@ sudo serrado email off    # desliga
 ```
 Se a VPS já tinha sido instalada antes desta versão, corre outra vez o `bootstrap.sh` (com as mesmas opções) para instalar o serviço `serrado-mail`.
 
-> `sudo serrado status` mostra `mail_failed`: emails que falharam 6 tentativas. A verificação diária avisa. Se falhar com «recusou o utilizador ou a password», confirma o utilizador (endereço completo) e corre outra vez `sudo serrado email smtp`.
+> `sudo serrado status` mostra `mail_failed`: emails que falharam 6 tentativas. A verificação diária avisa.
+
+**Um email não chegou?** `sudo serrado email log` mostra os últimos emails: para quem, quando foram pedidos e enviados, o estado e o erro (se houver).
+- Aparece como **enviado**: saiu do site. Procura na pasta de spam e no separador «Promoções» do Gmail.
+- Não aparece: o pedido não chegou a ser feito. «Esqueci-me da password» só envia para emails com conta e, no máximo, um a cada 2 minutos por conta.
+- **falhado**: lê o erro (por exemplo, password da caixa errada → `sudo serrado email smtp`).
+
+**Emails no spam.** Com SPF, DKIM e DMARC certos (confirmar no Gmail: abrir o email → ⋮ → «Mostrar original» → as três linhas devem dizer PASS), o resto é reputação de um domínio novo num servidor partilhado:
+- pede a quem o recebeu no spam para carregar em **«Não é spam»** e guardar o remetente nos contactos;
+- envia poucos emails de cada vez nas primeiras semanas (por exemplo, os convites aos poucos);
+- usa como remetente uma caixa real, que receba respostas (não `nao-responder@`);
+- se continuar, a alternativa é a Brevo (`sudo serrado email brevo`), com melhor reputação de envio. Se falhar com «recusou o utilizador ou a password», confirma o utilizador (endereço completo) e corre outra vez `sudo serrado email smtp`.
 
 ## 6. Cópias de segurança
 
@@ -347,7 +358,7 @@ sudo serrado offsite-latest /root/recuperar                  # descarrega a últ
 | `sudo serrado admin <email> "<nome>"` | Criar uma conta de administração ou repor a password |
 | `sudo serrado cf-ips` | Atualizar já os IPs da Cloudflare na firewall |
 | `sudo serrado payments` / `receipts` / `fees AAAA-MM` / `moloni-info` | Pagamentos online e faturas-recibo |
-| `sudo serrado email [smtp\|brevo]` / `email test <endereço>` / `email off` | Emails do site (caixa do domínio ou Brevo): passwords, convites, fichas assinadas |
+| `sudo serrado email [smtp\|brevo]` / `email test <endereço>` / `email log` / `email off` | Emails do site (caixa do domínio ou Brevo): passwords, convites, fichas assinadas |
 | `sudo serrado facebook` / `facebook-sync` / `facebook off` | Ligar, sincronizar agora ou desligar a página de Facebook |
 | `sudo serrado oauth google` / `microsoft` | Ativar a entrada com Google ou Microsoft (`… off` para desativar) |
 

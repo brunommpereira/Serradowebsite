@@ -11,13 +11,15 @@ import { PaymentMethod, PaymentStepComponent } from '../../shared/payment-step.c
 import { MemberSignupComponent } from '../signup/member-signup.component';
 import { ApiClient } from '../../core/api/api-client';
 import { MemberCardComponent } from '../../shared/member-card.component';
+import { PasswordFieldComponent } from '../../shared/password-field.component';
 
 type Step = 1 | 2 | 3 | 4;
 
 /** Registo de sócio — fluxo da secção 49 (categoria → formulário → pagamento → confirmação). */
+
 @Component({
   selector: 'sfc-register',
-  imports: [RouterLink, CurrencyPipe, ReactiveFormsModule, PageHeroComponent, IconComponent, PaymentStepComponent, MemberCardComponent, MemberSignupComponent],
+  imports: [RouterLink, CurrencyPipe, ReactiveFormsModule, PageHeroComponent, IconComponent, PasswordFieldComponent, PaymentStepComponent, MemberCardComponent, MemberSignupComponent],
   templateUrl: './register.component.html',
   styleUrl: './register.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

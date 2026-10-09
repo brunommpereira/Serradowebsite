@@ -16,6 +16,10 @@ import { ApiClient } from '../../core/api/api-client';
         <h3>Inscrição · {{ sport().name }}</h3>
         <p>Inscreve o atleta online: preenches a ficha, aceitas o regulamento e assinas no ecrã. Recebes o documento assinado por email.</p>
         <a class="btn btn--accent" routerLink="/inscricao" [queryParams]="{ modalidade: sport().slug }">Fazer a inscrição online</a>
+        <p class="pre">
+          Ainda só queres experimentar ou ser contactado?
+          <a routerLink="/pre-inscricao" [queryParams]="{ modalidade: sport().slug }">Faz a pré-inscrição</a> e ligamos-te para marcar um treino.
+        </p>
       </div>
     } @else if (sent()) {
       <div class="alert alert--success" role="status">
@@ -76,6 +80,12 @@ import { ApiClient } from '../../core/api/api-client';
         }
         <button class="btn btn--primary" type="submit">Enviar pedido</button>
       </form>
+    }
+  `,
+  styles: `
+    .pre {
+      margin: 1rem 0 0;
+      font-size: 0.92rem;
     }
   `,
 })
