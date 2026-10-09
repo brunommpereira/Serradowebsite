@@ -40,6 +40,8 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 step 'Sistema e pacotes base'
+# Repositório antigo do Caddy (Cloudsmith), que passou a responder «402 Payment Required»: sem isto o apt-get update falha
+rm -f /etc/apt/sources.list.d/caddy-stable.list /usr/share/keyrings/caddy-stable-archive-keyring.gpg
 apt-get update -q
 apt-get upgrade -yq
 apt-get install -yq curl ca-certificates gnupg git jq ufw fail2ban unattended-upgrades postgresql restic
@@ -52,12 +54,25 @@ python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)' || di
 python3 --version
 
 step 'Caddy (servidor web e HTTPS)'
-if ! command -v caddy >/dev/null; then
-  curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor --yes -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-  curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt > /etc/apt/sources.list.d/caddy-stable.list
-  apt-get update -q
-  apt-get install -yq caddy
+# Binário oficial do GitHub, numa versão fixa e com o SHA-512 conferido (o repositório apt do Caddy deixou de ser gratuito).
+# Para atualizar: mudar a versão e os hashes (caddy_<versão>_checksums.txt da release) e voltar a correr o bootstrap.
+CADDY_VERSION=2.10.2
+case "$(dpkg --print-architecture)" in
+  amd64) CADDY_ARCH=amd64; CADDY_SHA512=747df7ee74de188485157a383633a1a963fd9233b71fbb4a69ddcbcc589ce4e2cc82dacf5dbbe136cb51d17e14c59daeb5d9bc92487610b0f3b93680b2646546 ;;
+  arm64) CADDY_ARCH=arm64; CADDY_SHA512=6ce061a690312ab38367df3c5d5f89a2e4a263e7300d300d87356211bb81e79b15933e6d6203e03fbf26f15cc0311f264805f336147dbdd24938d84b57a4421c ;;
+  *) die "Arquitetura não suportada: $(dpkg --print-architecture)" ;;
+esac
+if ! /usr/bin/caddy version 2>/dev/null | grep -q "^v$CADDY_VERSION "; then
+  tmp=$(mktemp -d)
+  curl -fsSL -o "$tmp/caddy.tar.gz" "https://github.com/caddyserver/caddy/releases/download/v$CADDY_VERSION/caddy_${CADDY_VERSION}_linux_${CADDY_ARCH}.tar.gz"
+  echo "$CADDY_SHA512  $tmp/caddy.tar.gz" | sha512sum -c --quiet || die 'O ficheiro do Caddy não confere com o SHA-512 esperado.'
+  tar -xzf "$tmp/caddy.tar.gz" -C "$tmp" caddy
+  install -m 755 "$tmp/caddy" /usr/bin/caddy
+  rm -rf "$tmp"
 fi
+getent group caddy >/dev/null || groupadd --system caddy
+id caddy >/dev/null 2>&1 || useradd --system --gid caddy --home-dir /var/lib/caddy --create-home --shell /usr/sbin/nologin caddy
+caddy version
 
 step 'Utilizadores'
 id serrado >/dev/null 2>&1 || useradd --system --home-dir "$ROOT" --shell /usr/sbin/nologin serrado
@@ -133,7 +148,8 @@ systemctl enable serrado-backend serrado-middleware
 systemctl enable --now serrado-backup.timer
 
 step 'Caddy'
-mkdir -p /etc/caddy/tls /var/log/caddy
+mkdir -p /etc/caddy/tls /var/log/caddy /var/lib/caddy
+chown caddy:caddy /var/log/caddy /var/lib/caddy
 if [ "$CLOUDFLARE" = 1 ]; then
   touch "$ETC/cloudflare"
   install -o caddy -g caddy -m 600 "$ETC/tls/origin.pem" /etc/caddy/tls/origin.pem

@@ -8,7 +8,7 @@ import { nifValidator, PHONE_PATTERN, POSTAL_CODE_PATTERN } from '../../core/val
 import { PageHeroComponent } from '../../shared/page-hero.component';
 import { IconComponent } from '../../shared/icon.component';
 import { PaymentMethod, PaymentStepComponent } from '../../shared/payment-step.component';
-import { OfflineNoticeComponent } from '../../shared/offline-notice.component';
+import { MemberSignupComponent } from '../signup/member-signup.component';
 import { ApiClient } from '../../core/api/api-client';
 import { MemberCardComponent } from '../../shared/member-card.component';
 
@@ -17,13 +17,13 @@ type Step = 1 | 2 | 3 | 4;
 /** Registo de sócio — fluxo da secção 49 (categoria → formulário → pagamento → confirmação). */
 @Component({
   selector: 'sfc-register',
-  imports: [RouterLink, CurrencyPipe, ReactiveFormsModule, PageHeroComponent, IconComponent, PaymentStepComponent, MemberCardComponent, OfflineNoticeComponent],
+  imports: [RouterLink, CurrencyPipe, ReactiveFormsModule, PageHeroComponent, IconComponent, PaymentStepComponent, MemberCardComponent, MemberSignupComponent],
   templateUrl: './register.component.html',
   styleUrl: './register.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RegisterComponent {
-  /** Ligado ao servidor: o registo online ainda não grava, por isso trata-se com a secretaria */
+  /** Ligado ao servidor: registo com documentos e assinatura (MemberSignupComponent) */
   protected readonly apiMode = inject(ApiClient).enabled;
   /** ?categoria= pré-seleciona a categoria */
   readonly categoria = input<string>();

@@ -1,0 +1,56 @@
+.signup {
+  display: grid;
+  gap: 0.4rem;
+  padding: 1.5rem;
+  text-align: left;
+}
+.h-s {
+  margin: 1.2rem 0 0.4rem;
+  font-size: 1.15rem;
+  &:first-child {
+    margin-top: 0;
+  }
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.1rem 1rem;
+  .wide {
+    grid-column: 1 / -1;
+  }
+}
+.hp {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.btn--block {
+  margin-top: 1rem;
+}
+.miss {
+  text-align: center;
+}
+.alert {
+  margin-top: 0.8rem;
+}
+.done {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  color: var(--color-text);
+  sfc-icon {
+    color: var(--color-success, #1a7f37);
+  }
+  .num {
+    font-size: 1.3rem;
+  }
+}
+@media (max-width: 480px) {
+  .signup {
+    padding: 1rem;
+  }
+}

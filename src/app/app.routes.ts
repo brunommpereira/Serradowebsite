@@ -14,6 +14,7 @@ export const routes: Routes = [
   { path: 'eventos', loadComponent: () => import('./features/events/events-list.component').then((m) => m.EventsListComponent) },
   { path: 'eventos/:slug', loadComponent: () => import('./features/events/event-detail.component').then((m) => m.EventDetailComponent) },
   { path: 'socios', loadComponent: () => import('./features/membership/membership.component').then((m) => m.MembershipComponent) },
+  { path: 'inscricao', loadComponent: () => import('./features/signup/athlete-signup.page').then((m) => m.AthleteSignupPage) },
   { path: 'socios/registo', loadComponent: () => import('./features/membership/register.component').then((m) => m.RegisterComponent) },
   { path: 'entrar/nova-password', loadComponent: () => import('./features/account/new-password.component').then((m) => m.NewPasswordComponent) },
   { path: 'entrar', loadComponent: () => import('./features/account/login.component').then((m) => m.LoginComponent) },

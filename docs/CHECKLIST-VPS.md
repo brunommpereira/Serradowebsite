@@ -78,10 +78,10 @@ Com a API ligada, estas partes do site **ainda não gravam nada no servidor**. E
 - [x] **`/entrar`:** a caixa «Contas de demonstração» não aparece em modo API.
 - [x] **«Esqueci-me da password»:** em modo API, mostra um aviso para contactar a secretaria, que repõe a password.
 - [x] **Recuperação da password por email:** feita (Brevo). Falta configurar (ver a secção 4).
-- [x] **Registo de novos sócios** (`/socios/registo`): em modo API, mostra um aviso para tratar na secretaria.
-- [ ] Decidir se o registo online passa a ser um pedido que a secretaria valida. **[decidir]**
-- [x] **Inscrição nas modalidades e em eventos:** em modo API, mostra um aviso para tratar na secretaria.
-- [ ] Decidir se as inscrições online passam a gravar no servidor. **[decidir]**
+- [x] **Registo de novos sócios** (`/socios/registo`) e **inscrição de atletas** (`/inscricao`, também a partir da página de cada modalidade): online, com condições, RGPD, autorização de imagem e assinatura desenhada. Ficam ativos de imediato e o PDF assinado segue por email.
+- [ ] **Documentos legais publicados** em **Backoffice → Registos online → Documentos legais** (condições de sócio, regulamento de atleta, RGPD e imagem). Há modelos para começar, mas **têm de ser revistos pela direção** (e, se possível, por um jurista). Até estarem os quatro publicados, os formulários mostram um aviso. **[decidir]**
+- [ ] **Teste completo antes de abrir:** um registo de sócio e uma inscrição de um menor (assinada pelo encarregado). Confirmar que chega o email com o PDF e o convite, e que aparecem em **Registos online**. **[eu]**
+- [x] **Inscrição em eventos:** em modo API, mostra um aviso para tratar na secretaria.
 - [ ] **Área de Atletas:** «Adicionar atleta» e «Convidar co-encarregado» estão escondidos em modo API. Confirmar que é isso que se quer no arranque. **[decidir]**
 - [x] **Pagamento de quotas e mensalidades:** feito com o Stripe (cartão, MB WAY e Multibanco) e faturas-recibo no Moloni ON. Falta configurar (ver a secção 4).
 - [x] **Newsletter do rodapé:** não aparece em modo API.
@@ -132,6 +132,7 @@ Com a API ligada, estas partes do site **ainda não gravam nada no servidor**. E
 | A cada cerca de 2 anos | Atualizar `FACEBOOK_GRAPH_VERSION` quando a Meta retirar a versão em uso. |
 | Quando a verificação diária avisar de recibos encravados | **Backoffice → Pagamentos**: ver o erro do Moloni e carregar em «Tentar outra vez». |
 | Atualizações do sistema | As de segurança instalam-se sozinhas. De vez em quando, `sudo apt upgrade` e reiniciar num horário calmo. |
+| A cada 6 meses (ou num alerta de segurança do Caddy) | Atualizar o Caddy: mudar `CADDY_VERSION` e os SHA-512 em `deploy/server/bootstrap.sh` (ficheiro `caddy_<versão>_checksums.txt` da release no GitHub) e voltar a correr o bootstrap. O Caddy deixou de vir de um repositório apt, por isso não se atualiza sozinho. |
 | A cada 15 anos | Renovar o certificado de origem da Cloudflare. |
 | Renovação anual | Domínio `serradofc.pt` no dominios.pt e plano da VPS. **Com renovação automática e um cartão válido.** |
 
