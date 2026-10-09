@@ -31,7 +31,17 @@ SPORTS = {
     "formacao": "Formação",
     "escola-de-desporto": "Escola de Desporto",
 }
-METHOD_LABELS = {"card": "Cartão", "mb_way": "MB WAY", "multibanco": "Multibanco"}
+METHOD_LABELS = {
+    "card": "Cartão",
+    "mb_way": "MB WAY",
+    "multibanco": "Multibanco",
+    # Registados no backoffice (pagos na secretaria)
+    "cash": "Numerário",
+    "transfer": "Transferência",
+    "cheque": "Cheque",
+}
+MANUAL_METHODS = ("cash", "transfer", "mb_way", "multibanco", "card", "cheque")
+CONSUMIDOR_FINAL = "999999990"
 # Para onde o Stripe devolve a pessoa (na Área de Atletas, já no separador dos pagamentos)
 RETURN_PATHS = {"/area-socio": "/area-socio?", "/area-atletas": "/area-atletas?separador=recibos&"}
 SYSTEM = Actor()
@@ -68,6 +78,32 @@ async def generate_fees(db: Pool | Conn, month: date) -> int:
         [month.isoformat(), period_label(month), month.isoformat()],
     )
     return len(rows)
+
+
+async def generate_quotas(db: Pool | Conn, month: date) -> int:
+    """Quotas dos sócios ativos pelo plano da categoria: mensal («Outubro 2026», vence a dia 8) ou
+    anual («Quota 2026», vence a 31 de janeiro, ou 7 dias depois para quem entra a meio do ano). Repetir não duplica."""
+    month = month.replace(day=1)
+    due_month = (month.isoformat(), period_label(month), month.isoformat())
+    monthly = await fetch(
+        db,
+        """insert into quotas (member_number, period, amount, due_date)
+           select m.member_number, %s, p.amount, (%s::date + interval '7 days')::date
+             from members m join quota_plans p on p.category = m.category and p.active and p.periodicity = 'mensal'
+            where m.status = 'Ativo' and m.joined_on < (%s::date + interval '1 month')
+           on conflict (member_number, period) do nothing returning id""",
+        [due_month[1], due_month[0], due_month[0]],
+    )
+    yearly = await fetch(
+        db,
+        """insert into quotas (member_number, period, amount, due_date)
+           select m.member_number, %s, p.amount, greatest(make_date(%s, 1, 31), (%s::date + interval '7 days')::date)
+             from members m join quota_plans p on p.category = m.category and p.active and p.periodicity = 'anual'
+            where m.status = 'Ativo'
+           on conflict (member_number, period) do nothing returning id""",
+        [f"Quota {month.year}", month.year, month.isoformat()],
+    )
+    return len(monthly) + len(yearly)
 
 
 # ------------------------------------------------------------------ o que a conta pode pagar
@@ -122,15 +158,16 @@ class Item:
     sport: str | None = None
 
 
-async def _load_items(c: Conn, user_id: str, items: list[tuple[str, int]]) -> list[Item]:
+async def _load_items(c: Conn, user_id: str | None, items: list[tuple[str, int]]) -> list[Item]:
+    """Itens por pagar. Com user_id, só os dessa conta; sem (backoffice), qualquer um."""
     out: list[Item] = []
     for kind, item_id in items:
         if kind == "quota":
             cur = await c.execute(
                 f"""select q.id, q.amount, q.period, q.member_number, {BLOCKING.format(id="q.id")} as blocked
                       from quotas q join members m on m.member_number = q.member_number
-                     where q.id = %s and m.user_id = %s and q.paid_at is null for update of q""",
-                ["quota", item_id, user_id],
+                     where q.id = %s and (%s::uuid is null or m.user_id = %s) and q.paid_at is null for update of q""",
+                ["quota", item_id, user_id, user_id],
             )
             row = await cur.fetchone()
             if row:
@@ -140,8 +177,8 @@ async def _load_items(c: Conn, user_id: str, items: list[tuple[str, int]]) -> li
                 f"""select f.id, f.amount, f.period, f.sport_slug, a.name, {BLOCKING.format(id="f.id")} as blocked
                       from athlete_fees f join athletes a on a.id = f.athlete_id
                      where f.id = %s and f.paid_at is null
-                       and f.athlete_id in (select athlete_id from athlete_access where user_id = %s) for update of f""",
-                ["fee", item_id, user_id],
+                       and (%s::uuid is null or f.athlete_id in (select athlete_id from athlete_access where user_id = %s)) for update of f""",
+                ["fee", item_id, user_id, user_id],
             )
             row = await cur.fetchone()
             if row:
@@ -204,6 +241,101 @@ async def create_payment(
         raise HttpError(502, "payment_provider", "O serviço de pagamentos não respondeu. Tenta outra vez daqui a pouco.") from None
     await fetch(pool, "update payments set stripe_session_id = %s where id = %s", [session["id"], payment_id])
     return str(session["url"])
+
+
+# ------------------------------------------------------------------ pagamentos registados no backoffice
+async def record_manual(
+    c: Conn,
+    cfg: PaymentsConfig,
+    who: Actor,
+    *,
+    items: list[tuple[str, int]],
+    method: str,
+    paid_on: str,
+    payer_name: str,
+    payer_email: str,
+    payer_nif: str | None,
+    note: str,
+    receipt: bool,
+) -> dict[str, Any]:
+    """Pagamento feito na secretaria (numerário, transferência…): fica pago logo e, se pedido, o recibo
+    segue pelo mesmo caminho dos pagamentos online (Moloni ON, email e PDF no site)."""
+    if method not in MANUAL_METHODS:
+        raise HttpError(400, "validation", "method: desconhecido")
+    nif = payer_nif or CONSUMIDOR_FINAL
+    if nif != CONSUMIDOR_FINAL and not is_valid_nif(nif):
+        raise HttpError(400, "invalid_nif", "NIF inválido")
+    if len(set(items)) != len(items):
+        raise HttpError(400, "validation", "items: repetidos")
+    if receipt and not cfg.receipts_enabled:
+        raise HttpError(503, "receipts_disabled", "O Moloni ainda não está configurado: regista sem recibo ou configura-o primeiro")
+    loaded = await _load_items(c, None, items)
+    total = round(sum(float(i.amount) for i in loaded), 2)
+    # A quem pertence (para aparecer na Área de Sócio / Atletas): a conta do sócio ou de um encarregado
+    owner = await (
+        await c.execute(
+            """select coalesce(
+                 (select m.user_id from quotas q join members m on m.member_number = q.member_number where q.id = any(%s) and m.user_id is not null limit 1),
+                 (select aa.user_id from athlete_fees f join athlete_access aa on aa.athlete_id = f.athlete_id
+                   where f.id = any(%s) order by (aa.role = 'encarregado') desc limit 1)) as user_id""",
+            [[i.item_id for i in loaded if i.kind == "quota"], [i.item_id for i in loaded if i.kind == "fee"]],
+        )
+    ).fetchone()
+    cur = await c.execute(
+        """insert into payments (user_id, amount, status, payer_name, payer_email, payer_nif, method, paid_at, provider, recorded_by, note, receipt_status)
+           values (%s, %s, 'paid', %s, %s, %s, %s, (%s::date + time '12:00'), 'manual', %s, %s, %s) returning id""",
+        [owner["user_id"] if owner else None, total, payer_name, payer_email, nif, method, paid_on, who.id, note, "pending" if receipt else "none"],
+    )
+    row = await cur.fetchone()
+    assert row is not None
+    pid = str(row["id"])
+    for i in loaded:
+        await c.execute(
+            "insert into payment_items (payment_id, kind, item_id, amount, description, sport_slug) values (%s, %s, %s, %s, %s, %s)",
+            [pid, i.kind, i.item_id, i.amount, i.description, i.sport],
+        )
+    label = METHOD_LABELS[method]
+    await c.execute(
+        "update quotas set paid_at = %s, payment_method = %s where id in (select item_id from payment_items where payment_id = %s and kind = 'quota')",
+        [paid_on, label, pid],
+    )
+    await c.execute(
+        "update athlete_fees set paid_at = %s, payment_method = %s where id in (select item_id from payment_items where payment_id = %s and kind = 'fee')",
+        [paid_on, label, pid],
+    )
+    await audit(c, who, "payments.manual", "payments", pid, {"amount": total, "method": method, "items": len(loaded), "receipt": receipt})
+    return {"id": pid, "amount": total, "receiptStatus": "pending" if receipt else "none"}
+
+
+async def pending_items(db: Pool, q: str | None) -> list[dict[str, Any]]:
+    """Quotas e mensalidades por pagar (backoffice), com quem paga sugerido."""
+    like = f"%{q}%" if q else None
+    quotas = await fetch(
+        db,
+        f"""select 'quota' as kind, q.id, q.period, q.amount, q.due_date as "dueDate", m.member_number as "memberNumber", m.name as "who",
+                  m.name as "payerName", coalesce(m.email, '') as "payerEmail", m.tax_number as "payerNif", {BLOCKING.format(id="q.id")} as "inProgress"
+             from quotas q join members m on m.member_number = q.member_number
+            where q.paid_at is null and (%s::text is null or m.name ilike %s or m.member_number = %s)
+            order by q.due_date, m.member_number limit 200""",
+        ["quota", like, like, q],
+    )
+    fees = await fetch(
+        db,
+        f"""select 'fee' as kind, f.id, f.period, f.amount, f.due_date as "dueDate", a.member_number as "memberNumber", a.name as "who", f.sport_slug as sport,
+                  coalesce(g.name, a.name) as "payerName", coalesce(g.email, a.email, '') as "payerEmail", a.tax_number as "payerNif",
+                  {BLOCKING.format(id="f.id")} as "inProgress"
+             from athlete_fees f join athletes a on a.id = f.athlete_id
+             left join lateral (select u.name, u.email from athlete_access aa join users u on u.id = aa.user_id
+                                 where aa.athlete_id = a.id order by (aa.role = 'encarregado') desc limit 1) g on true
+            where f.paid_at is null and (%s::text is null or a.name ilike %s or a.code ilike %s or g.name ilike %s)
+            order by f.due_date, a.name limit 200""",
+        ["fee", like, like, like, like],
+    )
+    for f in fees:
+        f["label"] = f"Mensalidade {sport_label(f.pop('sport'))} {f['period']}"
+    for x in quotas:
+        x["label"] = f"Quota {x['period']}"
+    return [*quotas, *fees]
 
 
 # ------------------------------------------------------------------ eventos do Stripe
@@ -296,7 +428,7 @@ async def _issue_one(pool: Pool, cfg: PaymentsConfig, moloni: MoloniClient, p: R
             lines=lines,
             payment_method_id=cfg.moloni_payment_methods.get(p["method"] or ""),
             date=str(p["paid_at"]),
-            reference=f"Stripe {str(pid)[:8]}",
+            reference=f"{'Secretaria' if p.get('provider') == 'manual' else 'Stripe'} {str(pid)[:8]}",
         )
         # Registado logo: uma nova tentativa nunca cria um segundo documento
         async with pool.connection() as c:
@@ -311,7 +443,7 @@ async def _issue_one(pool: Pool, cfg: PaymentsConfig, moloni: MoloniClient, p: R
             )
             await audit(c, SYSTEM, "payments.receipt", "payments", str(pid), {"number": doc.number})
         p["moloni_document_id"] = doc.document_id
-    if not p["receipt_emailed_at"]:
+    if not p["receipt_emailed_at"] and p["payer_email"]:
         await moloni.send_mail(p["moloni_document_id"], name=p["payer_name"], email=p["payer_email"])
         await fetch(pool, "update payments set receipt_emailed_at = now() where id = %s", [pid])
     if not p["has_pdf"]:
@@ -333,7 +465,7 @@ async def issue_receipts(pool: Pool, cfg: PaymentsConfig, moloni: MoloniClient, 
         try:
             todo = await fetch(
                 pool,
-                """select id, payer_name, payer_email, payer_nif, method, paid_at, moloni_customer_id, moloni_document_id, receipt_emailed_at,
+                """select id, payer_name, payer_email, payer_nif, method, paid_at, provider, moloni_customer_id, moloni_document_id, receipt_emailed_at,
                           (receipt_pdf is not null) as has_pdf, receipt_attempts
                      from payments
                     where status = 'paid' and (receipt_status = 'pending'
@@ -360,4 +492,14 @@ async def issue_receipts(pool: Pool, cfg: PaymentsConfig, moloni: MoloniClient, 
     return summary
 
 
-__all__ = ["charges", "create_payment", "generate_fees", "handle_event", "issue_receipts", "period_label"]
+__all__ = [
+    "charges",
+    "create_payment",
+    "generate_fees",
+    "generate_quotas",
+    "handle_event",
+    "issue_receipts",
+    "pending_items",
+    "period_label",
+    "record_manual",
+]

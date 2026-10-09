@@ -63,9 +63,11 @@ async def seed(pool: Pool, log: Callable[[str], None] = print) -> None:
                 await c.execute("insert into user_roles values (%s, %s)", [row["id"], r])
             if u["member"]:
                 await c.execute(
-                    "insert into members (member_number, user_id, category, joined_on) values (%s, %s, %s, %s)",
-                    [u["member"][0], row["id"], u["member"][1], "2019-03-01"],
+                    "insert into members (member_number, user_id, name, email, category, joined_on) values (%s, %s, %s, %s, %s, %s)",
+                    [u["member"][0], row["id"], u["name"], u["email"], u["member"][1], "2019-03-01"],
                 )
+        await c.execute("select setval('member_number_seq', 1000, false)")  # n.os novos a partir de 01000
+        await c.execute("truncate quota_plans")
         await _seed_quotas(c)
         await _seed_athletes(c, ids)
         await _seed_results(c)

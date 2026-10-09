@@ -4,6 +4,9 @@ import { ApiClient } from '../../../core/api/api-client';
 import { AuthService } from '../../../core/services/auth.service';
 import { IconComponent } from '../../../shared/icon.component';
 import { OfflineNoticeComponent } from '../../../shared/offline-notice.component';
+import { ActivatedRoute } from '@angular/router';
+import { ManualPaymentComponent } from './manual-payment.component';
+import { QuotaPlansComponent } from './quota-plans.component';
 
 interface FeePlan {
   sport: string;
@@ -26,6 +29,8 @@ interface AdminPayment {
   receiptAttempts: number;
   hasReceipt: boolean;
   items: string[];
+  provider: 'stripe' | 'manual';
+  note: string;
 }
 
 const SPORTS = [
@@ -33,19 +38,19 @@ const SPORTS = [
   { slug: 'rugby', label: 'Escola de Rugby' },
 ];
 const STATUS: Record<string, string> = { open: 'Em curso', paid: 'Pago', failed: 'Falhou', expired: 'Expirado' };
-const METHOD: Record<string, string> = { card: 'Cartão', mb_way: 'MB WAY', multibanco: 'Multibanco' };
+const METHOD: Record<string, string> = { card: 'Cartão', mb_way: 'MB WAY', multibanco: 'Multibanco', cash: 'Numerário', transfer: 'Transferência', cheque: 'Cheque' };
 const RECEIPT: Record<string, string> = { none: '—', pending: 'Em emissão', failed: 'Falhou', issued: 'Emitido' };
 
 /** Tesouraria: valores das mensalidades, geração mensal e pagamentos online com o estado do recibo (Moloni ON). */
 @Component({
   selector: 'sfc-admin-payments',
-  imports: [CurrencyPipe, DatePipe, IconComponent, OfflineNoticeComponent],
+  imports: [CurrencyPipe, DatePipe, IconComponent, OfflineNoticeComponent, ManualPaymentComponent, QuotaPlansComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="adm-head">
       <div>
         <h1>Pagamentos</h1>
-        <p>Quotas e mensalidades pagas online (Stripe) e faturas-recibo emitidas no Moloni ON.</p>
+        <p>Quotas e mensalidades pagas online (Stripe) ou na secretaria, e faturas-recibo emitidas no Moloni ON.</p>
       </div>
     </div>
 
@@ -57,6 +62,10 @@ const RECEIPT: Record<string, string> = { none: '—', pending: 'Em emissão', f
       }
       @if (notice()) {
         <p class="alert alert--success" role="status">{{ notice() }}</p>
+      }
+
+      @if (manage) {
+        <sfc-manual-payment [initial]="registar" (recorded)="notice.set($event); load()" />
       }
 
       <section class="adm-panel block">
@@ -76,7 +85,7 @@ const RECEIPT: Record<string, string> = { none: '—', pending: 'Em emissão', f
         </div>
         @if (manage) {
         <form class="plan" (submit)="$event.preventDefault(); generate(month.value)">
-          <strong>Gerar mensalidades</strong>
+          <strong>Gerar mensalidades e quotas</strong>
           <label>Mês <input #month type="month" [value]="thisMonth" required /></label>
           <button class="btn btn--outline btn--sm" type="submit">Gerar agora</button>
           <span class="caption">Repetir não duplica.</span>
@@ -84,8 +93,10 @@ const RECEIPT: Record<string, string> = { none: '—', pending: 'Em emissão', f
         }
       </section>
 
+      <sfc-quota-plans [manage]="manage" />
+
       <section class="adm-panel block">
-        <h2>Pagamentos online</h2>
+        <h2>Pagamentos e faturas-recibo</h2>
         <div class="adm-table-wrap">
           <table class="adm-table">
             <thead>
@@ -101,7 +112,7 @@ const RECEIPT: Record<string, string> = { none: '—', pending: 'Em emissão', f
                   <td>{{ p.payerName }}<br /><span class="caption">NIF {{ p.payerNif }}</span></td>
                   <td>{{ p.items.join(' · ') }}</td>
                   <td class="num">{{ p.amount | currency: 'EUR' }}</td>
-                  <td>{{ status(p.status) }}@if (p.method) {<br /><span class="caption">{{ method(p.method) }}</span>}</td>
+                  <td>{{ status(p.status) }}@if (p.method) {<br /><span class="caption">{{ method(p.method) }}{{ p.provider === 'manual' ? ' · secretaria' : '' }}</span>}@if (p.note) {<br /><span class="caption">{{ p.note }}</span>}</td>
                   <td>
                     @if (p.hasReceipt) {
                       <a [href]="api.baseUrl + '/admin/payments/' + p.id + '/receipt'" download><sfc-icon name="download" size="16" /> {{ p.receiptNumber }}</a>
@@ -117,7 +128,7 @@ const RECEIPT: Record<string, string> = { none: '—', pending: 'Em emissão', f
                   </td>
                 </tr>
               } @empty {
-                <tr><td colspan="6" class="caption">Ainda não há pagamentos online.</td></tr>
+                <tr><td colspan="6" class="caption">Ainda não há pagamentos.</td></tr>
               }
             </tbody>
           </table>
@@ -154,6 +165,8 @@ export class PaymentsPage {
   protected readonly manage = inject(AuthService).can('payments.manage');
   protected readonly sports = SPORTS;
   protected readonly thisMonth = new Date().toISOString().slice(0, 7);
+  /** ?registar=<n.º de sócio>: vem da ficha do sócio, já com a pesquisa feita */
+  protected readonly registar = inject(ActivatedRoute).snapshot.queryParamMap.get('registar') ?? '';
   protected readonly plans = signal<FeePlan[]>([]);
   protected readonly payments = signal<AdminPayment[]>([]);
   protected readonly error = signal<string | null>(null);
@@ -163,7 +176,7 @@ export class PaymentsPage {
     if (this.api.enabled) this.load();
   }
 
-  private async load() {
+  protected async load() {
     try {
       const [plans, payments] = await Promise.all([this.api.get<FeePlan[]>('/admin/fee-plans'), this.api.get<AdminPayment[]>('/admin/payments')]);
       this.plans.set(plans);
@@ -191,8 +204,8 @@ export class PaymentsPage {
   protected async generate(month: string) {
     this.notice.set(null);
     try {
-      const out = await this.api.post<{ created: number }>('/admin/fees/generate', { month });
-      this.notice.set(`${out.created} mensalidades criadas para ${month}.`);
+      const out = await this.api.post<{ created: number; quotas: number }>('/admin/fees/generate', { month });
+      this.notice.set(`${out.created} mensalidades e ${out.quotas} quotas criadas para ${month}.`);
     } catch (e) {
       this.error.set(e instanceof Error ? e.message : 'Erro ao gerar');
     }

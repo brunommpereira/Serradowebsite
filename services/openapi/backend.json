@@ -3245,6 +3245,47 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Cria um atleta (sem código: o seguinte); com o email do encarregado, dá-lhe acesso",
+        "operationId": "create_athlete_internal_v1_athletes_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AthleteIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Create Athlete Internal V1 Athletes Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/internal/v1/athletes/{id}": {
@@ -3861,6 +3902,59 @@
             }
           }
         }
+      },
+      "put": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Altera os dados do sócio",
+        "operationId": "update_member_internal_v1_members__number__put",
+        "parameters": [
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{1,8}$",
+              "title": "Number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Update Member Internal V1 Members  Number  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/internal/v1/members/{number}/quotas": {
@@ -3894,6 +3988,483 @@
                     "additionalProperties": true
                   },
                   "title": "Response Quotas Internal V1 Members  Number  Quotas Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Acrescenta uma quota avulsa (ex.: joia ou quota em atraso)",
+        "operationId": "add_quota_internal_v1_members__number__quotas_post",
+        "parameters": [
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{1,8}$",
+              "title": "Number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewQuota"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Add Quota Internal V1 Members  Number  Quotas Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/members": {
+      "get": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Sócios (filtros: q, status, category)",
+        "operationId": "members_internal_v1_members_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "Ativo",
+                    "Pendente",
+                    "Suspenso"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 40
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Members Internal V1 Members Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Cria um sócio (sem n.º: o seguinte livre); com email, liga ou cria a conta no site",
+        "operationId": "create_member_internal_v1_members_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Create Member Internal V1 Members Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/members/{number}/detail": {
+      "get": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Ficha do sócio: dados, conta no site, atletas e quotas",
+        "operationId": "member_detail_internal_v1_members__number__detail_get",
+        "parameters": [
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{1,8}$",
+              "title": "Number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Member Detail Internal V1 Members  Number  Detail Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/athletes/{id}/admin": {
+      "put": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Altera a ficha (incluindo identificação, modalidade, escalão e n.º de sócio)",
+        "operationId": "update_athlete_internal_v1_athletes__id__admin_put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AthleteIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Update Athlete Internal V1 Athletes  Id  Admin Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/athletes/{id}/access": {
+      "get": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Quem acede à ficha no site (encarregados e o próprio)",
+        "operationId": "access_internal_v1_athletes__id__access_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Access Internal V1 Athletes  Id  Access Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Dá acesso a um encarregado (cria a conta, se não existir)",
+        "operationId": "add_access_internal_v1_athletes__id__access_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Access"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Add Access Internal V1 Athletes  Id  Access Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/athletes/{id}/access/{user}": {
+      "delete": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Retira o acesso de uma conta à ficha",
+        "operationId": "remove_access_internal_v1_athletes__id__access__user__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "user",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "User"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/registry/import": {
+      "post": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Importa sócios ou atletas (linhas já lidas do CSV/XLSX). dryRun=true só valida; com erros, nada é gravado",
+        "operationId": "import_registry_internal_v1_registry_import_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Import Registry Internal V1 Registry Import Post"
                 }
               }
             }
@@ -4369,6 +4940,186 @@
         }
       }
     },
+    "/internal/v1/quota-plans": {
+      "get": {
+        "tags": [
+          "Backoffice · Pagamentos"
+        ],
+        "summary": "Quota por categoria de sócio",
+        "operationId": "quota_plans_internal_v1_quota_plans_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Quota Plans Internal V1 Quota Plans Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/quota-plans/{category}": {
+      "put": {
+        "tags": [
+          "Backoffice · Pagamentos"
+        ],
+        "summary": "Define a quota de uma categoria",
+        "operationId": "set_quota_plan_internal_v1_quota_plans__category__put",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 40,
+              "title": "Category"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuotaPlan"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Set Quota Plan Internal V1 Quota Plans  Category  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/payments/pending": {
+      "get": {
+        "tags": [
+          "Backoffice · Pagamentos"
+        ],
+        "summary": "Quotas e mensalidades por pagar (para registar um pagamento feito na secretaria)",
+        "operationId": "pending_internal_v1_payments_pending_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Pending Internal V1 Payments Pending Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/payments/manual": {
+      "post": {
+        "tags": [
+          "Backoffice · Pagamentos"
+        ],
+        "summary": "Regista um pagamento feito na secretaria e (opcional) emite a fatura-recibo",
+        "operationId": "manual_internal_v1_payments_manual_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualPayment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Manual Internal V1 Payments Manual Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/internal/v1/fees": {
       "get": {
         "tags": [
@@ -4465,6 +5216,39 @@
   },
   "components": {
     "schemas": {
+      "Access": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "maxLength": 200,
+            "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+            "title": "Email"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "encarregado",
+              "co-encarregado",
+              "atleta"
+            ],
+            "title": "Role",
+            "default": "encarregado"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "email",
+          "name"
+        ],
+        "title": "Access"
+      },
       "AltText": {
         "properties": {
           "alt": {
@@ -4479,6 +5263,215 @@
           "alt"
         ],
         "title": "AltText"
+      },
+      "AthleteIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 3,
+            "title": "Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "taxNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxnumber"
+          },
+          "birthDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birthdate"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "postalCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postalcode"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z]{2,5}-?\\d{1,6}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Feminino",
+                  "Masculino"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "sport": {
+            "type": "string",
+            "title": "Sport",
+            "default": "atletismo"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "memberNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Membernumber"
+          },
+          "idNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idnumber"
+          },
+          "idExpiry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idexpiry"
+          },
+          "guardianName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guardianname"
+          },
+          "guardianEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guardianemail"
+          },
+          "accountEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accountemail"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "AthleteIn",
+        "description": "Atleta. Sem código, recebe o seguinte (SFC-0001…)."
       },
       "ChangeRequest": {
         "properties": {
@@ -4893,6 +5886,288 @@
         ],
         "title": "Import"
       },
+      "ImportBody": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "members",
+              "athletes"
+            ],
+            "title": "Kind"
+          },
+          "rows": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "maxItems": 2000,
+            "minItems": 1,
+            "title": "Rows"
+          },
+          "dryRun": {
+            "type": "boolean",
+            "title": "Dryrun",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "rows"
+        ],
+        "title": "ImportBody"
+      },
+      "ManualPayment": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PayItem"
+            },
+            "type": "array",
+            "maxItems": 48,
+            "minItems": 1,
+            "title": "Items"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "transfer",
+              "mb_way",
+              "multibanco",
+              "card",
+              "cheque"
+            ],
+            "title": "Method"
+          },
+          "paidOn": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "title": "Paidon"
+          },
+          "payerName": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 2,
+            "title": "Payername"
+          },
+          "payerEmail": {
+            "type": "string",
+            "maxLength": 200,
+            "pattern": "^$|^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+            "title": "Payeremail",
+            "default": ""
+          },
+          "payerNif": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{9}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payernif"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Note",
+            "default": ""
+          },
+          "receipt": {
+            "type": "boolean",
+            "title": "Receipt",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "method",
+          "paidOn",
+          "payerName"
+        ],
+        "title": "ManualPayment",
+        "description": "Pago na secretaria: numerário, transferência, MB WAY ao balcão…"
+      },
+      "MemberIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 3,
+            "title": "Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "taxNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxnumber"
+          },
+          "birthDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birthdate"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "postalCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postalcode"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "memberNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Membernumber"
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Category",
+            "default": "Efetivo"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Ativo",
+              "Pendente",
+              "Suspenso"
+            ],
+            "title": "Status",
+            "default": "Ativo"
+          },
+          "joinedOn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Joinedon"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Notes",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "MemberIn",
+        "description": "Sócio. Sem n.º, recebe o seguinte livre."
+      },
+      "NewQuota": {
+        "properties": {
+          "period": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 3,
+            "title": "Period"
+          },
+          "amount": {
+            "type": "number",
+            "exclusiveMaximum": 1000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Amount"
+          },
+          "dueDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "title": "Duedate"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "period",
+          "amount",
+          "dueDate"
+        ],
+        "title": "NewQuota"
+      },
       "NewRole": {
         "properties": {
           "name": {
@@ -5150,6 +6425,36 @@
           "id"
         ],
         "title": "PayItem"
+      },
+      "QuotaPlan": {
+        "properties": {
+          "amount": {
+            "type": "number",
+            "exclusiveMaximum": 1000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Amount"
+          },
+          "periodicity": {
+            "type": "string",
+            "enum": [
+              "mensal",
+              "anual"
+            ],
+            "title": "Periodicity",
+            "default": "mensal"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "amount"
+        ],
+        "title": "QuotaPlan"
       },
       "Reset": {
         "properties": {

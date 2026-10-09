@@ -31,7 +31,9 @@ const NAV: { title: string; items: NavItem[] }[] = [
   {
     title: 'Clube',
     items: [
+      { label: 'Sócios', link: '/admin/socios', icon: 'card', permissions: ['members.view'] },
       { label: 'Atletas', link: '/admin/atletas', icon: 'users', permissions: ['athletes.view', 'athletes.manage'] },
+      { label: 'Importar', link: '/admin/importar', icon: 'upload', permissions: ['members.manage', 'athletes.manage'] },
       { label: 'Validações', link: '/admin/validacoes', icon: 'check', permissions: ['athletes.manage'] },
       { label: 'Resultados', link: '/admin/resultados', icon: 'trophy', permissions: ['results.import'] },
       { label: 'Pagamentos', link: '/admin/pagamentos', icon: 'euro', permissions: ['payments.view'] },

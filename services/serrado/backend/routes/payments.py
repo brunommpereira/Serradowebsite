@@ -16,6 +16,7 @@ from ..core import HttpError, actor, audit, can, not_found, pool, require, requi
 
 PaymentId = Annotated[str, Path(pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")]
 Sport = Annotated[str, Path(pattern=r"^[a-z0-9-]{1,40}$")]
+Category = Annotated[str, Path(min_length=2, max_length=40)]
 
 
 class PayItem(BaseModel):
@@ -45,6 +46,27 @@ class FeePlan(BaseModel):
 
 class Generate(BaseModel):
     month: str = Field(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+
+
+class QuotaPlan(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    amount: float = Field(gt=0, lt=1000)
+    periodicity: Literal["mensal", "anual"] = "mensal"
+    active: bool = True
+
+
+class ManualPayment(BaseModel):
+    """Pago na secretaria: numerário, transferência, MB WAY ao balcão…"""
+
+    model_config = ConfigDict(extra="forbid")
+    items: Annotated[list[PayItem], Field(min_length=1, max_length=48)]
+    method: Literal["cash", "transfer", "mb_way", "multibanco", "card", "cheque"]
+    paidOn: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    payerName: str = Field(min_length=2, max_length=160)
+    payerEmail: str = Field(default="", pattern=r"^$|^[^\s@]+@[^\s@]+\.[^\s@]+$", max_length=200)
+    payerNif: str | None = Field(default=None, pattern=r"^\d{9}$")
+    note: str = Field(default="", max_length=300)
+    receipt: bool = True
 
 
 def stripe_client(req: Request) -> StripeClient:
@@ -119,8 +141,56 @@ def register(r: APIRouter) -> None:
         month = date.fromisoformat(body.month + "-01")
         async with tx(pool(req)) as c:
             created = await service.generate_fees(c, month)
-            await audit(c, actor(req), "fees.generate", "athlete_fees", None, {"month": body.month, "created": created})
-        return {"month": body.month, "created": created}
+            quotas = await service.generate_quotas(c, month)
+            await audit(c, actor(req), "fees.generate", "athlete_fees", None, {"month": body.month, "created": created, "quotas": quotas})
+        return {"month": body.month, "created": created, "quotas": quotas}
+
+    @r.get("/quota-plans", tags=office, summary="Quota por categoria de sócio")
+    async def quota_plans(req: Request) -> list[dict[str, Any]]:
+        require(req, "payments.view")
+        return await fetch(
+            pool(req),
+            """select p.category, p.amount, p.periodicity, p.active, p.updated_at as "updatedAt",
+                      (select count(*)::int from members m where m.category = p.category and m.status = 'Ativo') as members
+                 from quota_plans p order by p.category""",
+        )
+
+    @r.put("/quota-plans/{category}", tags=office, summary="Define a quota de uma categoria")
+    async def set_quota_plan(req: Request, category: Category, body: QuotaPlan) -> dict[str, Any]:
+        require(req, "payments.manage")
+        category = category.strip()
+        async with tx(pool(req)) as c:
+            await c.execute(
+                """insert into quota_plans (category, amount, periodicity, active) values (%s, %s, %s, %s)
+                   on conflict (category) do update set amount = excluded.amount, periodicity = excluded.periodicity,
+                     active = excluded.active, updated_at = now()""",
+                [category, body.amount, body.periodicity, body.active],
+            )
+            await audit(c, actor(req), "quotas.plan", "quota_plans", category, body.model_dump())
+        return {"category": category, **body.model_dump()}
+
+    @r.get("/payments/pending", tags=office, summary="Quotas e mensalidades por pagar (para registar um pagamento feito na secretaria)")
+    async def pending(req: Request, q: Annotated[str | None, Query(max_length=100)] = None) -> list[dict[str, Any]]:
+        require(req, "payments.view")
+        return await service.pending_items(pool(req), q.strip() if q else None)
+
+    @r.post("/payments/manual", tags=office, summary="Regista um pagamento feito na secretaria e (opcional) emite a fatura-recibo", status_code=201)
+    async def manual(req: Request, body: ManualPayment) -> dict[str, Any]:
+        require(req, "payments.manage")
+        async with tx(pool(req)) as c:
+            return await service.record_manual(
+                c,
+                config.payments,
+                actor(req),
+                items=[(i.kind, i.id) for i in body.items],
+                method=body.method,
+                paid_on=body.paidOn,
+                payer_name=body.payerName.strip(),
+                payer_email=body.payerEmail.lower(),
+                payer_nif=body.payerNif,
+                note=body.note.strip(),
+                receipt=body.receipt,
+            )
 
     @r.get("/fees", tags=office, summary="Mensalidades de um mês")
     async def fees(req: Request, month: Annotated[str, Query(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")]) -> list[dict[str, Any]]:
@@ -138,7 +208,7 @@ def register(r: APIRouter) -> None:
         require(req, "payments.view")
         return await fetch(
             pool(req),
-            """select p.id, p.created_at as "createdAt", p.paid_at as "paidAt", p.amount, p.status, p.method, p.payer_name as "payerName",
+            """select p.id, p.created_at as "createdAt", p.paid_at as "paidAt", p.amount, p.status, p.method, p.provider, p.note, p.payer_name as "payerName",
                       p.payer_nif as "payerNif", p.receipt_number as "receiptNumber", p.receipt_status as "receiptStatus", p.receipt_error as "receiptError",
                       p.receipt_attempts as "receiptAttempts", (p.receipt_pdf is not null) as "hasReceipt",
                       coalesce((select json_agg(i.description order by i.kind, i.item_id) from payment_items i where i.payment_id = p.id), '[]') as items

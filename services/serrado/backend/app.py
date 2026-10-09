@@ -16,7 +16,7 @@ from ..db.pool import Pool, fetch_one
 from ..permissions import effective
 from ..web import BodyLimit, HttpError, MiB, error, install_error_handlers, log
 from .core import Actor
-from .routes import admin, athletes, auth, cms, media, members, payments, results
+from .routes import admin, athletes, auth, cms, media, members, payments, registry, results
 
 UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)
 PUBLIC = ("/internal/health", "/internal/docs", "/internal/openapi.json")
@@ -102,7 +102,7 @@ def build_backend(pool: Pool) -> FastAPI:
         return {"ok": True}
 
     v1 = APIRouter(prefix="/internal/v1")
-    for module in (auth, media, cms, athletes, members, results, admin, payments):
+    for module in (auth, media, cms, athletes, members, registry, results, admin, payments):
         module.register(v1)
     app.include_router(v1)
     app.add_middleware(BodyLimit, limit_for=_body_limit)  # type: ignore[arg-type]

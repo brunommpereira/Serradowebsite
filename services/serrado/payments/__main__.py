@@ -2,7 +2,7 @@
 Tarefas dos pagamentos no servidor (timers do systemd):
 
     python -m serrado.payments receipts                 # emite as faturas-recibo em falta (Moloni ON)
-    python -m serrado.payments generate-fees [AAAA-MM]  # cria as mensalidades do mês (omissão: mês atual)
+    python -m serrado.payments generate-fees [AAAA-MM]  # cria as mensalidades e as quotas do mês (omissão: mês atual)
     python -m serrado.payments moloni-info              # empresas, séries, artigos e métodos de pagamento (para configurar)
 """
 
@@ -15,7 +15,7 @@ from datetime import date
 from ..config import config
 from ..db.pool import create_pool
 from .moloni import MoloniClient
-from .service import generate_fees, issue_receipts
+from .service import generate_fees, generate_quotas, issue_receipts
 
 
 async def main(argv: list[str]) -> int:
@@ -39,7 +39,8 @@ async def main(argv: list[str]) -> int:
             month = date.fromisoformat(argv[1] + "-01") if len(argv) > 1 else date.today().replace(day=1)
             async with pool.connection() as c:
                 created = await generate_fees(c, month)
-            print(f"✔ {created} mensalidades criadas para {month:%Y-%m}")
+                quotas = await generate_quotas(c, month)
+            print(f"✔ {created} mensalidades e {quotas} quotas criadas para {month:%Y-%m}")
             return 0
         print(__doc__, file=sys.stderr)
         return 2

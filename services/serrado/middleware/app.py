@@ -18,7 +18,7 @@ from .backend_client import BackendClient, BackendError
 from .cache import TtlCache
 from .net import RateLimiter, client_ip, compile_trust
 from .oauth import OAuthProvider, configured_providers
-from .routes import admin, auth, content, me, payments
+from .routes import admin, auth, content, me, payments, registry
 from .session import SESSION_COOKIE, session, sign_session, staff
 
 # Limites por rota (por minuto e por IP); as restantes partilham o limite global (RATE_LIMIT_MAX)
@@ -39,7 +39,7 @@ CSRF_EXEMPT = ("/api/v1/payments/stripe/webhook",)
 def _body_limit(method: str, path: str) -> int:
     if path == "/api/v1/admin/media":
         return 8 * MiB
-    if path == "/api/v1/admin/results/import":
+    if path in ("/api/v1/admin/results/import", "/api/v1/admin/registry/import"):
         return 5 * MiB
     return MiB
 
@@ -98,7 +98,7 @@ def build_middleware(*, backend_client: BackendClient | None = None, oauth: dict
         return {"ok": True, "version": config.version}
 
     v1 = APIRouter(prefix="/api/v1")
-    for module in (auth, content, me, payments):
+    for module in (auth, content, me, payments, registry):
         module.register(v1)
     admin_router = APIRouter(prefix="/admin")
     admin.register(admin_router)
