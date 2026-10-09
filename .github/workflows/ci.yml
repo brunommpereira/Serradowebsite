@@ -45,7 +45,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.12.19'
-          python-version: '3.12'
+          python-version: '3.14'   # a da VPS (Ubuntu 26.04)
           enable-cache: true
           cache-dependency-glob: services/uv.lock
       - run: uv sync --frozen

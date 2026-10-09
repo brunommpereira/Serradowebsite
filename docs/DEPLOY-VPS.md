@@ -8,7 +8,7 @@ Instalação nativa, sem Docker: PostgreSQL, cópias de segurança, os serviços
 Visitante ──HTTPS──► Cloudflare (DNS, proteção, cache)
                           │  só os IPs da Cloudflare passam na firewall
                           ▼
-VPS Ubuntu 24.04 ── Caddy :443 (certificado de origem da Cloudflare)
+VPS Ubuntu 26.04 ── Caddy :443 (certificado de origem da Cloudflare)
                      ├─ /        → site (ficheiros estáticos)
                      └─ /api/*   → middleware 127.0.0.1:4000 → backend 127.0.0.1:4100
                                                                       │ socket local
@@ -33,7 +33,7 @@ GitHub Actions ──SSH (utilizador «deploy», só 4 comandos)──► serrad
 |---|---|---|
 | Onde | ovhcloud.com/pt → VPS → VPS-1 | hostinger.pt → VPS → KVM 1 |
 | Localização | **França ou Alemanha** (UE, RGPD) | **Europa** |
-| Sistema | **Ubuntu 24.04** | **Ubuntu 24.04** (sem painel) |
+| Sistema | **Ubuntu 26.04 LTS** (ou 24.04) | **Ubuntu 26.04 LTS** (ou 24.04, sem painel) |
 | Utilizador | `ubuntu` (com sudo) | `root` |
 | Chave SSH | Junta a tua chave pública ao encomendar | Junta a tua chave pública ao criar |
 
@@ -103,6 +103,7 @@ Em **GitHub → Settings → Secrets and variables → Actions**:
 |---|---|---|
 | Variable | `VPS_HOST` | IP da VPS |
 | Variable | `SITE_DOMAIN` | `www.serradofc.pt` (ou o endereço sslip.io) |
+| Variable | `VPS_PYTHON` | Só com **Ubuntu 24.04**: `3.12`. Por omissão é `3.14` (Ubuntu 26.04). Tem de ser a versão do `python3 --version` da VPS |
 | Secret | `VPS_SSH_KEY` | Conteúdo do ficheiro `serrado-deploy` (chave **privada**) |
 | Secret | `VPS_KNOWN_HOSTS` | A linha `IP ssh-ed25519 …` que o bootstrap mostrou |
 
