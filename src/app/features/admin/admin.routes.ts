@@ -62,6 +62,13 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./pages/registry-import.page').then((m) => m.RegistryImportPage),
       },
       {
+        path: 'registos',
+        title: 'Registos online',
+        canActivate: [staffGuard],
+        data: { permissions: ['registrations.manage'] },
+        loadComponent: () => import('./pages/registrations.page').then((m) => m.RegistrationsPage),
+      },
+      {
         path: 'validacoes',
         canActivate: [staffGuard],
         data: { permissions: ['athletes.manage'] },

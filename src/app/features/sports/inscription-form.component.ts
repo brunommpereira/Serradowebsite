@@ -4,16 +4,19 @@ import { RouterLink } from '@angular/router';
 import { Sport } from '../../core/models';
 import { PHONE_PATTERN } from '../../core/validators';
 import { ApiClient } from '../../core/api/api-client';
-import { OfflineNoticeComponent } from '../../shared/offline-notice.component';
 
 /** Pedido de inscrição de atleta numa modalidade. */
 @Component({
   selector: 'sfc-inscription-form',
-  imports: [ReactiveFormsModule, RouterLink, OfflineNoticeComponent],
+  imports: [ReactiveFormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (apiMode) {
-      <sfc-offline-notice title="Inscrição na modalidade" text="As inscrições fazem-se, para já, na secretaria do clube ou com o treinador. Fala connosco para marcar um treino experimental." />
+      <div class="card online">
+        <h3>Inscrição · {{ sport().name }}</h3>
+        <p>Inscreve o atleta online: preenches a ficha, aceitas o regulamento e assinas no ecrã. Recebes o documento assinado por email.</p>
+        <a class="btn btn--accent" routerLink="/inscricao" [queryParams]="{ modalidade: sport().slug }">Fazer a inscrição online</a>
+      </div>
     } @else if (sent()) {
       <div class="alert alert--success" role="status">
         <div>

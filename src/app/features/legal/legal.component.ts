@@ -77,7 +77,14 @@ export class LegalComponent {
         },
         { h: '9. Menores', p: ['O tratamento de dados de menores de 13 anos requer o consentimento do titular das responsabilidades parentais.'] },
         {
-          h: '10. Emails do site e acesso da equipa',
+          h: '10. Registo online e assinatura',
+          p: [
+            'Quando te inscreves no site como sócio ou atleta, guardamos, como prova da aceitação: os dados do formulário, a versão exata dos documentos aceites, a imagem da assinatura desenhada, a data e hora, o endereço IP e a identificação do navegador. Com estes elementos geramos um documento PDF, que te enviamos por email e que fica guardado pelo clube enquanto durar a inscrição e pelos prazos legais.',
+            'A autorização de imagem é facultativa e pode ser retirada a qualquer momento junto da secretaria.',
+          ],
+        },
+        {
+          h: '11. Emails do site e acesso da equipa',
           p: [
             'Os emails do site (por exemplo, a ligação para repor a password ou o convite para criar a conta) são enviados através da Brevo, com servidores na União Europeia. A Brevo recebe apenas o nome, o email e o texto da mensagem; depois do envio, o clube não guarda o conteúdo. As ligações de reposição são de uso único e expiram.',
             'Na equipa do clube, cada pessoa só acede ao que a sua função exige (por exemplo, só a secretaria vê os dados de identificação dos atletas). Todos os acessos de gestão ficam registados.',

@@ -13,8 +13,10 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from ..legal_templates import TEMPLATES
 from ..password import hash_password
 from ..permissions import DEFAULT_ROLES
+from ..signup import doc_hash
 from .pool import Conn, Jsonb, Pool, create_pool, tx
 
 DEMO_USERS: list[dict[str, Any]] = [
@@ -68,6 +70,13 @@ async def seed(pool: Pool, log: Callable[[str], None] = print) -> None:
                 )
         await c.execute("select setval('member_number_seq', 1000, false)")  # n.os novos a partir de 01000
         await c.execute("truncate quota_plans")
+        # Documentos legais de demonstração (no servidor, a direção publica os seus no backoffice)
+        await c.execute("truncate legal_documents, registrations")
+        for kind, (title, body) in TEMPLATES.items():
+            await c.execute(
+                "insert into legal_documents (kind, version, title, body, sha256) values (%s, 1, %s, %s, %s)",
+                [kind, title, body, doc_hash(title, body)],
+            )
         await _seed_quotas(c)
         await _seed_athletes(c, ids)
         await _seed_results(c)

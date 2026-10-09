@@ -89,6 +89,8 @@ Tabelas principais (ver `services/serrado/db/migrations`):
 | Backoffice: atletas | `GET /admin/athletes`, `GET /admin/change-requests`, `POST /admin/change-requests/{id}/approve\|reject`, `POST /admin/documents/{id}/approve\|reject` | as mesmas, sem o prefixo `/admin` |
 | Backoffice: sócios e atletas (gestão) | `GET\|POST /admin/members`, `GET\|PUT /admin/members/{n}`, `POST /admin/members/{n}/quotas`, `POST /admin/athletes`, `PUT /admin/athletes/{id}`, `GET\|POST /admin/athletes/{id}/access`, `DELETE /admin/athletes/{id}/access/{user}`, `POST /admin/registry/import` | `/members…`, `/members/{n}/detail`, `/athletes`, `/athletes/{id}/admin`, `/athletes/{id}/access…`, `/registry/import` |
 | Backoffice: tesouraria | `GET\|PUT /admin/quota-plans…`, `GET /admin/payments/pending`, `POST /admin/payments/manual` | `/quota-plans…`, `/payments/pending`, `/payments/manual` |
+| Registo online (público) | `GET /registrations/form`, `POST /registrations/member\|athlete` (5/min por IP) | `GET /signup/form`, `POST /signup/member\|athlete` (com o IP e o navegador postos pelo middleware) |
+| Backoffice: registos e documentos legais | `GET /admin/legal`, `POST /admin/legal/{kind}`, `GET /admin/registrations`, `GET /admin/registrations/{id}/pdf` | `/legal…`, `/registrations…` |
 | Backoffice: resultados | `POST /admin/results/import` | `POST /results/import` |
 | Backoffice: gestão | `GET /admin/dashboard` (agregado), `GET /admin/users`, `PUT /admin/users/{id}/roles`, `POST /admin/users/{id}/invite`, `GET /admin/permissions`, `GET\|POST /admin/roles`, `PUT\|DELETE /admin/roles/{key}`, `GET /admin/audit` | `GET /stats`, `GET /users`, `PUT /users/{id}/roles`, `POST /users/{id}/invite`, `GET /permissions`, `…/roles`, `GET /audit` |
 | Password por email | `GET /auth/options`, `POST /auth/password/forgot`, `POST /auth/password/reset` | `POST /auth/password/forgot`, `POST /auth/password/reset` |
@@ -171,3 +173,18 @@ Ou tudo junto: `docker compose up --build`.
 - **Dependências:** o Dependabot propõe atualizações todas as semanas (`.github/dependabot.yml`) para o front (npm) e para os serviços (uv). As versões dos serviços estão fixas no `uv.lock` e o deploy confere os hashes de cada biblioteca.
 - **Auditoria:** todas as escritas ficam registadas em `audit_log` (quem, o quê, quando).
 - **Dados de identificação:** nome, nascimento, CC e NIF só mudam através de pedidos aprovados pela secretaria. Um trigger na base de dados garante isto.
+
+## Registo online e assinatura
+
+Os formulários `/socios/registo` e `/inscricao` usam uma **assinatura eletrónica simples** (eIDAS), com prova:
+
+- **Documentos com versões** (`legal_documents`): condições de sócio, regulamento de atleta, RGPD e imagem. Uma alteração cria uma versão nova. As publicadas não mudam (um trigger impede-o), e cada uma tem o SHA-256 do texto.
+- **Registo** (`registrations`), que guarda:
+  - o formulário e a versão + hash de cada documento aceite (a imagem é facultativa);
+  - o PNG da assinatura (validado e limpo no servidor: tem de ter traço) e o seu hash;
+  - a hora do servidor, o IP (posto pelo middleware) e o navegador;
+  - o `evidence_sha256` de tudo isto (JSON canónico).
+- **PDF** (fpdf2) com os dados, os documentos aceites, a assinatura, a prova e os textos em anexo. É enviado por email a quem assinou e fica descarregável no backoffice.
+- **Menores de 18 anos:** assina o encarregado de educação, que fica com acesso à Área de Atletas. Um adulto assina por si.
+- **Fica ativo de imediato.** O sócio ou o atleta é criado (sem duplicar um que já exista) e a conta do site liga-se ao email de quem assinou, com convite para definir a password.
+- **Contra abusos:** 5 registos por minuto e por IP, um campo-armadilha para robôs e a validação de tudo no servidor.

@@ -5212,6 +5212,303 @@
           }
         }
       }
+    },
+    "/internal/v1/signup/form": {
+      "get": {
+        "tags": [
+          "Registo online"
+        ],
+        "summary": "Documentos em vigor, categorias de sócio e modalidades para os formulários",
+        "operationId": "form_internal_v1_signup_form_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Form Internal V1 Signup Form Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/signup/member": {
+      "post": {
+        "tags": [
+          "Registo online"
+        ],
+        "summary": "Registo de sócio (ativo de imediato) com assinatura",
+        "operationId": "signup_member_internal_v1_signup_member_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Signup Member Internal V1 Signup Member Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/signup/athlete": {
+      "post": {
+        "tags": [
+          "Registo online"
+        ],
+        "summary": "Inscrição de atleta (ativa de imediato) com assinatura",
+        "operationId": "signup_athlete_internal_v1_signup_athlete_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AthleteBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Signup Athlete Internal V1 Signup Athlete Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/legal": {
+      "get": {
+        "tags": [
+          "Backoffice · Registos"
+        ],
+        "summary": "Documentos legais: versão em vigor e histórico",
+        "operationId": "legal_internal_v1_legal_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Legal Internal V1 Legal Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/legal/{kind}": {
+      "post": {
+        "tags": [
+          "Backoffice · Registos"
+        ],
+        "summary": "Publica uma versão nova (as anteriores ficam como estavam)",
+        "operationId": "publish_internal_v1_legal__kind__post",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "socio",
+                "atleta",
+                "rgpd",
+                "imagem"
+              ],
+              "type": "string",
+              "title": "Kind"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LegalBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Publish Internal V1 Legal  Kind  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/registrations": {
+      "get": {
+        "tags": [
+          "Backoffice · Registos"
+        ],
+        "summary": "Registos online assinados (mais recentes primeiro)",
+        "operationId": "registrations_internal_v1_registrations_get",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "member",
+                    "athlete"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Registrations Internal V1 Registrations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/registrations/{id}/pdf": {
+      "get": {
+        "tags": [
+          "Backoffice · Registos"
+        ],
+        "summary": "PDF assinado",
+        "operationId": "registration_pdf_internal_v1_registrations__id__pdf_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Registration Pdf Internal V1 Registrations  Id  Pdf Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5263,6 +5560,23 @@
           "alt"
         ],
         "title": "AltText"
+      },
+      "AthleteBody": {
+        "properties": {
+          "form": {
+            "$ref": "#/components/schemas/AthleteSignup"
+          },
+          "client": {
+            "$ref": "#/components/schemas/Client"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "form",
+          "client"
+        ],
+        "title": "AthleteBody"
       },
       "AthleteIn": {
         "properties": {
@@ -5473,6 +5787,200 @@
         "title": "AthleteIn",
         "description": "Atleta. Sem código, recebe o seguinte (SFC-0001…)."
       },
+      "AthleteSignup": {
+        "properties": {
+          "accept": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "maxProperties": 4,
+            "title": "Accept"
+          },
+          "imageConsent": {
+            "type": "boolean",
+            "title": "Imageconsent",
+            "default": false
+          },
+          "signature": {
+            "type": "string",
+            "maxLength": 600000,
+            "title": "Signature"
+          },
+          "website": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Website",
+            "default": ""
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 5,
+            "title": "Name"
+          },
+          "birthDate": {
+            "type": "string",
+            "title": "Birthdate"
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "Feminino",
+              "Masculino"
+            ],
+            "title": "Gender"
+          },
+          "sport": {
+            "type": "string",
+            "enum": [
+              "atletismo",
+              "futsal",
+              "rugby",
+              "formacao",
+              "escola-de-desporto"
+            ],
+            "title": "Sport"
+          },
+          "idNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idnumber"
+          },
+          "idExpiry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idexpiry"
+          },
+          "taxNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxnumber"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "postalCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postalcode"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "emergencyName": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 3,
+            "title": "Emergencyname"
+          },
+          "emergencyPhone": {
+            "type": "string",
+            "title": "Emergencyphone"
+          },
+          "shirtSize": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 5
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shirtsize"
+          },
+          "guardian": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Guardian"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "accept",
+          "signature",
+          "name",
+          "birthDate",
+          "gender",
+          "sport",
+          "emergencyName",
+          "emergencyPhone"
+        ],
+        "title": "AthleteSignup"
+      },
       "ChangeRequest": {
         "properties": {
           "changes": {
@@ -5484,6 +5992,28 @@
           "changes"
         ],
         "title": "ChangeRequest"
+      },
+      "Client": {
+        "properties": {
+          "ip": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 2,
+            "title": "Ip"
+          },
+          "userAgent": {
+            "type": "string",
+            "maxLength": 400,
+            "title": "Useragent",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "ip"
+        ],
+        "title": "Client",
+        "description": "Quem submeteu (posto pelo middleware, não pelo browser)."
       },
       "Credentials": {
         "properties": {
@@ -5820,6 +6350,39 @@
         ],
         "title": "Generate"
       },
+      "Guardian": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 5,
+            "title": "Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "relation": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Relation",
+            "default": "Encarregado de educação"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "email",
+          "phone"
+        ],
+        "title": "Guardian"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -5920,6 +6483,29 @@
         ],
         "title": "ImportBody"
       },
+      "LegalBody": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 3,
+            "title": "Title"
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 60000,
+            "minLength": 20,
+            "title": "Body"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "body"
+        ],
+        "title": "LegalBody"
+      },
       "ManualPayment": {
         "properties": {
           "items": {
@@ -5995,6 +6581,23 @@
         ],
         "title": "ManualPayment",
         "description": "Pago na secretaria: numerário, transferência, MB WAY ao balcão…"
+      },
+      "MemberBody": {
+        "properties": {
+          "form": {
+            "$ref": "#/components/schemas/MemberSignup"
+          },
+          "client": {
+            "$ref": "#/components/schemas/Client"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "form",
+          "client"
+        ],
+        "title": "MemberBody"
       },
       "MemberIn": {
         "properties": {
@@ -6138,6 +6741,122 @@
         ],
         "title": "MemberIn",
         "description": "Sócio. Sem n.º, recebe o seguinte livre."
+      },
+      "MemberSignup": {
+        "properties": {
+          "accept": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "maxProperties": 4,
+            "title": "Accept"
+          },
+          "imageConsent": {
+            "type": "boolean",
+            "title": "Imageconsent",
+            "default": false
+          },
+          "signature": {
+            "type": "string",
+            "maxLength": 600000,
+            "title": "Signature"
+          },
+          "website": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Website",
+            "default": ""
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 5,
+            "title": "Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "taxNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxnumber"
+          },
+          "birthDate": {
+            "type": "string",
+            "title": "Birthdate"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "postalCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postalcode"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "accept",
+          "signature",
+          "name",
+          "email",
+          "phone",
+          "birthDate"
+        ],
+        "title": "MemberSignup"
       },
       "NewQuota": {
         "properties": {

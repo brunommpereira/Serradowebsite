@@ -8,7 +8,7 @@
 <section class="section">
   <div class="container reg">
     @if (apiMode) {
-      <sfc-offline-notice title="Inscrição como sócio" text="As inscrições de novos sócios fazem-se, para já, na secretaria do clube. Fala connosco e tratamos de tudo, incluindo o cartão de sócio." />
+      <sfc-member-signup />
     } @else {
     <ol class="stepper" aria-label="Passos do registo">
       @for (l of stepLabels; track l; let i = $index) {
