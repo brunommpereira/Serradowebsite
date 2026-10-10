@@ -418,13 +418,41 @@ async def complete_pair(c: Conn, who: Actor, number: str, athlete_id: str) -> di
 
 
 async def claim_athletes(c: Conn, user_id: str) -> int:
-    """A conta vê as fichas de atleta que têm o seu email de contacto (o email está confirmado: entrou com ele).
-    Atleta adulto (ou sem data de nascimento): acesso como «atleta». Menor sem ninguém com acesso: como «encarregado»."""
+    """Liga a conta às suas fichas (o email está confirmado: entrou com ele).
+
+    1. Ficha de sócio com o email da conta.
+    2. Fichas de atleta com o email da conta: adulto (ou sem data) como «atleta»; menor sem ninguém com acesso
+       como «encarregado».
+    3. Ficha de sócio a que está ligada a ficha de atleta da própria pessoa (sócio da lista antiga, sem email).
+    4. Atletas ligados ao n.º de sócio desta conta: menores como «encarregado»; adultos só se forem a mesma pessoa.
+    """
     u = await (await c.execute("select email from users where id = %s", [user_id])).fetchone()
     if not u or not u["email"]:
         return 0
-    # A ficha de sócio com o mesmo email fica ligada à conta (ex.: sócio importado sem conta)
-    await c.execute("update members set user_id = %s where user_id is null and lower(email) = lower(%s)", [user_id, u["email"]])
+    email = u["email"]
+    actor = Actor(id=user_id)
+    await c.execute("update members set user_id = %s where user_id is null and lower(email) = lower(%s)", [user_id, email])
+    n = await _claim_pass(c, actor, email)
+    own = await (
+        await c.execute(
+            """select m.member_number, m.name as m_name, m.birth_date as m_birth, a.name as a_name, a.birth_date as a_birth
+                 from athlete_access x join athletes a on a.id = x.athlete_id join members m on m.member_number = a.member_number
+                where x.user_id = %s and x.role = 'atleta' and m.user_id is null
+                  and not exists(select 1 from members o where o.user_id = %s)""",
+            [user_id, user_id],
+        )
+    ).fetchall()
+    for o in own:
+        if same_person(o["m_name"], o["a_name"], o["m_birth"], o["a_birth"]):
+            await c.execute("update members set user_id = %s where member_number = %s and user_id is null", [user_id, o["member_number"]])
+            await audit(c, actor, "members.claim", "members", o["member_number"], {"via": "own_athlete"})
+            n += await _claim_pass(c, actor, email)
+            break
+    return n
+
+
+async def _claim_pass(c: Conn, actor: Actor, email: str) -> int:
+    user_id = actor.id
     rows = await (
         await c.execute(
             """select a.id, a.name, (a.birth_date is null or a.birth_date <= current_date - interval '18 years') as adult,
@@ -433,7 +461,7 @@ async def claim_athletes(c: Conn, user_id: str) -> int:
                  from athletes a left join members m on m.member_number = a.member_number and m.user_id = %s
                 where (lower(a.email) = lower(%s) or m.member_number is not null)
                   and not exists(select 1 from athlete_access x where x.athlete_id = a.id and x.user_id = %s)""",
-            [u["email"], user_id, u["email"], user_id],
+            [email, user_id, email, user_id],
         )
     ).fetchall()
     n = 0
@@ -446,7 +474,7 @@ async def claim_athletes(c: Conn, user_id: str) -> int:
             continue  # menor com encarregado: só a secretaria dá mais acessos
         role = "atleta" if a["adult"] else "encarregado"
         await c.execute("insert into athlete_access (user_id, athlete_id, role) values (%s, %s, %s) on conflict do nothing", [user_id, a["id"], role])
-        await audit(c, Actor(id=user_id), "athletes.claim", "athletes", str(a["id"]), {"role": role, "via": "email"})
+        await audit(c, actor, "athletes.claim", "athletes", str(a["id"]), {"role": role, "via": "email" if a["by_email"] else "member"})
         n += 1
     return n
 
