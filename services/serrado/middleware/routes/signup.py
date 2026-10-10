@@ -25,7 +25,11 @@ def register(r: APIRouter) -> None:
     async def form(req: Request) -> Any:
         return await backend(req).call("GET", "/signup/form")
 
-    @r.post("/registrations/{kind}", tags=public, summary="Registo de sócio ou de atleta com assinatura desenhada", status_code=201)
+    @r.post("/registrations/confirm", tags=public, summary="Confirmar a proposta (ligação do email)")
+    async def confirm(req: Request, body: JsonObject) -> Any:
+        return await backend(req).call("POST", "/signup/confirm", body={"token": str(body.get("token", ""))[:100], "client": _client(req)})
+
+    @r.post("/registrations/{kind}", tags=public, summary="Proposta de sócio ou de atleta (aceitação; confirmação por email)", status_code=201)
     async def submit(req: Request, kind: Annotated[Literal["member", "athlete"], Path()], body: JsonObject) -> Any:
         return await backend(req).call("POST", f"/signup/{kind}", body={"form": body, "client": _client(req)})
 
@@ -40,9 +44,23 @@ def register(r: APIRouter) -> None:
         return await backend(req).call("POST", f"/legal/{kind}", actor=s, body=body)
 
     @r.get("/admin/registrations", tags=office, summary="Registos online assinados")
-    async def registrations(req: Request, kind: Literal["member", "athlete"] | None = None) -> Any:
+    async def registrations(
+        req: Request,
+        kind: Literal["member", "athlete"] | None = None,
+        status: Literal["por_confirmar", "pendente", "aceite", "recusada"] | None = None,
+    ) -> Any:
         s = await staff(req)
-        return await backend(req).call("GET", "/registrations", actor=s, query={"kind": kind})
+        return await backend(req).call("GET", "/registrations", actor=s, query={"kind": kind, "status": status})
+
+    @r.post("/admin/registrations/{id}/approve", tags=office, summary="Aceitar a proposta")
+    async def approve(req: Request, id: RegId, body: JsonObject) -> Any:
+        s = await staff(req)
+        return await backend(req).call("POST", f"/registrations/{id}/approve", actor=s, body=body)
+
+    @r.post("/admin/registrations/{id}/reject", tags=office, summary="Recusar a proposta")
+    async def reject(req: Request, id: RegId, body: JsonObject) -> Any:
+        s = await staff(req)
+        return await backend(req).call("POST", f"/registrations/{id}/reject", actor=s, body=body)
 
     @r.get("/admin/registrations/{id}/pdf", tags=office, summary="PDF assinado")
     async def pdf(req: Request, id: RegId) -> Response:

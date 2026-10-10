@@ -62,6 +62,16 @@ def register(r: APIRouter) -> None:
         s = await staff(req)
         return await backend(req).call("DELETE", f"/members/{number}/athletes/{id}", actor=s)
 
+    @r.post("/admin/members/{number}/guardian/{id}", tags=tags, summary="Sócio passa a encarregado do atleta")
+    async def link_guardian(req: Request, number: Number, id: AthleteId) -> Any:
+        s = await staff(req)
+        return await backend(req).call("POST", f"/members/{number}/guardian/{id}", actor=s)
+
+    @r.delete("/admin/members/{number}/guardian/{id}", tags=tags, summary="Retirar o papel de encarregado")
+    async def unlink_guardian(req: Request, number: Number, id: AthleteId) -> Any:
+        s = await staff(req)
+        return await backend(req).call("DELETE", f"/members/{number}/guardian/{id}", actor=s)
+
     @r.post("/admin/athletes", tags=tags, summary="Criar atleta", status_code=201)
     async def create_athlete(req: Request, body: JsonObject) -> Any:
         s = await staff(req)

@@ -142,10 +142,34 @@ const EMPTY: Draft = { name: '', email: '', phone: '', taxNumber: '', birthDate:
           }
         </ul>
 
+        @if (d.guardianOf.length) {
+          <h3 class="h-s">Encarregado de educação de</h3>
+          <ul class="plain links">
+            @for (a of d.guardianOf; track a.id) {
+              <li>
+                <span>{{ a.name }} <span class="caption">{{ a.code }} · {{ a.sport }}{{ a.category ? ' · ' + a.category : '' }}</span></span>
+                @if (canLink()) {
+                  <button type="button" class="btn btn--outline btn--sm" [disabled]="linkBusy()" (click)="unlinkGuardian(d, a.id, a.name)">Retirar</button>
+                }
+              </li>
+            }
+          </ul>
+        }
+
         @if (canLink()) {
           <div class="sugg">
             <h3 class="h-s">Sugestões de ligação</h3>
-            <p class="caption">Atletas com o mesmo nome, o mesmo apelido ou de quem este sócio é encarregado no site. Confirma antes de ligar: o n.º de sócio passa para a ficha do atleta.</p>
+            <p class="caption">
+              <strong>Mesma pessoa</strong>: «Ligar» passa o n.º de sócio para a ficha do atleta e completa os dados em falta.
+              <strong>Possível encarregado</strong>: atletas menores com o mesmo apelido; «Encarregado» dá ao sócio acesso à ficha no site.
+            </p>
+            <div class="chips" role="group" aria-label="Tipo de sugestão">
+              @for (f of suggFilters; track f.key) {
+                <button type="button" class="chip" [attr.aria-pressed]="suggFilter() === f.key" (click)="suggFilter.set(f.key)">
+                  {{ f.label }} ({{ countType(f.key) }})
+                </button>
+              }
+            </div>
             <form class="sugg__search" (submit)="$event.preventDefault(); loadSuggestions(d, sq)">
               <label class="visually-hidden" for="sugg-q">Procurar atleta pelo nome</label>
               <input id="sugg-q" name="sq" [(ngModel)]="sq" placeholder="Procurar atleta pelo nome" maxlength="80" />
@@ -155,22 +179,27 @@ const EMPTY: Draft = { name: '', email: '', phone: '', taxNumber: '', birthDate:
               }
             </form>
             <ul class="plain links">
-              @for (s of suggestions() ?? []; track s.id) {
+              @for (s of shownSuggestions(); track s.id) {
                 <li>
                   <span>
                     {{ s.name }}
                     <span class="caption">{{ s.code }} · {{ s.sport }}{{ s.category ? ' · ' + s.category : '' }}{{ s.birthDate ? ' · ' + (s.birthDate | date: 'dd/MM/y') : '' }}</span>
                     <span class="caption sub">
-                      <span class="st" [class]="'st ' + (s.score >= 80 ? 'st--ok' : 'st--warn')">{{ s.reason }}</span>
+                      <span class="st" [class]="'st ' + (s.type === 'same' ? 'st--ok' : 'st--warn')">{{ s.reason }}</span>
                       @if (s.memberNumber) {
                         · já ligado ao sócio n.º {{ s.memberNumber }}
                       }
                     </span>
                   </span>
-                  <button type="button" class="btn btn--primary btn--sm" [disabled]="linkBusy()" (click)="link(d, s)">Ligar</button>
+                  <span class="sugg__actions">
+                    @if (s.type !== 'same') {
+                      <button type="button" class="btn btn--sm" [class.btn--primary]="s.type === 'guardian'" [class.btn--outline]="s.type !== 'guardian'" [disabled]="linkBusy()" (click)="linkGuardian(d, s)" title="O sócio passa a encarregado de educação do atleta">Encarregado</button>
+                    }
+                    <button type="button" class="btn btn--sm" [class.btn--primary]="s.type !== 'guardian'" [class.btn--outline]="s.type === 'guardian'" [disabled]="linkBusy()" (click)="link(d, s)" title="É a mesma pessoa: o n.º de sócio passa para a ficha do atleta">Ligar</button>
+                  </span>
                 </li>
               } @empty {
-                <li class="caption">{{ suggestions() === null ? 'A procurar…' : sq ? 'Nenhum atleta com esse nome.' : 'Sem sugestões. Procura o atleta pelo nome.' }}</li>
+                <li class="caption">{{ suggestions() === null ? 'A procurar…' : sq ? 'Nenhum atleta com esse nome.' : 'Sem sugestões deste tipo. Procura o atleta pelo nome.' }}</li>
               }
             </ul>
           </div>
@@ -306,6 +335,7 @@ const EMPTY: Draft = { name: '', email: '', phone: '', taxNumber: '', birthDate:
       justify-content: space-between;
       align-items: center;
       gap: 0.6rem;
+      flex-wrap: wrap;
       padding: 0.35rem 0;
       border-bottom: 1px solid var(--color-border, #e3e6ee);
       .sub {
@@ -315,6 +345,14 @@ const EMPTY: Draft = { name: '', email: '', phone: '', taxNumber: '', birthDate:
     }
     .sugg {
       margin-top: 1rem;
+      .chips {
+        margin: 0.4rem 0;
+      }
+    }
+    .sugg__actions {
+      display: flex;
+      gap: 0.4rem;
+      flex: none;
     }
     .sugg__search {
       display: flex;
@@ -457,6 +495,16 @@ export class MembersPage {
   /** Ligar atletas ao sócio: quem gere sócios e atletas (secretaria) */
   protected readonly canLink = computed(() => this.auth.can('members.manage') && this.auth.can('athletes.manage'));
   protected readonly suggestions = signal<AthleteSuggestion[] | null>(null);
+  protected readonly suggFilters = [
+    { key: 'all', label: 'Todas' },
+    { key: 'same', label: 'Mesma pessoa' },
+    { key: 'guardian', label: 'Possível encarregado' },
+  ] as const;
+  protected readonly suggFilter = signal<'all' | 'same' | 'guardian'>('all');
+  protected readonly shownSuggestions = computed(() => {
+    const f = this.suggFilter();
+    return (this.suggestions() ?? []).filter((s) => f === 'all' || s.type === 'search' || s.type === f);
+  });
   protected readonly linkBusy = signal(false);
   protected sq = '';
   protected readonly isSet = (v: unknown) => !!v;
@@ -503,19 +551,45 @@ export class MembersPage {
 
   async link(d: MemberDetail, s: AthleteSuggestion) {
     if (s.memberNumber && !confirm(`${s.name} está ligado ao sócio n.º ${s.memberNumber}. Passar para o sócio n.º ${d.memberNumber}?`)) return;
-    await this.changeLink(d, () => this.api.linkAthlete(d.memberNumber, s.id, !!s.memberNumber), `${s.name} ligado ao sócio n.º ${d.memberNumber}.`);
+    let done = '';
+    await this.changeLink(
+      d,
+      async () => {
+        const out = await this.api.linkAthlete(d.memberNumber, s.id, !!s.memberNumber);
+        const c = out.completed;
+        if (c?.member.length) done += ` Completado na ficha do sócio: ${c.member.join(', ')}.`;
+        if (c?.athlete.length) done += ` Completado na ficha do atleta: ${c.athlete.join(', ')}.`;
+        return out;
+      },
+      () => `${s.name} ligado ao sócio n.º ${d.memberNumber}.${done}`,
+    );
+  }
+
+  async linkGuardian(d: MemberDetail, s: AthleteSuggestion) {
+    if (!confirm(`${d.name} passa a encarregado de educação de ${s.name} (acesso à ficha no site). Continuar?`)) return;
+    await this.changeLink(d, () => this.api.linkGuardian(d.memberNumber, s.id), () => `${d.name} é agora encarregado de ${s.name}.`);
+  }
+
+  async unlinkGuardian(d: MemberDetail, id: string, name: string) {
+    if (!confirm(`Retirar a ${d.name} o papel de encarregado de ${name}?`)) return;
+    await this.changeLink(d, () => this.api.unlinkGuardian(d.memberNumber, id), () => `${d.name} deixou de ser encarregado de ${name}.`);
+  }
+
+  protected countType(t: 'all' | 'same' | 'guardian') {
+    const l = (this.suggestions() ?? []).filter((s) => s.type !== 'search');
+    return t === 'all' ? l.length : l.filter((s) => s.type === t).length;
   }
 
   async unlink(d: MemberDetail, id: string, name: string) {
     if (!confirm(`Desligar ${name} do sócio n.º ${d.memberNumber}?`)) return;
-    await this.changeLink(d, () => this.api.unlinkAthlete(d.memberNumber, id), `${name} desligado.`);
+    await this.changeLink(d, () => this.api.unlinkAthlete(d.memberNumber, id), () => `${name} desligado.`);
   }
 
-  private async changeLink(d: MemberDetail, call: () => Promise<MemberDetail>, ok: string) {
+  private async changeLink(d: MemberDetail, call: () => Promise<MemberDetail>, ok: () => string) {
     this.linkBusy.set(true);
     try {
       this.detail.set(await call());
-      this.message.set({ ok: true, text: ok });
+      this.message.set({ ok: true, text: ok() });
       this.reloads.update((n) => n + 1);
       await this.loadSuggestions(d, this.sq);
     } catch (e) {

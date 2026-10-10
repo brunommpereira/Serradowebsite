@@ -13,6 +13,7 @@ export const serverRoutes: ServerRoute[] = [
   { path: 'admin/**', renderMode: RenderMode.Client },
   { path: 'paginas/:slug', renderMode: RenderMode.Client },
   { path: 'area-atletas', renderMode: RenderMode.Client },
+  { path: 'propostas/confirmar', renderMode: RenderMode.Client },
   {
     path: 'modalidades/:slug',
     renderMode: RenderMode.Prerender,

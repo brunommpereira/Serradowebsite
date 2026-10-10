@@ -92,7 +92,7 @@ export const ADMIN_ROUTES: Routes = [
       },
       {
         path: 'registos',
-        title: 'Registos online',
+        title: 'Propostas',
         canActivate: [staffGuard],
         data: { permissions: ['registrations.manage'] },
         loadComponent: () => import('./pages/registrations.page').then((m) => m.RegistrationsPage),

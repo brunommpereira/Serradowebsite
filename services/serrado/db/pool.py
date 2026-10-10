@@ -69,6 +69,12 @@ async def _configure(conn: AsyncConnection[Any]) -> None:
     register_types(conn)
 
 
+async def _reset(conn: AsyncConnection[Any]) -> None:
+    """Ao voltar ao pool: as ligações usadas para locks ficam em autocommit; a seguinte tem de ser transacional."""
+    if conn.autocommit:
+        await conn.set_autocommit(False)
+
+
 def create_pool(url: str | None = None, *, min_size: int = 1, max_size: int = 10) -> AsyncConnectionPool[Conn]:
     """Pool de ligações (abrir com `await pool.open()`). Sessões na hora de Portugal (current_date, now()) e datas em ISO."""
     return AsyncConnectionPool(
@@ -77,6 +83,7 @@ def create_pool(url: str | None = None, *, min_size: int = 1, max_size: int = 10
         max_size=max_size,
         open=False,
         configure=_configure,
+        reset=_reset,
         kwargs={"row_factory": dict_row, "options": "-c timezone=Europe/Lisbon -c datestyle=ISO"},
     )
 

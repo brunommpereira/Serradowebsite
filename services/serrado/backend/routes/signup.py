@@ -9,8 +9,20 @@ from pydantic import BaseModel, ConfigDict, Field
 from ...db.pool import fetch, fetch_one, tx
 from ...legal_templates import TEMPLATES
 from ...registry import SPORTS
-from ...signup import KINDS, TITLES, AthleteSignup, MemberSignup, current_documents, publish_document, register_athlete, register_member
-from ..core import actor, not_found, pool, require
+from ...signup import (
+    KINDS,
+    TITLES,
+    AthleteSignup,
+    MemberSignup,
+    approve,
+    confirm,
+    current_documents,
+    publish_document,
+    register_athlete,
+    register_member,
+    reject,
+)
+from ..core import actor, can, not_found, pool, require
 
 Kind = Annotated[Literal["socio", "atleta", "rgpd", "imagem"], Path()]
 RegId = Annotated[str, Path(pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")]
@@ -35,6 +47,18 @@ class AthleteBody(BaseModel):
     client: Client
 
 
+class ConfirmBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    token: str = Field(min_length=20, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
+    client: Client
+
+
+class Decision(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    note: str = Field(default="", max_length=2000)
+    category: str | None = Field(default=None, min_length=2, max_length=40)
+
+
 class LegalBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     title: str = Field(min_length=3, max_length=160)
@@ -56,17 +80,27 @@ def register(r: APIRouter) -> None:
             "sports": list(SPORTS),
         }
 
-    @r.post("/signup/member", tags=public, summary="Registo de sócio (ativo de imediato) com assinatura", status_code=201)
+    @r.post(
+        "/signup/member",
+        tags=public,
+        summary="Proposta de sócio (aceitação + confirmação por email; depois fica à espera da secretaria)",
+        status_code=201,
+    )
     async def signup_member(req: Request, body: MemberBody) -> dict[str, Any]:
         async with tx(pool(req)) as c:
             return await register_member(c, body.form, body.client.model_dump())
 
-    @r.post("/signup/athlete", tags=public, summary="Inscrição de atleta (ativa de imediato) com assinatura", status_code=201)
+    @r.post("/signup/athlete", tags=public, summary="Proposta de inscrição de atleta (aceitação + confirmação por email)", status_code=201)
     async def signup_athlete(req: Request, body: AthleteBody) -> dict[str, Any]:
         async with tx(pool(req)) as c:
             return await register_athlete(c, body.form, body.client.model_dump())
 
     # ------------------------------------------------------------- backoffice
+    @r.post("/signup/confirm", tags=public, summary="Confirmação por email: a proposta passa à secretaria (com o PDF)")
+    async def confirm_signup(req: Request, body: ConfirmBody) -> dict[str, Any]:
+        async with tx(pool(req)) as c:
+            return await confirm(c, body.token, body.client.model_dump())
+
     @r.get("/legal", tags=office, summary="Documentos legais: versão em vigor e histórico")
     async def legal(req: Request) -> dict[str, Any]:
         require(req, "registrations.manage")
@@ -93,17 +127,49 @@ def register(r: APIRouter) -> None:
             return await publish_document(c, actor(req), kind, body.title, body.body)
 
     @r.get("/registrations", tags=office, summary="Registos online assinados (mais recentes primeiro)")
-    async def registrations(req: Request, kind: Literal["member", "athlete"] | None = None) -> list[dict[str, Any]]:
+    async def registrations(
+        req: Request,
+        kind: Literal["member", "athlete"] | None = None,
+        status: Literal["por_confirmar", "pendente", "aceite", "recusada"] | None = None,
+    ) -> list[dict[str, Any]]:
         require(req, "registrations.manage")
-        return await fetch(
+        rows = await fetch(
             pool(req),
-            """select g.id, g.kind, g.signed_at as "signedAt", g.signer_name as "signerName", g.signer_email as "signerEmail",
+            """select g.id, g.kind, g.status, g.signed_at as "signedAt", g.signer_name as "signerName", g.signer_email as "signerEmail",
                       g.signer_role as "signerRole", g.image_consent as "imageConsent", g.member_number as "memberNumber",
-                      a.code as "athleteCode", coalesce(g.data->>'name', '') as name, g.evidence_sha256 as "evidenceSha256"
+                      a.code as "athleteCode", coalesce(g.data->>'name', '') as name, g.evidence_sha256 as "evidenceSha256",
+                      g.proposer_number as "proposerNumber", p.name as "proposerName", g.data,
+                      g.review_note as "reviewNote", g.reviewed_at as "reviewedAt", u.name as "reviewedBy",
+                      g.confirmed_at as "confirmedAt", (g.pdf is not null) as "hasPdf"
                  from registrations g left join athletes a on a.id = g.athlete_id
-                where (%s::text is null or g.kind = %s) order by g.signed_at desc limit 500""",
-            [kind, kind],
+                      left join members p on p.member_number = g.proposer_number
+                      left join users u on u.id = g.reviewed_by
+                where (%s::text is null or g.kind = %s) and (%s::text is null or g.status = %s)
+                order by g.signed_at desc limit 500""",
+            [kind, kind, status, status],
         )
+        # CC, NIF e morada dos atletas propostos só para quem vê dados sensíveis
+        if not can(req, "athletes.sensitive"):
+            for r in rows:
+                if r["kind"] == "athlete":
+                    r["data"] = {k: v for k, v in r["data"].items() if k not in ("idNumber", "idExpiry", "taxNumber", "address", "postalCode")}
+        return rows
+
+    @r.post("/registrations/{id}/approve", tags=office, summary="Aceita a proposta: cria o sócio (n.º seguinte) ou o atleta")
+    async def approve_registration(req: Request, id: RegId, body: Decision) -> dict[str, Any]:
+        require(req, "registrations.manage")
+        async with tx(pool(req)) as c:
+            kind = await (await c.execute("select kind from registrations where id = %s", [id])).fetchone()
+            if not kind:
+                raise not_found("Proposta")
+            require(req, "members.manage" if kind["kind"] == "member" else "athletes.manage")
+            return await approve(c, actor(req), id, category=body.category, note=body.note)
+
+    @r.post("/registrations/{id}/reject", tags=office, summary="Recusa a proposta (email com o motivo)")
+    async def reject_registration(req: Request, id: RegId, body: Decision) -> dict[str, Any]:
+        require(req, "registrations.manage")
+        async with tx(pool(req)) as c:
+            return await reject(c, actor(req), id, body.note)
 
     @r.get("/registrations/{id}/pdf", tags=office, summary="PDF assinado")
     async def registration_pdf(req: Request, id: RegId) -> dict[str, str]:

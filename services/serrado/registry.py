@@ -342,6 +342,9 @@ async def save_athlete(c: Conn, who: Actor, a: AthleteIn, *, athlete_id: str | N
     if a.accountEmail:
         await grant_access(c, athlete_id, a.accountEmail, a.name, "atleta")
     await audit(c, who, f"athletes.{'create' if result == 'created' else 'admin_update'}", "athletes", athlete_id, {"fields": sorted(data)})
+    linked = await (await c.execute("select member_number from athletes where id = %s", [athlete_id])).fetchone()
+    if linked and linked["member_number"]:
+        await complete_pair(c, who, linked["member_number"], athlete_id)
     return athlete_id, result
 
 
@@ -352,6 +355,50 @@ async def grant_access(c: Conn, athlete_id: str, email: str, name: str, role: st
         [user_id, athlete_id, role],
     )
     return user_id
+
+
+# ------------------------------------------------------------------ sócio e atleta que são a mesma pessoa
+def name_words(name: str) -> list[str]:
+    """Nome → palavras sem acentos nem partículas (de, da, dos…), para comparar nomes."""
+    plain = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode().lower()
+    return [w for w in re.sub(r"[^a-z ]", " ", plain).split() if w not in {"de", "da", "do", "das", "dos", "e"}]
+
+
+# Dados que existem nas duas fichas; os marcados só passam do atleta para o sócio com athletes.sensitive
+SHARED = {
+    "email": "Email",
+    "phone": "Telemóvel",
+    "tax_number": "NIF",
+    "birth_date": "Data de nascimento",
+    "address": "Morada",
+    "postal_code": "Código postal",
+    "city": "Localidade",
+}
+SENSITIVE_COLS = {"tax_number", "address", "postal_code"}
+
+
+async def complete_pair(c: Conn, who: Actor, number: str, athlete_id: str) -> dict[str, list[str]]:
+    """Sócio e atleta ligados com o mesmo nome são a mesma pessoa: o que falta numa ficha vem da outra.
+    Nunca substitui o que já está preenchido. Devolve os campos completados em cada ficha."""
+    cols = ", ".join(SHARED)
+    m = await (await c.execute(f"select name, {cols} from members where member_number = %s", [number])).fetchone()
+    a = await (await c.execute(f"select name, {cols} from athletes where id = %s and member_number = %s", [athlete_id, number])).fetchone()
+    if not m or not a or name_words(m["name"]) != name_words(a["name"]):
+        return {"member": [], "athlete": []}
+    to_member = {k: a[k] for k in SHARED if not m[k] and a[k] and (k not in SENSITIVE_COLS or "athletes.sensitive" in who.permissions)}
+    to_athlete = {k: m[k] for k in SHARED if not a[k] and m[k]}
+    if to_member:
+        await c.execute(f"update members set {', '.join(f'{k} = %s' for k in to_member)} where member_number = %s", [*to_member.values(), number])
+    if to_athlete:
+        await c.execute("select set_config('app.identity_change', 'on', true)")
+        await c.execute(f"update athletes set {', '.join(f'{k} = %s' for k in to_athlete)} where id = %s", [*to_athlete.values(), athlete_id])
+        await c.execute("select set_config('app.identity_change', 'off', true)")
+    out = {"member": [SHARED[k] for k in to_member], "athlete": [SHARED[k] for k in to_athlete]}
+    if to_member or to_athlete:
+        await audit(
+            c, who, "registry.complete", "athletes", athlete_id, {"member": number, "toMember": sorted(to_member), "toAthlete": sorted(to_athlete)}
+        )
+    return out
 
 
 # ------------------------------------------------------------------ importação
@@ -402,4 +449,16 @@ async def import_rows(c: Conn, who: Actor, kind: Literal["members", "athletes"],
     return out
 
 
-__all__ = ["MAX_ROWS", "AthleteIn", "MemberIn", "account_for", "grant_access", "import_rows", "save_athlete", "save_member", "validate_rows"]
+__all__ = [
+    "MAX_ROWS",
+    "AthleteIn",
+    "MemberIn",
+    "account_for",
+    "complete_pair",
+    "grant_access",
+    "import_rows",
+    "name_words",
+    "save_athlete",
+    "save_member",
+    "validate_rows",
+]

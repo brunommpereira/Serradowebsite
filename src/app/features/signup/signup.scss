@@ -54,3 +54,20 @@
     padding: 1rem;
   }
 }
+
+.declare {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin: 0.4rem 0 0.6rem;
+  padding: 0.8rem 1rem;
+  border: 1.5px solid var(--color-border, #d6dbe5);
+  border-radius: var(--radius-s);
+  font-weight: 600;
+  input {
+    margin-top: 0.2rem;
+    width: 20px;
+    height: 20px;
+    flex: none;
+  }
+}

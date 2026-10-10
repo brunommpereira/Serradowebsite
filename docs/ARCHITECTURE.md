@@ -176,17 +176,19 @@ Ou tudo junto: `docker compose up --build`.
 - **Auditoria:** todas as escritas ficam registadas em `audit_log` (quem, o quê, quando).
 - **Dados de identificação:** nome, nascimento, CC e NIF só mudam através de pedidos aprovados pela secretaria. Um trigger na base de dados garante isto.
 
-## Registo online e assinatura
+## Propostas online (aceitação e confirmação por email)
 
-Os formulários `/socios/registo` e `/inscricao` usam uma **assinatura eletrónica simples** (eIDAS), com prova:
+Os formulários `/socios/registo` e `/inscricao` criam **propostas**. A pessoa aceita com uma declaração (assinatura eletrónica simples, eIDAS), confirma por email, e a secretaria decide:
 
 - **Documentos com versões** (`legal_documents`): condições de sócio, regulamento de atleta, RGPD e imagem. Uma alteração cria uma versão nova. As publicadas não mudam (um trigger impede-o), e cada uma tem o SHA-256 do texto.
-- **Registo** (`registrations`), que guarda:
+- **Proposta** (`registrations`), que guarda:
   - o formulário e a versão + hash de cada documento aceite (a imagem é facultativa);
-  - o PNG da assinatura (validado e limpo no servidor: tem de ter traço) e o seu hash;
+  - a declaração aceite («Declaro que os dados indicados são verdadeiros e aceito…», como titular ou encarregado);
   - a hora do servidor, o IP (posto pelo middleware) e o navegador;
-  - o `evidence_sha256` de tudo isto (JSON canónico).
-- **PDF** (fpdf2) com os dados, os documentos aceites, a assinatura, a prova e os textos em anexo. É enviado por email a quem assinou e fica descarregável no backoffice.
-- **Menores de 18 anos:** assina o encarregado de educação, que fica com acesso à Área de Atletas. Um adulto assina por si.
-- **Fica ativo de imediato.** O sócio ou o atleta é criado (sem duplicar um que já exista) e a conta do site liga-se ao email de quem assinou, com convite para definir a password.
+  - o `evidence_sha256` de tudo isto (JSON canónico);
+  - o sócio proponente (Regulamento Interno, art.º 9.º), facultativo.
+- **Confirmação por email:** a proposta fica `por_confirmar` até a pessoa abrir a ligação enviada (`/propostas/confirmar`, válida 7 dias; guarda-se só o hash do token). Só então passa a `pendente`, gera o **PDF** (dados, documentos, declaração, prova da aceitação e da confirmação, textos em anexo), que segue por email, e a secretaria é avisada.
+- **Decisão da secretaria** (Backoffice → Propostas): **aceitar** cria o sócio (n.º seguinte) ou o atleta (código), liga a conta ao email e envia o convite; **recusar** envia um email com a nota. Fica na auditoria.
+- **Menores de 18 anos:** aceita e confirma o encarregado de educação, que fica com acesso à Área de Atletas. Um adulto aceita por si.
+- As propostas anteriores a esta versão guardam a assinatura desenhada que tinham (`signature_png`).
 - **Contra abusos:** 5 registos por minuto e por IP, um campo-armadilha para robôs e a validação de tudo no servidor.

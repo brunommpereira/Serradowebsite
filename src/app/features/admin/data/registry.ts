@@ -51,6 +51,8 @@ export interface MemberDetail {
   accountHasPassword: boolean | null;
   accountLastLogin: string | null;
   athletes: { id: string; code: string; name: string; sport: string; category: string | null }[];
+  /** Atletas de quem o sócio é encarregado de educação (pela conta no site) */
+  guardianOf: { id: string; code: string; name: string; sport: string; category: string | null; role: string }[];
   quotas: { id: number; period: string; amount: number; dueDate: string; paidAt: string | null; paymentMethod: string | null; receiptNumber: string | null; status: string }[];
 }
 
@@ -64,6 +66,8 @@ export interface AthleteSuggestion {
   memberNumber: string | null;
   score: number;
   reason: string;
+  /** same: a mesma pessoa · guardian: menor com o mesmo apelido (pode ser o encarregado) · surname · search */
+  type: 'same' | 'guardian' | 'surname' | 'search';
 }
 
 export interface AthleteAccess {
@@ -219,7 +223,15 @@ export class RegistryApi {
     return this.api.get<AthleteSuggestion[]>(`/admin/members/${number}/athlete-suggestions`, q ? { q } : {});
   }
   linkAthlete(number: string, athleteId: string, force = false) {
-    return this.api.post<MemberDetail>(`/admin/members/${number}/athletes/${athleteId}${force ? '?force=true' : ''}`);
+    return this.api.post<MemberDetail & { completed?: { member: string[]; athlete: string[] } }>(
+      `/admin/members/${number}/athletes/${athleteId}${force ? '?force=true' : ''}`,
+    );
+  }
+  linkGuardian(number: string, athleteId: string) {
+    return this.api.post<MemberDetail>(`/admin/members/${number}/guardian/${athleteId}`);
+  }
+  unlinkGuardian(number: string, athleteId: string) {
+    return this.api.delete<MemberDetail>(`/admin/members/${number}/guardian/${athleteId}`);
   }
   unlinkAthlete(number: string, athleteId: string) {
     return this.api.delete<MemberDetail>(`/admin/members/${number}/athletes/${athleteId}`);

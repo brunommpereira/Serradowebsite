@@ -36,7 +36,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
       { label: 'Sócios', link: '/admin/socios', icon: 'card', permissions: ['members.view'] },
       { label: 'Atletas', link: '/admin/atletas', icon: 'users', permissions: ['athletes.view', 'athletes.manage'] },
       { label: 'Importar', link: '/admin/importar', icon: 'upload', permissions: ['members.manage', 'athletes.manage'] },
-      { label: 'Registos online', link: '/admin/registos', icon: 'file', permissions: ['registrations.manage'] },
+      { label: 'Propostas', link: '/admin/registos', icon: 'file', permissions: ['registrations.manage'] },
       { label: 'Pré-inscrições', link: '/admin/pre-inscricoes', icon: 'bell', permissions: ['registrations.manage'] },
       { label: 'Validações', link: '/admin/validacoes', icon: 'check', permissions: ['athletes.manage'] },
       { label: 'Resultados', link: '/admin/resultados', icon: 'trophy', permissions: ['results.import'] },
