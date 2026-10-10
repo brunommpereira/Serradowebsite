@@ -176,6 +176,16 @@ def register(r: APIRouter) -> None:
         return await backend(req).call("POST", f"/{kind}/{id}/{action}", actor=s, body=body or {})
 
     # ---------------------------------------------------------------- resultados, utilizadores, auditoria
+    @r.get("/results", tags=["Backoffice · Resultados"], summary="Resultados carregados (com filtros)")
+    async def results_list(req: Request) -> Any:
+        s = await staff(req)
+        return await backend(req).call("GET", "/results", actor=s, query=dict(req.query_params))
+
+    @r.post("/results/link", tags=["Backoffice · Resultados"], summary="Ligar resultados de uma pessoa a um atleta")
+    async def results_link(req: Request, body: JsonObject) -> Any:
+        s = await staff(req)
+        return await backend(req).call("POST", "/results/link", actor=s, body=body)
+
     @r.post("/results/import", tags=["Backoffice · Resultados"], summary="Importar resultados do Troféu de Almada")
     async def results_import(req: Request, body: JsonObject) -> Any:
         s = await staff(req)

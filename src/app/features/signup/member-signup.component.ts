@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
 import { nifValidator, PHONE_PATTERN, POSTAL_CODE_PATTERN } from '../../core/validators';
 import { IconComponent } from '../../shared/icon.component';
 import { OfflineNoticeComponent } from '../../shared/offline-notice.component';
@@ -30,6 +31,12 @@ import { SignupForm, SignupResult, SignupService } from './signup.service';
     } @else if (info(); as f) {
       @if (!f.ready.member) {
         <sfc-offline-notice title="Registo de sócio" text="O registo online ainda não está disponível. Podes inscrever-te na secretaria do clube." />
+        @if (staff()) {
+          <p class="alert alert--warning">
+            Equipa: o formulário só abre depois de publicares os documentos legais em
+            <a routerLink="/admin/registos">Backoffice → Propostas → Documentos legais</a>.
+          </p>
+        }
       } @else {
         <form class="signup card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
           <h2 class="h-s">1. Os teus dados</h2>
@@ -127,6 +134,9 @@ export class MemberSignupComponent {
   protected readonly busy = signal(false);
   protected readonly tried = signal(false);
   protected readonly done = signal<SignupResult | null>(null);
+  /** Quem gere as propostas vê porque é que o formulário está desligado */
+  private readonly auth = inject(AuthService);
+  protected readonly staff = () => this.auth.can('registrations.manage');
   protected readonly declared = signal(false);
   protected acceptSocio = signal(false);
   protected acceptRgpd = signal(false);

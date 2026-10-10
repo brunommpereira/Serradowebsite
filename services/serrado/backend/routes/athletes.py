@@ -7,6 +7,7 @@ from fastapi import APIRouter, Body, Path, Query, Request
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 from ...db.pool import Jsonb, fetch, fetch_one, tx
+from ...registry import claim_athletes
 from ...validation import current_season, is_valid_id_number, is_valid_nif, is_valid_phone
 from ..core import HttpError, actor, audit, camel, can, forbidden, not_found, pool, require, require_user, snake
 
@@ -135,8 +136,12 @@ def register(r: APIRouter) -> None:
         if scope == "all":
             require(req, "athletes.view", "athletes.manage")
         else:
+            user = require_user(req)
+            # Fichas com o email desta conta (importadas só com o email de contacto) ficam ligadas à conta
+            async with tx(pool(req)) as c:
+                await claim_athletes(c, user)
             where.append("a.id in (select athlete_id from athlete_access where user_id = %s)")
-            args.append(require_user(req))
+            args.append(user)
         if q:
             where.append("(a.name ilike %s or a.code ilike %s)")
             args += [f"%{q}%", f"%{q}%"]

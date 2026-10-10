@@ -80,7 +80,7 @@
                                 {{ l.label }} <sfc-icon name="external" size="14" /><span class="visually-hidden">(abre numa nova janela)</span>
                               </a>
                             } @else {
-                              <a [routerLink]="l.link" [fragment]="l.fragment" [queryParams]="l.queryParams">{{ l.label }}</a>
+                              <a [routerLink]="l.link" [fragment]="l.fragment" [queryParams]="l.queryParams" (click)="closeAll()">{{ l.label }}</a>
                             }
                           </li>
                         }
@@ -91,7 +91,7 @@
                     <div class="mega__promo">
                       <p class="mega__promo-title">{{ p.title }}</p>
                       <p>{{ p.text }}</p>
-                      <a class="btn btn--accent btn--sm" [routerLink]="p.link">{{ p.cta }}</a>
+                      <a class="btn btn--accent btn--sm" [routerLink]="p.link" (click)="closeAll()">{{ p.cta }}</a>
                     </div>
                   }
                 </div>

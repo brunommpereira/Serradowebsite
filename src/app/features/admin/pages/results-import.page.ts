@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { IconComponent } from '../../../shared/icon.component';
 import { parseCsv } from '../../../shared/tabular';
 import { AdminSource, ImportRow, ImportSummary } from '../data/admin-source';
+import { ResultsListComponent } from './results-list.component';
 
 const COLUMNS = ['athlete_code', 'athlete_name', 'birth_year', 'season', 'round', 'race', 'race_base', 'race_date', 'category', 'place', 'bib', 'time', 'time_s', 'distance_m', 'trophy_points', 'team_points', 'source_url'];
 
@@ -13,15 +14,24 @@ SFC-0003,RITA EXEMPLO,1985,2026/2027,1,7º GP São Martinho de Almada,GP São Ma
 /** Importação do results.csv gerado por tools/trofeu-almada (consolidate.py --import-dir). */
 @Component({
   selector: 'sfc-admin-results-import',
-  imports: [IconComponent],
+  imports: [IconComponent, ResultsListComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="adm-head">
       <div>
-        <h1>Importar resultados</h1>
-        <p>Troféu Almada em Atletismo · ficheiro <code>results.csv</code> gerado por <code>tools/trofeu-almada</code>.</p>
+        <h1>Resultados</h1>
+        <p>Troféu Almada em Atletismo · resultados carregados e importação do ficheiro <code>results.csv</code> gerado por <code>tools/trofeu-almada</code>.</p>
       </div>
     </div>
+
+    <div class="chips tabs" role="tablist" aria-label="Secções">
+      <button type="button" class="chip" role="tab" [attr.aria-selected]="tab() === 'list'" [attr.aria-pressed]="tab() === 'list'" (click)="tab.set('list')">Resultados carregados</button>
+      <button type="button" class="chip" role="tab" [attr.aria-selected]="tab() === 'import'" [attr.aria-pressed]="tab() === 'import'" (click)="tab.set('import')">Importar</button>
+    </div>
+
+    @if (tab() === 'list') {
+      <sfc-admin-results-list />
+    } @else {
 
     <section class="adm-panel block">
       <h2>1. Escolher o ficheiro</h2>
@@ -46,8 +56,8 @@ SFC-0003,RITA EXEMPLO,1985,2026/2027,1,7º GP São Martinho de Almada,GP São Ma
         <ul class="facts">
           <li><strong>{{ rows().length }}</strong> resultados</li>
           <li><strong>{{ races() }}</strong> provas</li>
-          <li><strong>{{ linked() }}</strong> associados a atletas (código SFC)</li>
-          <li [class.warn]="rows().length - linked() > 0"><strong>{{ rows().length - linked() }}</strong> sem atleta na base de dados</li>
+          <li><strong>{{ linked() }}</strong> com código de atleta (SFC)</li>
+          <li><strong>{{ rows().length - linked() }}</strong> sem código: ligam-se pelo nome e ano de nascimento, quando houver um só atleta possível</li>
         </ul>
         <div class="adm-table-wrap">
           <table class="adm-table">
@@ -86,8 +96,12 @@ SFC-0003,RITA EXEMPLO,1985,2026/2027,1,7º GP São Martinho de Almada,GP São Ma
         }
       </section>
     }
+    }
   `,
   styles: `
+    .tabs {
+      margin-bottom: 1rem;
+    }
     .block {
       margin-bottom: 1rem;
     }
@@ -132,6 +146,7 @@ SFC-0003,RITA EXEMPLO,1985,2026/2027,1,7º GP São Martinho de Almada,GP São Ma
 })
 export class ResultsImportPage {
   private readonly source = inject(AdminSource);
+  protected readonly tab = signal<'list' | 'import'>('list');
   protected readonly example = EXAMPLE;
   protected readonly rows = signal<ImportRow[]>([]);
   protected readonly fileName = signal('');
