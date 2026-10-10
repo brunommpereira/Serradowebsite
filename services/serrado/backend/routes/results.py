@@ -9,6 +9,7 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 from ...db.pool import tx
+from ...registry import link_results
 from ..core import actor, audit, require
 from .athletes import _valid_date
 
@@ -85,12 +86,14 @@ def register(r: APIRouter) -> None:
                     updated += 1
                 if res["athlete_id"]:
                     linked += 1
+            # Sem código de atleta: liga pelo nome e ano de nascimento
+            linked += await link_results(c)
             summary = {
                 "rows": len(body.rows),
                 "inserted": inserted,
                 "updated": updated,
                 "linked": linked,
-                "unlinked": len(body.rows) - linked,
+                "unlinked": max(0, len(body.rows) - linked),
                 "races": len(races),
             }
             await audit(c, actor(req), "results.import", "results", None, summary)

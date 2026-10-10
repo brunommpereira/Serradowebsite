@@ -46,8 +46,8 @@ SFC-0003,RITA EXEMPLO,1985,2026/2027,1,7º GP São Martinho de Almada,GP São Ma
         <ul class="facts">
           <li><strong>{{ rows().length }}</strong> resultados</li>
           <li><strong>{{ races() }}</strong> provas</li>
-          <li><strong>{{ linked() }}</strong> associados a atletas (código SFC)</li>
-          <li [class.warn]="rows().length - linked() > 0"><strong>{{ rows().length - linked() }}</strong> sem atleta na base de dados</li>
+          <li><strong>{{ linked() }}</strong> com código de atleta (SFC)</li>
+          <li><strong>{{ rows().length - linked() }}</strong> sem código: ligam-se pelo nome e ano de nascimento, quando houver um só atleta possível</li>
         </ul>
         <div class="adm-table-wrap">
           <table class="adm-table">

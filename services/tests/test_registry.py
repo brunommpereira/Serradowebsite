@@ -380,3 +380,74 @@ async def test_ligacao_usada_em_autocommit_volta_ao_pool_transacional(mw):
             assert row == {"v": "on"}
     finally:
         await p.close()
+
+
+async def test_conta_ve_a_ficha_com_o_seu_email_e_os_resultados_ligados_pelo_nome(mw):
+    from serrado.password import hash_password_sync
+
+    sec = await mw.login(*SEC)
+    # Importado só com o email de contacto (sem «Conta do atleta»), como no ficheiro do clube
+    imp = await sec.post(
+        "/api/v1/admin/registry/import",
+        json={
+            "kind": "athletes",
+            "dryRun": False,
+            "rows": [
+                {"name": "Bruno Miguel Exemplo Pereira", "birthDate": "1980-05-05", "sport": "atletismo", "email": "Bruno.Exemplo@Gmail.com"},
+                {"name": "Inês Exemplo Pereira", "birthDate": "2015-02-02", "sport": "atletismo", "email": "bruno.exemplo@gmail.com"},
+            ],
+        },
+    )
+    assert imp.status_code == 200, imp.text
+    adult = await fetch_one(mw.pool, "select id from athletes where name = 'Bruno Miguel Exemplo Pereira'")
+    kid = await fetch_one(mw.pool, "select id from athletes where name = 'Inês Exemplo Pereira'")
+    assert adult and kid
+    # Resultados do Troféu sem código: ligam-se pelo nome (primeiro e último) e ano de nascimento
+    rows = [
+        {
+            "athleteCode": None,
+            "athleteName": "BRUNO PEREIRA",
+            "birthYear": 1980,
+            "season": "2025/2026",
+            "round": 7,
+            "race": "Corrida X",
+            "raceBase": "Corrida X",
+            "raceDate": "2025-11-02",
+            "category": "Veteranos",
+            "place": 3,
+        },
+        {
+            "athleteCode": None,
+            "athleteName": "JOÃO NINGUÉM",
+            "birthYear": 1980,
+            "season": "2025/2026",
+            "round": 7,
+            "race": "Corrida X",
+            "raceBase": "Corrida X",
+            "raceDate": "2025-11-02",
+            "category": "Veteranos",
+            "place": 9,
+        },
+    ]
+    admin = await mw.login("admin@serradofc.pt", "admin2026")
+    res = await admin.post("/api/v1/admin/results/import", json={"rows": rows})
+    assert res.status_code == 200, res.text
+    linked = await fetch(mw.pool, "select athlete_name from results where athlete_id = %s", [adult["id"]])
+    assert [x["athlete_name"] for x in linked] == ["BRUNO PEREIRA"]
+
+    # A conta com esse email entra e vê a sua ficha (atleta) e a da filha (encarregado), com os resultados
+    await execute(
+        mw.pool,
+        "insert into users (email, name, password_hash) values ('bruno.exemplo@gmail.com', 'Bruno', %s) on conflict (email) do nothing",
+        [hash_password_sync("segredo-2026")],
+    )
+    me = await mw.login("bruno.exemplo@gmail.com", "segredo-2026")
+    mine = {a["id"]: a for a in (await me.get("/api/v1/me/athletes")).json()}
+    assert set(mine) == {adult["id"], kid["id"]}
+    roles = {
+        r["athlete_id"]: r["role"]
+        for r in await fetch(mw.pool, "select athlete_id, role from athlete_access where athlete_id in (%s, %s)", [adult["id"], kid["id"]])
+    }
+    assert roles == {adult["id"]: "atleta", kid["id"]: "encarregado"}
+    results = (await me.get(f"/api/v1/athletes/{adult['id']}/results")).json()
+    assert [r["place"] for r in results] == [3]

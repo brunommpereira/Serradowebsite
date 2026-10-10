@@ -401,6 +401,64 @@ async def complete_pair(c: Conn, who: Actor, number: str, athlete_id: str) -> di
     return out
 
 
+async def claim_athletes(c: Conn, user_id: str) -> int:
+    """A conta vê as fichas de atleta que têm o seu email de contacto (o email está confirmado: entrou com ele).
+    Atleta adulto (ou sem data de nascimento): acesso como «atleta». Menor sem ninguém com acesso: como «encarregado»."""
+    u = await (await c.execute("select email from users where id = %s", [user_id])).fetchone()
+    if not u or not u["email"]:
+        return 0
+    rows = await (
+        await c.execute(
+            """select a.id, (a.birth_date is null or a.birth_date <= current_date - interval '18 years') as adult,
+                      exists(select 1 from athlete_access x where x.athlete_id = a.id) as has_access
+                 from athletes a
+                where lower(a.email) = lower(%s)
+                  and not exists(select 1 from athlete_access x where x.athlete_id = a.id and x.user_id = %s)""",
+            [u["email"], user_id],
+        )
+    ).fetchall()
+    n = 0
+    for a in rows:
+        if not a["adult"] and a["has_access"]:
+            continue  # menor com encarregado: só a secretaria dá mais acessos
+        role = "atleta" if a["adult"] else "encarregado"
+        await c.execute("insert into athlete_access (user_id, athlete_id, role) values (%s, %s, %s) on conflict do nothing", [user_id, a["id"], role])
+        await audit(c, Actor(id=user_id), "athletes.claim", "athletes", str(a["id"]), {"role": role, "via": "email"})
+        n += 1
+    return n
+
+
+async def link_results(c: Conn) -> int:
+    """Resultados importados sem código de atleta: liga-os pelo nome (igual, ou primeiro e último nome) e pelo ano
+    de nascimento. Só liga quando há um único atleta possível."""
+    pending = await (
+        await c.execute("select distinct athlete_name, birth_year from results where athlete_id is null and birth_year is not null")
+    ).fetchall()
+    if not pending:
+        return 0
+    athletes = await (
+        await c.execute("select id, name, extract(year from birth_date)::int as year from athletes where birth_date is not null")
+    ).fetchall()
+    by_year: dict[int, list[tuple[str, list[str]]]] = {}
+    for a in athletes:
+        by_year.setdefault(a["year"], []).append((str(a["id"]), name_words(a["name"])))
+    linked = 0
+    for r in pending:
+        words = name_words(r["athlete_name"])
+        if len(words) < 2:
+            continue
+        cands = [i for i, w in by_year.get(int(r["birth_year"]), []) if w == words]
+        if not cands:
+            cands = [i for i, w in by_year.get(int(r["birth_year"]), []) if len(w) > 1 and (w[0], w[-1]) == (words[0], words[-1])]
+        if len(cands) == 1:
+            cur = await c.execute(
+                "update results set athlete_id = %s where athlete_id is null and athlete_name = %s and birth_year = %s",
+                [cands[0], r["athlete_name"], r["birth_year"]],
+            )
+            linked += cur.rowcount
+    return linked
+
+
 # ------------------------------------------------------------------ importação
 def validate_rows(kind: Literal["members", "athletes"], rows: list[dict[str, Any]]) -> tuple[list[BaseModel], list[dict[str, Any]]]:
     """Valida todas as linhas (n.º de linha = posição no ficheiro, a começar em 1)."""
@@ -446,6 +504,8 @@ async def import_rows(c: Conn, who: Actor, kind: Literal["members", "athletes"],
         out[result] += 1
     if kind == "members":
         await _bump_member_seq(c)
+    else:
+        await link_results(c)
     return out
 
 
