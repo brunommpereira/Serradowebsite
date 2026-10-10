@@ -1,12 +1,25 @@
 """Backoffice: sócios e atletas criados à mão ou por ficheiro, contas ligadas e quotas avulsas."""
 
+from datetime import date
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Path, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from ...db.pool import fetch, fetch_one, tx
-from ...registry import MAX_ROWS, AthleteIn, MemberIn, complete_pair, grant_access, import_rows, name_words, save_athlete, save_member, validate_rows
+from ...registry import (
+    MAX_ROWS,
+    AthleteIn,
+    MemberIn,
+    account_for,
+    complete_pair,
+    grant_access,
+    import_rows,
+    name_words,
+    save_athlete,
+    save_member,
+    validate_rows,
+)
 from ..core import HttpError, actor, audit, camel, can, forbidden, not_found, pool, require
 
 Number = Annotated[str, Path(pattern=r"^\d{1,8}$")]
@@ -57,6 +70,17 @@ async def _member_detail(req: Request, number: str) -> dict[str, Any]:
     out["athletes"] = await fetch(
         pool(req), "select id, code, name, sport_slug as sport, category from athletes where member_number = %s order by name", [number]
     )
+    out["guardianOf"] = (
+        await fetch(
+            pool(req),
+            """select a.id, a.code, a.name, a.sport_slug as sport, a.category, x.role
+                 from athlete_access x join athletes a on a.id = x.athlete_id
+                where x.user_id = %s and x.role in ('encarregado', 'co-encarregado') order by a.name""",
+            [row["user_id"]],
+        )
+        if row["user_id"]
+        else []
+    )
     out["quotas"] = [
         camel(q)
         for q in await fetch(
@@ -70,19 +94,32 @@ async def _member_detail(req: Request, number: str) -> dict[str, Any]:
     return out
 
 
-def match_reason(member: list[str], athlete: list[str], *, guardian: bool) -> tuple[int, str] | None:
-    """Porque é que um atleta pode ser deste sócio (pontuação, motivo) — ou None."""
-    if guardian:
-        return 95, "O sócio é encarregado deste atleta no site"
+def age_on(birth: date | str | None, today: date) -> int | None:
+    if not birth:
+        return None
+    if isinstance(birth, str):
+        birth = date.fromisoformat(birth[:10])
+    return today.year - birth.year - ((today.month, today.day) < (birth.month, birth.day))
+
+
+def match_reason(
+    member: list[str], athlete: list[str], *, member_birth: date | str | None, athlete_birth: date | str | None, today: date
+) -> tuple[int, str, str] | None:
+    """Porque é que um atleta pode estar ligado a este sócio: (pontuação, motivo, tipo) ou None.
+    Tipo «same»: é a mesma pessoa (liga-se o n.º de sócio). Tipo «guardian»: atleta menor com o mesmo
+    apelido de um sócio adulto (pode ser o encarregado). Tipo «surname»: mesmo apelido, sem mais indícios."""
     if not member or not athlete:
         return None
     if member == athlete:
-        return 100, "Mesmo nome"
+        return 100, "Mesmo nome", "same"
     if len(member) > 1 and len(athlete) > 1 and (member[0], member[-1]) == (athlete[0], athlete[-1]):
-        return 80, "Primeiro e último nome iguais"
-    if len(member[-1]) >= 3 and member[-1] == athlete[-1]:
-        return 40, "Mesmo apelido (pode ser filho/a)"
-    return None
+        return 80, "Primeiro e último nome iguais", "same"
+    if len(member[-1]) < 3 or member[-1] != athlete[-1]:
+        return None
+    kid, adult = age_on(athlete_birth, today), age_on(member_birth, today)
+    if kid is not None and kid < 18 and (adult is None or (adult >= 18 and adult - kid >= 15)):
+        return 60, f"Mesmo apelido · atleta com {kid} anos (pode ser o encarregado)", "guardian"
+    return 30, "Mesmo apelido", "surname"
 
 
 def register(r: APIRouter) -> None:
@@ -147,15 +184,17 @@ def register(r: APIRouter) -> None:
         require(req, "members.view")
         require(req, "athletes.view")
         number = number.zfill(5)
-        m = await fetch_one(pool(req), "select name, user_id from members where member_number = %s", [number])
+        m = await fetch_one(pool(req), "select name, user_id, birth_date from members where member_number = %s", [number])
         if not m:
             raise not_found("Sócio")
+        # Fora: os que já têm este n.º de sócio e aqueles de quem o sócio já é encarregado
         rows = await fetch(
             pool(req),
-            """select a.id, a.code, a.name, a.sport_slug as sport, a.category, a.birth_date, a.member_number,
-                      exists(select 1 from athlete_access x where x.athlete_id = a.id and x.user_id = %s) as guardian
-                 from athletes a where a.member_number is distinct from %s""",
-            [m["user_id"], number],
+            """select a.id, a.code, a.name, a.sport_slug as sport, a.category, a.birth_date, a.member_number
+                 from athletes a
+                where a.member_number is distinct from %s
+                  and not exists(select 1 from athlete_access x where x.athlete_id = a.id and x.user_id = %s)""",
+            [number, m["user_id"]],
         )
         out: list[dict[str, Any]] = []
         if q and q.strip():
@@ -163,16 +202,16 @@ def register(r: APIRouter) -> None:
             for a in rows:
                 words = name_words(a["name"])
                 if needle and all(any(w.startswith(n) for w in words) for n in needle):
-                    out.append({**camel(a), "score": 0, "reason": "Pesquisa"})
+                    out.append({**camel(a), "score": 0, "reason": "Pesquisa", "type": "search"})
             return sorted(out, key=lambda x: x["name"])[:30]
-        mine = name_words(m["name"])
+        mine, today = name_words(m["name"]), date.today()
         for a in rows:
-            hit = match_reason(mine, name_words(a["name"]), guardian=a["guardian"])
-            # Já ligado a outro sócio: só se mostra quando há forte indício (nome igual ou encarregado)
-            if hit and (a["member_number"] is None or hit[0] >= 95):
-                out.append({**camel(a), "score": hit[0], "reason": hit[1]})
+            hit = match_reason(mine, name_words(a["name"]), member_birth=m["birth_date"], athlete_birth=a["birth_date"], today=today)
+            # Já ligado a outro sócio: como mesma pessoa só se mostra com o nome igual; como encarregado, sempre
+            if hit and (a["member_number"] is None or hit[0] >= 100 or hit[2] == "guardian"):
+                out.append({**camel(a), "score": hit[0], "reason": hit[1], "type": hit[2]})
         out.sort(key=lambda x: (-x["score"], x["name"]))
-        return out[:30]
+        return out[:40]
 
     @r.post("/members/{number}/athletes/{id}", tags=office, summary="Liga o atleta a este sócio (preenche o n.º de sócio na ficha do atleta)")
     async def link_athlete(req: Request, number: Number, id: AthleteId, force: Annotated[bool, Query()] = False) -> dict[str, Any]:
@@ -192,6 +231,48 @@ def register(r: APIRouter) -> None:
             await audit(c, actor(req), "athletes.link_member", "athletes", id, {"member": number, "before": before})
             completed = await complete_pair(c, actor(req), number, id)
         return {**await _member_detail(req, number), "completed": completed}
+
+    @r.post("/members/{number}/guardian/{id}", tags=office, summary="O sócio passa a encarregado de educação do atleta (acesso à ficha no site)")
+    async def link_guardian(req: Request, number: Number, id: AthleteId) -> dict[str, Any]:
+        require(req, "members.manage")
+        require(req, "athletes.manage")
+        number = number.zfill(5)
+        async with tx(pool(req)) as c:
+            m = await (await c.execute("select name, email, user_id from members where member_number = %s for update", [number])).fetchone()
+            if not m:
+                raise not_found("Sócio")
+            if not await (await c.execute("select 1 from athletes where id = %s", [id])).fetchone():
+                raise not_found("Atleta")
+            user_id = m["user_id"]
+            if not user_id:
+                if not m["email"]:
+                    raise HttpError(400, "validation", "O sócio não tem email: indica-o na ficha para criar a conta de encarregado no site")
+                user_id, _ = await account_for(c, m["email"], m["name"])
+                await c.execute("update members set user_id = %s where member_number = %s and user_id is null", [user_id, number])
+            await c.execute(
+                """insert into athlete_access (user_id, athlete_id, role) values (%s, %s, 'encarregado')
+                   on conflict (user_id, athlete_id) do update set role = excluded.role""",
+                [user_id, id],
+            )
+            await audit(c, actor(req), "athletes.guardian_link", "athletes", id, {"member": number})
+        return await _member_detail(req, number)
+
+    @r.delete("/members/{number}/guardian/{id}", tags=office, summary="Retira ao sócio o papel de encarregado do atleta")
+    async def unlink_guardian(req: Request, number: Number, id: AthleteId) -> dict[str, Any]:
+        require(req, "members.manage")
+        require(req, "athletes.manage")
+        number = number.zfill(5)
+        async with tx(pool(req)) as c:
+            cur = await c.execute(
+                """delete from athlete_access x using members m
+                    where m.member_number = %s and x.user_id = m.user_id and x.athlete_id = %s and x.role in ('encarregado', 'co-encarregado')
+                    returning x.athlete_id""",
+                [number, id],
+            )
+            if not await cur.fetchone():
+                raise not_found("Ligação")
+            await audit(c, actor(req), "athletes.guardian_unlink", "athletes", id, {"member": number})
+        return await _member_detail(req, number)
 
     @r.delete("/members/{number}/athletes/{id}", tags=office, summary="Desliga o atleta deste sócio")
     async def unlink_athlete(req: Request, number: Number, id: AthleteId) -> dict[str, Any]:

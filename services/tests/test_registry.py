@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from serrado.config import config
-from serrado.db.pool import execute, fetch, fetch_one
+from serrado.db.pool import create_pool, execute, fetch, fetch_one, tx
 from serrado.payments.moloni import MoloniClient
 from serrado.payments.service import issue_receipts
 from tests.conftest import XHR
@@ -262,8 +262,10 @@ async def test_ficha_do_socio_sugere_atletas_e_a_secretaria_liga(mw):
     other = await athlete("Nada A Ver")
     sug = (await sec.get(f"/api/v1/admin/members/{n}/athlete-suggestions")).json()
     by_id = {x["id"]: x for x in sug}
-    assert [x["id"] for x in sug[:4]] == [same, guarded, first_last, child]
-    assert by_id[same]["reason"] == "Mesmo nome" and by_id[child]["score"] == 40 and other not in by_id
+    # Quem já tem o sócio como encarregado não aparece como sugestão
+    assert [x["id"] for x in sug[:3]] == [same, first_last, child] and guarded not in by_id
+    assert by_id[same]["reason"] == "Mesmo nome" and by_id[same]["type"] == "same" and by_id[child]["type"] == "surname"
+    assert other not in by_id
     # Pesquisa livre por nome
     found = (await sec.get(f"/api/v1/admin/members/{n}/athlete-suggestions", params={"q": "nada ve"})).json()
     assert [x["id"] for x in found] == [other]
@@ -333,3 +335,48 @@ async def test_mesma_pessoa_completa_os_dados_em_falta_nas_duas_fichas(mw):
     # Alterar o sócio depois também completa a ficha do atleta que é a mesma pessoa
     await sec.put(f"/api/v1/admin/members/{n}", json={"name": "Joana de Exemplo Pires", "postalCode": "2820-001"})
     assert (await fetch_one(mw.pool, "select postal_code from athletes where id = %s", [same.json()["id"]])) == {"postal_code": "2820-001"}
+
+
+async def test_atleta_menor_com_o_mesmo_apelido_sugere_o_socio_como_encarregado(mw):
+    sec = await mw.login(*SEC)
+    n = (await sec.post("/api/v1/admin/members", json={"name": "Carlos Exemplo Valadares", "birthDate": "1980-02-02"})).json()["memberNumber"]
+
+    async def athlete(name: str, birth: str) -> str:
+        return str((await sec.post("/api/v1/admin/athletes", json={"name": name, "sport": "futsal", "birthDate": birth})).json()["id"])
+
+    kid = await athlete("Inês Valadares", "2016-06-06")
+    adult = await athlete("Paulo Valadares", "1985-01-01")
+    sug = {x["id"]: x for x in (await sec.get(f"/api/v1/admin/members/{n}/athlete-suggestions")).json()}
+    assert sug[kid]["type"] == "guardian" and "pode ser o encarregado" in sug[kid]["reason"]
+    assert sug[adult]["type"] == "surname"
+    # Sem email não há conta para o encarregado
+    r = await sec.post(f"/api/v1/admin/members/{n}/guardian/{kid}")
+    assert r.status_code == 400 and "email" in r.text
+    await sec.put(f"/api/v1/admin/members/{n}", json={"name": "Carlos Exemplo Valadares", "email": "carlos.v@exemplo.pt"})
+    r = await sec.post(f"/api/v1/admin/members/{n}/guardian/{kid}")
+    assert r.status_code == 200, r.text
+    assert [(g["id"], g["role"]) for g in r.json()["guardianOf"]] == [(kid, "encarregado")]
+    # A ficha do atleta não fica com o n.º do pai; a conta do sócio passa a ver a ficha
+    row = await fetch_one(mw.pool, "select member_number from athletes where id = %s", [kid])
+    assert row == {"member_number": None}
+    access = (await sec.get(f"/api/v1/admin/athletes/{kid}/access")).json()
+    assert [(x["email"], x["role"]) for x in access] == [("carlos.v@exemplo.pt", "encarregado")]
+    assert kid not in {x["id"] for x in (await sec.get(f"/api/v1/admin/members/{n}/athlete-suggestions")).json()}
+    r = await sec.delete(f"/api/v1/admin/members/{n}/guardian/{kid}")
+    assert r.json()["guardianOf"] == []
+
+
+async def test_ligacao_usada_em_autocommit_volta_ao_pool_transacional(mw):
+    """Os locks (emails, recibos, Facebook) põem a ligação em autocommit; a seguinte tem de voltar a ser transacional."""
+    p = create_pool(mw.pool.conninfo, min_size=1, max_size=1)
+    await p.open()
+    try:
+        async with p.connection() as c:
+            await c.set_autocommit(True)
+        async with tx(p) as c:
+            assert c.autocommit is False
+            await c.execute("select set_config('app.identity_change', 'on', true)")
+            row = await (await c.execute("select current_setting('app.identity_change', true) as v")).fetchone()
+            assert row == {"v": "on"}
+    finally:
+        await p.close()
