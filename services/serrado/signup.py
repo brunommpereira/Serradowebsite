@@ -17,18 +17,16 @@ email de quem assinou.
 
 import asyncio
 import base64
-import binascii
 import hashlib
-import io
 import json
 import re
+import secrets
 from collections.abc import Sequence
 from datetime import UTC, date, datetime
 from typing import Annotated, Any, Literal
 from zoneinfo import ZoneInfo
 
 from fpdf import FPDF
-from PIL import Image, ImageChops, UnidentifiedImageError
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, field_validator
 
 from .backend.core import Actor, audit
@@ -49,7 +47,6 @@ TITLES = {
 REQUIRED = {"member": ("socio", "rgpd"), "athlete": ("atleta", "rgpd")}
 SYSTEM = Actor()
 LISBON = ZoneInfo("Europe/Lisbon")
-MAX_SIGNATURE = 300_000  # bytes do PNG
 
 
 # ------------------------------------------------------------------ documentos legais
@@ -83,35 +80,16 @@ async def publish_document(c: Conn, who: Actor, kind: str, title: str, body: str
     return dict(row)
 
 
-# ------------------------------------------------------------------ assinatura
-def check_signature(data_url: str) -> bytes:
-    """PNG desenhado no browser → PNG limpo (sem metadados). Recusa imagens vazias ou que não são assinaturas."""
-    m = re.fullmatch(r"data:image/png;base64,([A-Za-z0-9+/=]+)", data_url.strip())
-    if not m:
-        raise HttpError(400, "invalid_signature", "Assinatura inválida")
-    try:
-        raw = base64.b64decode(m.group(1), validate=True)
-    except (binascii.Error, ValueError):
-        raise HttpError(400, "invalid_signature", "Assinatura inválida") from None
-    if len(raw) > MAX_SIGNATURE or not raw.startswith(b"\x89PNG\r\n\x1a\n"):
-        raise HttpError(400, "invalid_signature", "Assinatura inválida")
-    try:
-        with Image.open(io.BytesIO(raw)) as img:
-            if img.format != "PNG" or not (100 <= img.width <= 2000 and 50 <= img.height <= 1000):
-                raise HttpError(400, "invalid_signature", "Assinatura inválida")
-            rgba = img.convert("RGBA")
-    except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
-        raise HttpError(400, "invalid_signature", "Assinatura inválida") from None
-    # Traço: píxeis visíveis e escuros. Uma assinatura tem de ter algum (e não pode ser tudo).
-    visible = rgba.getchannel("A").point(lambda a: 255 if a > 128 else 0)
-    dark = rgba.convert("L").point(lambda g: 255 if g < 160 else 0)
-    ink = ImageChops.multiply(visible, dark).histogram()[255]
-    ratio = ink / (rgba.width * rgba.height)
-    if ink < 150 or ratio > 0.4:
-        raise HttpError(400, "empty_signature", "Desenha a tua assinatura no quadro")
-    out = io.BytesIO()
-    rgba.save(out, format="PNG", optimize=True)
-    return out.getvalue()
+# ------------------------------------------------------------------ aceitação
+DECLARATION = {
+    "titular": "Declaro que os dados indicados são verdadeiros e aceito as condições e os documentos acima, na qualidade de titular.",
+    "encarregado": "Declaro que os dados indicados são verdadeiros e aceito as condições e os documentos acima, na qualidade de encarregado de educação do atleta.",
+}
+CONFIRM_DAYS = 7
+
+
+def _token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
 
 
 # ------------------------------------------------------------------ formulários
@@ -124,8 +102,16 @@ class _Signup(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     accept: dict[str, int] = Field(max_length=4)
     imageConsent: bool = False
-    signature: str = Field(max_length=MAX_SIGNATURE * 2)
+    # A caixa «Declaro que os dados são verdadeiros e aceito…» (substitui a assinatura desenhada)
+    declaration: bool
     website: str = Field(default="", max_length=200)  # armadilha para robôs: tem de vir vazio
+
+    @field_validator("declaration")
+    @classmethod
+    def _declared(cls, v: bool) -> bool:
+        if not v:
+            raise ValueError("é preciso aceitar a declaração")
+        return v
 
 
 class MemberSignup(_Signup):
@@ -204,7 +190,7 @@ def _t(s: Any) -> str:
     return str("" if s is None else s).translate(_PDF_MAP).encode("latin-1", "replace").decode("latin-1")
 
 
-def build_pdf(reg: dict[str, Any], docs: list[Row], labels: Sequence[tuple[str, str | None]], signature_png: bytes) -> bytes:
+def build_pdf(reg: dict[str, Any], docs: list[Row], labels: Sequence[tuple[str, str | None]]) -> bytes:
     pdf = FPDF(format="A4")
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.set_title(_t(reg["title"]))
@@ -241,25 +227,25 @@ def build_pdf(reg: dict[str, Any], docs: list[Row], labels: Sequence[tuple[str, 
     pdf.ln(3)
 
     pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(0, 7, "Assinatura", new_x="LMARGIN", new_y="NEXT", align="L")
-    y = pdf.get_y()
-    pdf.image(io.BytesIO(signature_png), x=pdf.l_margin, y=y, w=70)
-    pdf.set_y(y + 32)
+    pdf.cell(0, 7, "Aceitação", new_x="LMARGIN", new_y="NEXT", align="L")
     pdf.set_font("Helvetica", "", 10)
     role = "titular" if reg["signerRole"] == "titular" else "encarregado de educação"
-    pdf.multi_cell(0, 5, _t(f"{reg['signerName']} ({role}) · {reg['signerEmail']}"), new_x="LMARGIN", new_y="NEXT", align="L")
+    pdf.multi_cell(0, 5, _t(f"«{reg['declaration']}»"), new_x="LMARGIN", new_y="NEXT", align="L")
+    pdf.ln(1)
+    pdf.multi_cell(0, 5, _t(f"Aceite por {reg['signerName']} ({role}) · {reg['signerEmail']}"), new_x="LMARGIN", new_y="NEXT", align="L")
     pdf.ln(3)
 
     pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(0, 7, "Prova da assinatura", new_x="LMARGIN", new_y="NEXT", align="L")
+    pdf.cell(0, 7, "Prova da aceitação", new_x="LMARGIN", new_y="NEXT", align="L")
     pdf.set_font("Helvetica", "", 8)
     for line in (
-        f"Assinado em {reg['signedAt']} (UTC), a partir do endereço IP {reg['ip']}.",
+        f"Aceite no site em {reg['signedAt']} (UTC), a partir do endereço IP {reg['ip']}.",
         f"Navegador: {reg['userAgent'][:200]}",
-        f"SHA-256 da imagem da assinatura: {reg['signatureSha256']}",
-        "SHA-256 do registo (dados, documentos, assinatura, hora, IP e navegador):",
+        f"Email confirmado em {reg['confirmedAt']} (UTC), através da ligação enviada para {reg['signerEmail']}, a partir do IP {reg['confirmIp']}.",
+        "SHA-256 do registo (dados, documentos, declaração, hora, IP e navegador):",
         reg["evidenceSha256"],
-        "Assinatura eletrónica simples (Regulamento (UE) n.º 910/2014, eIDAS). O clube guarda estes elementos e este documento.",
+        "Assinatura eletrónica simples (Regulamento (UE) n.º 910/2014, eIDAS): aceitação expressa com confirmação do email.",
+        "O clube guarda estes elementos e este documento.",
     ):
         pdf.multi_cell(0, 4.2, _t(line), new_x="LMARGIN", new_y="NEXT", align="L")
 
@@ -301,36 +287,34 @@ async def _finish(
     c: Conn,
     *,
     kind: Literal["member", "athlete"],
-    title: str,
     data: dict[str, Any],
-    labels: Sequence[tuple[str, str | None]],
     accepted: list[dict[str, Any]],
-    docs: list[Row],
     image_consent: bool,
-    signature: bytes,
     signer: tuple[str, str, str],
     client: dict[str, str],
     proposer_number: str | None = None,
 ) -> dict[str, Any]:
+    """Guarda a proposta aceite no site e envia o email para a confirmar (só depois chega à secretaria)."""
     signed_at = datetime.now(UTC).replace(microsecond=0)
-    sig_sha = hashlib.sha256(signature).hexdigest()
     name, email, role = signer
+    declaration = DECLARATION[role]
     evidence = {
         "kind": kind,
         "data": data,
         "accepted": accepted,
         "imageConsent": image_consent,
         "signer": {"name": name, "email": email, "role": role},
-        "signatureSha256": sig_sha,
+        "declaration": declaration,
         "signedAt": signed_at.isoformat(),
         "ip": client["ip"],
         "userAgent": client["userAgent"],
     }
     ev_sha = _evidence(evidence)
+    token = secrets.token_urlsafe(32)
     cur = await c.execute(
         """insert into registrations (kind, data, proposer_number, signer_name, signer_email, signer_role, accepted, image_consent,
-                                      signature_png, signature_sha256, ip, user_agent, signed_at, evidence_sha256, status)
-           values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pendente') returning id""",
+                                      declaration, ip, user_agent, signed_at, evidence_sha256, status, confirm_token_hash, confirm_expires_at)
+           values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'por_confirmar', %s, now() + %s * interval '1 day') returning id""",
         [
             kind,
             Jsonb(data),
@@ -340,17 +324,111 @@ async def _finish(
             role,
             Jsonb(accepted),
             image_consent,
-            signature,
-            sig_sha,
+            declaration,
             client["ip"],
             client["userAgent"],
             signed_at,
             ev_sha,
+            _token_hash(token),
+            CONFIRM_DAYS,
         ],
     )
     row = await cur.fetchone()
     assert row is not None
     reg_id = str(row["id"])
+    what = "a proposta de sócio" if kind == "member" else f"a inscrição de {data.get('name', 'atleta')}"
+    if config.mail.enabled:
+        await enqueue(
+            c,
+            to_email=email,
+            to_name=name,
+            subject="Confirma a tua proposta — Serrado FC",
+            html_body=layout(
+                "Confirma a tua proposta",
+                [
+                    f"Olá {name.split()[0]},",
+                    f"Para enviarmos {what} à secretaria do clube, confirma que foste tu a preenchê-la e que aceitas as condições.",
+                    f"A ligação é válida durante {CONFIRM_DAYS} dias. Depois de confirmares, recebes o documento com a proposta e a prova da aceitação.",
+                ],
+                ("Confirmar a proposta", f"{config.oauth.site_url}/propostas/confirmar?token={token}"),
+                footer="Se não foste tu, ignora este email: sem confirmação, a proposta não segue.",
+            ),
+        )
+    await audit(c, SYSTEM, f"registrations.{kind}", "registrations", reg_id, {"evidence": ev_sha[:16]})
+    return {"id": reg_id, "evidenceSha256": ev_sha, "status": "por_confirmar"}
+
+
+def _labels(kind: str, d: dict[str, Any]) -> list[tuple[str, str | None]]:
+    address = ", ".join(x for x in (d.get("address"), d.get("postalCode"), d.get("city")) if x)
+    image = "Autoriza" if d.get("imageConsent") else "Não autoriza"
+    if kind == "member":
+        return [
+            ("N.º de sócio", "a atribuir pela secretaria"),
+            ("Nome", d.get("name")),
+            ("Email", d.get("email")),
+            ("Telemóvel", d.get("phone")),
+            ("NIF", d.get("taxNumber") or ""),
+            ("Data de nascimento", d.get("birthDate")),
+            ("Morada", address),
+            ("Categoria", d.get("category")),
+            ("Sócio proponente", f"n.º {d['proposerNumber']}" if d.get("proposerNumber") else ""),
+            ("Imagem", image),
+        ]
+    g = d.get("guardian") or {}
+    return [
+        ("Código", "a atribuir pela secretaria"),
+        ("Nome", d.get("name")),
+        ("Data de nascimento", d.get("birthDate")),
+        ("Género", d.get("gender")),
+        ("Modalidade", SPORT_NAMES.get(str(d.get("sport")), str(d.get("sport")))),
+        ("N.º do CC", d.get("idNumber") or ""),
+        ("NIF", d.get("taxNumber") or ""),
+        ("Email", d.get("email") or ""),
+        ("Telemóvel", d.get("phone") or ""),
+        ("Morada", address),
+        ("Contacto de emergência", f"{d.get('emergencyName')} · {d.get('emergencyPhone')}"),
+        ("Encarregado", f"{g.get('name')} ({g.get('relation')}) · {g.get('email')} · {g.get('phone')}" if g else ""),
+        ("Imagem", image),
+    ]
+
+
+async def confirm(c: Conn, token: str, client: dict[str, str]) -> dict[str, Any]:
+    """Ligação do email: a proposta passa à secretaria, com o PDF (dados, documentos e prova da aceitação)."""
+    reg = await (await c.execute("select * from registrations where confirm_token_hash = %s for update", [_token_hash(token)])).fetchone()
+    if not reg:
+        raise HttpError(400, "invalid_link", "Ligação inválida. Copia-a completa do email ou faz a proposta outra vez.")
+    out = {"id": str(reg["id"]), "kind": reg["kind"], "name": reg["data"].get("name", "")}
+    if reg["status"] != "por_confirmar":
+        return {**out, "status": reg["status"], "already": True}
+    expired = await (await c.execute("select confirm_expires_at < now() as x from registrations where id = %s", [reg["id"]])).fetchone()
+    if expired and expired["x"]:
+        raise HttpError(400, "expired_link", f"A ligação expirou ({CONFIRM_DAYS} dias). Faz a proposta outra vez.")
+    d: dict[str, Any] = reg["data"]
+    if reg["kind"] == "member":
+        if await (await c.execute("select 1 from members where email = %s", [d["email"]])).fetchone():
+            raise HttpError(409, "already_member", "Já existe um sócio com este email.")
+        dup = "kind = 'member' and lower(data->>'email') = lower(%s)"
+        dup_args = [d["email"]]
+    else:
+        dup = "kind = 'athlete' and lower(data->>'name') = lower(%s) and data->>'birthDate' = %s"
+        dup_args = [d["name"], d["birthDate"]]
+    if await (await c.execute(f"select 1 from registrations where status = 'pendente' and {dup} and id <> %s", [*dup_args, reg["id"]])).fetchone():
+        raise HttpError(409, "already_proposed", "Já há uma proposta igual à espera da secretaria.")
+    await c.execute(
+        "update registrations set status = 'pendente', confirmed_at = now(), confirm_ip = %s where id = %s returning confirmed_at",
+        [client["ip"], reg["id"]],
+    )
+    confirmed = await (await c.execute("select confirmed_at from registrations where id = %s", [reg["id"]])).fetchone()
+    assert confirmed is not None
+    docs = [
+        x
+        for a in reg["accepted"]
+        for x in await fetch(c, "select * from legal_documents where kind = %s and version = %s", [a["kind"], a["version"]])
+    ]
+    signed_at = datetime.fromisoformat(str(reg["signed_at"]).replace("Z", "+00:00"))
+    confirmed_at = datetime.fromisoformat(str(confirmed["confirmed_at"]).replace("Z", "+00:00"))
+    title = "Proposta de sócio" if reg["kind"] == "member" else "Proposta de inscrição de atleta"
+    reg_id = str(reg["id"])
     pdf = await asyncio.to_thread(
         build_pdf,
         {
@@ -358,40 +436,42 @@ async def _finish(
             "title": title,
             "signedLocal": signed_at.astimezone(LISBON).strftime("%d/%m/%Y %H:%M"),
             "signedAt": signed_at.strftime("%Y-%m-%d %H:%M:%S"),
-            "accepted": accepted,
-            "signerName": name,
-            "signerEmail": email,
-            "signerRole": role,
-            "ip": client["ip"],
-            "userAgent": client["userAgent"],
-            "signatureSha256": sig_sha,
-            "evidenceSha256": ev_sha,
+            "confirmedAt": confirmed_at.astimezone(UTC).strftime("%Y-%m-%d %H:%M:%S"),
+            "confirmIp": client["ip"],
+            "accepted": reg["accepted"],
+            "declaration": reg["declaration"],
+            "signerName": reg["signer_name"],
+            "signerEmail": reg["signer_email"],
+            "signerRole": reg["signer_role"],
+            "ip": reg["ip"],
+            "userAgent": reg["user_agent"],
+            "evidenceSha256": reg["evidence_sha256"],
         },
         docs,
-        labels,
-        signature,
+        _labels(reg["kind"], {**d, "imageConsent": reg["image_consent"]}),
     )
     await c.execute("update registrations set pdf = %s, pdf_sha256 = %s where id = %s", [pdf, hashlib.sha256(pdf).hexdigest(), reg_id])
+    name = str(reg["signer_name"])
     if config.mail.enabled:
         await enqueue(
             c,
-            to_email=email,
+            to_email=reg["signer_email"],
             to_name=name,
             subject=f"{title} — Serrado FC",
             html_body=layout(
                 title,
                 [
                     f"Olá {name.split()[0]},",
-                    "Obrigado! Recebemos a proposta. A secretaria do clube vai analisá-la e recebes um email quando for aceite.",
-                    "Em anexo segue o documento assinado, com os dados, os documentos aceites e a prova da assinatura.",
+                    "Obrigado! A proposta foi confirmada e seguiu para a secretaria do clube. Recebes um email quando for aceite.",
+                    "Em anexo segue o documento com os dados, os documentos aceites e a prova da aceitação.",
                 ],
                 footer="Se não foste tu, responde a este email ou contacta a secretaria do clube.",
             ),
-            attachments=[{"name": f"registo-serrado-{reg_id[:8]}.pdf", "content": base64.b64encode(pdf).decode()}],
+            attachments=[{"name": f"proposta-serrado-{reg_id[:8]}.pdf", "content": base64.b64encode(pdf).decode()}],
         )
-    await audit(c, SYSTEM, f"registrations.{kind}", "registrations", reg_id, {"evidence": ev_sha[:16]})
-    await _notify_club(c, kind, str(data.get("name", "")), reg_id)
-    return {"id": reg_id, "evidenceSha256": ev_sha, "status": "pendente"}
+    await audit(c, SYSTEM, "registrations.confirm", "registrations", reg_id, {"kind": reg["kind"]})
+    await _notify_club(c, reg["kind"], str(d.get("name", "")), reg_id)
+    return {**out, "status": "pendente", "already": False}
 
 
 async def _notify_club(c: Conn, kind: str, name: str, reg_id: str) -> None:
@@ -407,7 +487,7 @@ async def _notify_club(c: Conn, kind: str, name: str, reg_id: str) -> None:
         subject=f"Nova proposta de {what}: {name}",
         html_body=layout(
             f"Nova proposta de {what}",
-            [f"{name} submeteu uma proposta de {what} no site, com assinatura.", "Aceita ou recusa no backoffice, em Propostas."],
+            [f"{name} fez e confirmou uma proposta de {what} no site.", "Aceita ou recusa no backoffice, em Propostas."],
             ("Ver propostas", f"{config.oauth.site_url}/admin/registos"),
         ),
     )
@@ -426,8 +506,7 @@ async def _invite_if_new(c: Conn, email: str, name: str) -> None:
 async def register_member(c: Conn, body: MemberSignup, client: dict[str, str]) -> dict[str, Any]:
     if body.website:
         raise HttpError(400, "invalid", "Pedido inválido")
-    signature = check_signature(body.signature)
-    accepted, docs = await _accepted(c, "member", body)
+    accepted, _docs = await _accepted(c, "member", body)
     if await (await c.execute("select 1 from members where email = %s", [body.email])).fetchone():
         raise HttpError(409, "already_member", "Já existe um sócio com este email. Entra na área reservada ou contacta a secretaria.")
     if await (
@@ -450,32 +529,16 @@ async def register_member(c: Conn, body: MemberSignup, client: dict[str, str]) -
     ):
         raise HttpError(400, "validation", "proposerNumber: não há um sócio ativo com esse número")
     proposer = body.proposerNumber.zfill(5) if body.proposerNumber else None
-    data = {k: v for k, v in body.model_dump().items() if k not in ("signature", "website", "accept", "proposerNumber")} | {
+    data = {k: v for k, v in body.model_dump().items() if k not in ("declaration", "website", "accept", "proposerNumber")} | {
         "category": category,
         "proposerNumber": proposer,
     }
-    labels = [
-        ("N.º de sócio", "a atribuir pela secretaria"),
-        ("Nome", body.name),
-        ("Email", body.email),
-        ("Telemóvel", body.phone),
-        ("NIF", body.taxNumber or ""),
-        ("Data de nascimento", body.birthDate),
-        ("Morada", ", ".join(x for x in (body.address, body.postalCode, body.city) if x)),
-        ("Categoria", category),
-        ("Sócio proponente", f"n.º {proposer}" if proposer else ""),
-        ("Imagem", "Autoriza" if body.imageConsent else "Não autoriza"),
-    ]
     return await _finish(
         c,
         kind="member",
-        title="Proposta de sócio",
         data=data,
-        labels=labels,
         accepted=accepted,
-        docs=docs,
         image_consent=body.imageConsent,
-        signature=signature,
         signer=(body.name, body.email, "titular"),
         client=client,
         proposer_number=proposer,
@@ -490,8 +553,7 @@ async def register_athlete(c: Conn, body: AthleteSignup, client: dict[str, str])
         raise HttpError(400, "validation", "guardian: obrigatório para menores de 18 anos")
     if not minor and not body.email:
         raise HttpError(400, "validation", "email: obrigatório (o atleta assina e recebe o documento)")
-    signature = check_signature(body.signature)
-    accepted, docs = await _accepted(c, "athlete", body)
+    accepted, _docs = await _accepted(c, "athlete", body)
     if await (await c.execute("select 1 from athletes where lower(name) = lower(%s) and birth_date = %s", [body.name, body.birthDate])).fetchone():
         raise HttpError(409, "already_registered", "Este atleta já está inscrito. Fala com a secretaria para renovar ou alterar a inscrição.")
     if await (
@@ -506,33 +568,13 @@ async def register_athlete(c: Conn, body: AthleteSignup, client: dict[str, str])
     else:
         assert body.email is not None
         signer = (body.name, body.email, "titular")
-    data = {k: v for k, v in body.model_dump().items() if k not in ("signature", "website", "accept")}
-    g = body.guardian
-    labels = [
-        ("Código", "a atribuir pela secretaria"),
-        ("Nome", body.name),
-        ("Data de nascimento", body.birthDate),
-        ("Género", body.gender),
-        ("Modalidade", SPORT_NAMES[body.sport]),
-        ("N.º do CC", body.idNumber or ""),
-        ("NIF", body.taxNumber or ""),
-        ("Email", body.email or ""),
-        ("Telemóvel", body.phone or ""),
-        ("Morada", ", ".join(x for x in (body.address, body.postalCode, body.city) if x)),
-        ("Contacto de emergência", f"{body.emergencyName} · {body.emergencyPhone}"),
-        ("Encarregado", f"{g.name} ({g.relation}) · {g.email} · {g.phone}" if minor and g else ""),
-        ("Imagem", "Autoriza" if body.imageConsent else "Não autoriza"),
-    ]
+    data = {k: v for k, v in body.model_dump().items() if k not in ("declaration", "website", "accept")}
     return await _finish(
         c,
         kind="athlete",
-        title="Proposta de inscrição de atleta",
         data=data,
-        labels=labels,
         accepted=accepted,
-        docs=docs,
         image_consent=body.imageConsent,
-        signature=signature,
         signer=signer,
         client=client,
     )
@@ -661,7 +703,7 @@ __all__ = [
     "AthleteSignup",
     "MemberSignup",
     "build_pdf",
-    "check_signature",
+    "confirm",
     "current_documents",
     "doc_hash",
     "approve",

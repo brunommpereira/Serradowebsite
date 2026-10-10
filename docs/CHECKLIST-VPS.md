@@ -103,7 +103,7 @@ Com a API ligada, estas partes do site **ainda não gravam nada no servidor**. E
 - [x] **`/entrar`:** a caixa «Contas de demonstração» não aparece em modo API.
 - [x] **«Esqueci-me da password»:** em modo API, mostra um aviso para contactar a secretaria, que repõe a password.
 - [x] **Recuperação da password por email:** feita (caixa do domínio ou Brevo). Falta configurar (ver a secção 4).
-- [x] **Registo de novos sócios** (`/socios/registo`) e **inscrição de atletas** (`/inscricao`, também a partir da página de cada modalidade): online, com condições, RGPD, autorização de imagem e assinatura desenhada. Ficam ativos de imediato e o PDF assinado segue por email.
+- [x] **Registo de novos sócios** (`/socios/registo`) e **inscrição de atletas** (`/inscricao`, também a partir da página de cada modalidade): online, com condições, RGPD, autorização de imagem e aceitação com confirmação por email. São propostas: a secretaria aceita ou recusa em Backoffice → Propostas.
 - [ ] **Documentos legais publicados** em **Backoffice → Registos online → Documentos legais** (condições de sócio, regulamento de atleta, RGPD e imagem). Há modelos para começar, mas **têm de ser revistos pela direção** (e, se possível, por um jurista). Até estarem os quatro publicados, os formulários mostram um aviso. **[decidir]**
 - [ ] **Teste completo antes de abrir:** um registo de sócio e uma inscrição de um menor (assinada pelo encarregado). Confirmar que chega o email com o PDF e o convite, e que aparecem em **Registos online**. **[eu]**
 - [x] **Inscrição em eventos:** em modo API, mostra um aviso para tratar na secretaria.

@@ -2,26 +2,15 @@
 
 import base64
 import hashlib
-import io
 import json
+import re
 
 import psycopg
 import pytest
-from PIL import Image, ImageDraw
 
 from serrado.config import config
 from serrado.db.pool import execute, fetch, fetch_one
 from tests.conftest import XHR
-
-
-def signature(blank: bool = False) -> str:
-    img = Image.new("RGBA", (400, 150), (0, 0, 0, 0))
-    if not blank:
-        d = ImageDraw.Draw(img)
-        d.line([(20, 110), (80, 30), (140, 120), (200, 40), (260, 115), (330, 50)], fill=(10, 20, 40, 255), width=4)
-    out = io.BytesIO()
-    img.save(out, format="PNG")
-    return "data:image/png;base64," + base64.b64encode(out.getvalue()).decode()
 
 
 async def versions(mw) -> dict[str, int]:
@@ -34,6 +23,18 @@ def mail_on(monkeypatch):
     monkeypatch.setattr(config.mail, "brevo_api_key", "xkeysib-teste")
     monkeypatch.setattr(config.mail, "from_email", "site@serradofc.pt")
     monkeypatch.setattr(config.oauth, "site_url", "https://www.serradofc.pt")
+
+
+async def confirm_link(mw, email: str, ip: str = "10.9.0.50"):
+    """Abre a ligação do email «Confirma a tua proposta» (a mais recente para este email)."""
+    row = await fetch_one(
+        mw.pool, "select html from email_outbox where to_email = %s and subject like 'Confirma a tua proposta%%' order by id desc limit 1", [email]
+    )
+    assert row, f"sem email de confirmação para {email}"
+    token = re.search(r"/propostas/confirmar\?token=([A-Za-z0-9_-]+)", row["html"]).group(1)
+    c = mw.client(ip)
+    c.headers.update(XHR)
+    return await c.post("/api/v1/registrations/confirm", json={"token": token})
 
 
 def member_form(v: dict[str, int], **extra) -> dict:
@@ -49,7 +50,7 @@ def member_form(v: dict[str, int], **extra) -> dict:
         "category": None,
         "accept": v,
         "imageConsent": True,
-        "signature": signature(),
+        "declaration": True,
         **extra,
     }
 
@@ -62,17 +63,15 @@ async def test_formulario_mostra_os_documentos_em_vigor(mw):
     assert rgpd["sha256"] == hashlib.sha256(f"{rgpd['title']}\n\n{rgpd['body']}".encode()).hexdigest()
 
 
-async def test_registo_de_socio_com_assinatura_e_prova(mw, mail_on):
+async def test_proposta_de_socio_aceite_e_confirmada_por_email(mw, mail_on):
     v = await versions(mw)
     c = mw.client("10.9.0.1")
     c.headers.update({**XHR, "user-agent": "TesteBrowser/1.0"})
-    # Sem assinatura (quadro vazio), honeypot, documento desatualizado, imagem que não é PNG
-    assert (await c.post("/api/v1/registrations/member", json=member_form(v, signature=signature(blank=True)))).json()["error"] == "empty_signature"
+    # Sem a declaração aceite, honeypot, documento desatualizado
+    assert (await c.post("/api/v1/registrations/member", json=member_form(v, declaration=False))).status_code == 400
     assert (await c.post("/api/v1/registrations/member", json=member_form(v, website="spam"))).status_code == 400
     old = {**v, "socio": v["socio"] - 1}
     assert (await c.post("/api/v1/registrations/member", json=member_form(old))).json()["error"] == "documents_changed"
-    gif = "data:image/png;base64," + base64.b64encode(b"GIF89a....").decode()
-    assert (await c.post("/api/v1/registrations/member", json=member_form(v, signature=gif))).json()["error"] == "invalid_signature"
 
     # Sócio proponente que não existe
     c3 = mw.client("10.9.0.12")
@@ -82,14 +81,21 @@ async def test_registo_de_socio_com_assinatura_e_prova(mw, mail_on):
     r = await c.post("/api/v1/registrations/member", json=member_form(v, proposerNumber="482"))
     assert r.status_code == 201, r.text
     out = r.json()
-    # É uma proposta: ainda não há sócio nem conta
-    assert out["status"] == "pendente" and "memberNumber" not in out
+    # Fica à espera da confirmação por email: a secretaria ainda não a vê
+    assert out["status"] == "por_confirmar" and "memberNumber" not in out
     assert await fetch_one(mw.pool, "select 1 from members where email = 'joana@exemplo.pt'") is None
+    assert not await fetch_one(mw.pool, "select 1 from email_outbox where subject like 'Nova proposta%%'")
+    bad_link = await c.post("/api/v1/registrations/confirm", json={"token": "x" * 43})
+    assert bad_link.status_code == 400 and bad_link.json()["error"] == "invalid_link"
+    ok_link = await confirm_link(mw, "joana@exemplo.pt")
+    assert ok_link.status_code == 200 and ok_link.json()["status"] == "pendente", ok_link.text
+    assert (await confirm_link(mw, "joana@exemplo.pt")).json()["already"] is True, "a ligação pode ser aberta outra vez"
     g = await fetch_one(mw.pool, "select * from registrations where id = %s", [out["id"]])
     assert g and (g["status"], g["proposer_number"], g["member_number"]) == ("pendente", "00482", None)
     assert g and g["ip"] == "10.9.0.1" and g["user_agent"] == "TesteBrowser/1.0" and g["signer_role"] == "titular"
+    assert g["confirm_ip"] == "10.9.0.50" and g["confirmed_at"] and g["signature_png"] is None
+    assert g["declaration"].startswith("Declaro que os dados indicados são verdadeiros")
     assert g["pdf"].startswith(b"%PDF") and g["pdf_sha256"] == hashlib.sha256(g["pdf"]).hexdigest()
-    assert g["signature_sha256"] == hashlib.sha256(g["signature_png"]).hexdigest()
     assert {(a["kind"], a["accepted"]) for a in g["accepted"]} == {("socio", True), ("rgpd", True), ("imagem", True)}
     # A prova volta a dar o mesmo hash com os dados guardados
     evidence = {
@@ -98,7 +104,7 @@ async def test_registo_de_socio_com_assinatura_e_prova(mw, mail_on):
         "accepted": g["accepted"],
         "imageConsent": g["image_consent"],
         "signer": {"name": g["signer_name"], "email": g["signer_email"], "role": g["signer_role"]},
-        "signatureSha256": g["signature_sha256"],
+        "declaration": g["declaration"],
         "signedAt": g["signed_at"].replace("Z", "+00:00").replace(".000", ""),
         "ip": g["ip"],
         "userAgent": g["user_agent"],
@@ -106,10 +112,10 @@ async def test_registo_de_socio_com_assinatura_e_prova(mw, mail_on):
     assert (
         hashlib.sha256(json.dumps(evidence, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest() == g["evidence_sha256"]
     )
-    # Emails: a proposta assinada (PDF em anexo) e o aviso à secretaria; ainda sem convite
+    # Emails: o pedido de confirmação, depois a proposta (PDF em anexo) e o aviso à secretaria; ainda sem convite
     mails = await fetch(mw.pool, "select subject, attachments from email_outbox where to_email = 'joana@exemplo.pt' order by id")
-    assert [x["subject"] for x in mails] == ["Proposta de sócio — Serrado FC"]
-    assert base64.b64decode(mails[0]["attachments"][0]["content"]) == g["pdf"]
+    assert [x["subject"] for x in mails] == ["Confirma a tua proposta — Serrado FC", "Proposta de sócio — Serrado FC"]
+    assert base64.b64decode(mails[1]["attachments"][0]["content"]) == g["pdf"]
     assert await fetch_one(mw.pool, "select 1 from email_outbox where subject = 'Nova proposta de sócio: Joana Exemplo Registo'")
     # Não propõe duas vezes o mesmo email
     c2 = mw.client("10.9.0.11")
@@ -132,13 +138,13 @@ async def test_registo_de_socio_com_assinatura_e_prova(mw, mail_on):
     g2 = await fetch_one(mw.pool, "select status, member_number, review_note, evidence_sha256 from registrations where id = %s", [out["id"]])
     assert g2 == {"status": "aceite", "member_number": number, "review_note": "Bem-vinda!", "evidence_sha256": g["evidence_sha256"]}
     mails = [x["subject"] for x in await fetch(mw.pool, "select subject from email_outbox where to_email = 'joana@exemplo.pt' order by id")]
-    assert mails[1:] == ["Proposta aceite — Serrado FC", "A tua conta no site do Serrado FC"]
+    assert mails[2:] == ["Proposta aceite — Serrado FC", "A tua conta no site do Serrado FC"]
     assert (await sec.post(f"/api/v1/admin/registrations/{out['id']}/approve", json={})).status_code == 409, "só uma vez"
     # Já sócio: nova proposta com o mesmo email é recusada logo
     assert (await c2.post("/api/v1/registrations/member", json=member_form(v))).json()["error"] == "already_member"
 
 
-async def test_inscricao_de_atleta_menor_assinada_pelo_encarregado(mw):
+async def test_inscricao_de_atleta_menor_aceite_pelo_encarregado(mw, mail_on):
     v = await versions(mw)
     c = mw.client("10.9.0.2")
     c.headers.update(XHR)
@@ -151,7 +157,7 @@ async def test_inscricao_de_atleta_menor_assinada_pelo_encarregado(mw):
         "emergencyPhone": "913000000",
         "accept": v,
         "imageConsent": False,
-        "signature": signature(),
+        "declaration": True,
     }
     no_guardian = await c.post("/api/v1/registrations/athlete", json=base)
     assert no_guardian.status_code == 400 and "guardian" in no_guardian.text
@@ -161,6 +167,7 @@ async def test_inscricao_de_atleta_menor_assinada_pelo_encarregado(mw):
     r = await c.post("/api/v1/registrations/athlete", json={**base, **empty, "guardian": guardian, "website": ""})
     assert r.status_code == 201, r.text
     assert await fetch_one(mw.pool, "select 1 from athletes where name = 'Rui Exemplo Pequeno'") is None, "fica à espera da secretaria"
+    assert (await confirm_link(mw, "sara@exemplo.pt")).json()["status"] == "pendente"
     dup = await c.post("/api/v1/registrations/athlete", json={**base, "guardian": guardian})
     assert dup.status_code == 409 and dup.json()["error"] == "already_proposed"
     sec = await mw.login("secretaria@serradofc.pt", "secretaria2026")
@@ -185,6 +192,7 @@ async def test_inscricao_de_atleta_menor_assinada_pelo_encarregado(mw):
     assert (await c4.post("/api/v1/registrations/athlete", json=adult)).status_code == 400, "sem email"
     r2 = await c4.post("/api/v1/registrations/athlete", json={**adult, "email": "tania@exemplo.pt"})
     assert r2.status_code == 201, r2.text
+    await confirm_link(mw, "tania@exemplo.pt")
     assert (await sec.post(f"/api/v1/admin/registrations/{r2.json()['id']}/approve", json={})).status_code == 200
     role = await fetch_one(mw.pool, "select aa.role from athlete_access aa join users u on u.id = aa.user_id where u.email = 'tania@exemplo.pt'")
     assert role == {"role": "atleta"}
@@ -234,6 +242,7 @@ async def test_secretaria_recusa_uma_proposta_com_motivo(mw, mail_on):
     c.headers.update(XHR)
     r = await c.post("/api/v1/registrations/member", json=member_form(v, name="Pedro Exemplo Recusado", email="pedro.r@exemplo.pt"))
     assert r.status_code == 201, r.text
+    await confirm_link(mw, "pedro.r@exemplo.pt")
     tes = await mw.login("tesouraria@serradofc.pt", "tesouraria2026")
     assert (await tes.post(f"/api/v1/admin/registrations/{r.json()['id']}/approve", json={})).status_code == 403
     sec = await mw.login("secretaria@serradofc.pt", "secretaria2026")

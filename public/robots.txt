@@ -4,5 +4,6 @@ Disallow: /area-socio
 Disallow: /area-atletas
 Disallow: /admin
 Disallow: /entrar/nova-password
+Disallow: /propostas
 
 Sitemap: https://www.serradofc.pt/sitemap.xml

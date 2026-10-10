@@ -5,7 +5,6 @@ import { RouterLink } from '@angular/router';
 import { nifValidator, PHONE_PATTERN, POSTAL_CODE_PATTERN } from '../../core/validators';
 import { IconComponent } from '../../shared/icon.component';
 import { OfflineNoticeComponent } from '../../shared/offline-notice.component';
-import { SignaturePadComponent } from '../../shared/signature-pad.component';
 import { LegalAcceptComponent } from './legal-accept.component';
 import { SignupForm, SignupResult, SignupService } from './signup.service';
 
@@ -27,19 +26,19 @@ function ageOn(birth: string, today = new Date()): number {
 
 /**
  * Inscrição de atleta online (modo API). Menor de 18 anos: assina o encarregado de educação.
- * Adulto: assina o próprio. Fica pendente até a secretaria aceitar; o documento assinado segue por email.
+ * Adulto: assina o próprio. Aceita com uma declaração, confirma por email e fica pendente até a secretaria aceitar.
  */
 @Component({
   selector: 'sfc-athlete-signup',
-  imports: [ReactiveFormsModule, RouterLink, IconComponent, OfflineNoticeComponent, SignaturePadComponent, LegalAcceptComponent],
+  imports: [ReactiveFormsModule, RouterLink, IconComponent, OfflineNoticeComponent, LegalAcceptComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (done(); as d) {
       <div class="card done" role="status">
         <sfc-icon name="check" size="40" />
-        <h2>Proposta de inscrição enviada!</h2>
-        <p>A secretaria do clube vai analisar a inscrição. Quando for aceite, recebes um email com o <strong>código de atleta</strong> e uma ligação para a Área de Atletas, onde podes entregar os documentos em falta (exame médico, fotografia…).</p>
-        <p>Enviámos para <strong>{{ signerEmail() }}</strong> a proposta assinada (PDF).</p>
+        <h2>Falta um passo: confirma no email</h2>
+        <p>Enviámos para <strong>{{ signerEmail() }}</strong> uma ligação para <strong>confirmares a inscrição</strong> (vê também a pasta de spam). Só depois segue para a secretaria.</p>
+        <p>Quando for aceite, recebes o <strong>código de atleta</strong> e uma ligação para a Área de Atletas, onde podes entregar os documentos em falta (exame médico, fotografia…).</p>
         <p class="caption">Referência do registo: {{ d.id.slice(0, 8) }} · prova {{ d.evidenceSha256.slice(0, 16) }}…</p>
         <a class="btn btn--primary" routerLink="/">Voltar ao início</a>
       </div>
@@ -169,16 +168,25 @@ function ageOn(birth: string, today = new Date()): number {
             [label]="minor() ? 'Autorizo a utilização da imagem do meu educando (facultativo)' : 'Autorizo a utilização da minha imagem (facultativo)'"
           />
 
-          <h2 class="h-s">{{ minor() ? '4' : '3' }}. Assinatura {{ minor() ? 'do encarregado de educação' : 'do atleta' }}</h2>
-          <p class="caption">Ao assinar, confirmas que os dados estão corretos e aceitas os documentos acima. Guardamos a assinatura, a data e hora, o endereço IP e o navegador como prova, e enviamos-te o documento assinado.</p>
-          <sfc-signature-pad (changed)="signature.set($event)" />
+          <h2 class="h-s">{{ minor() ? '4' : '3' }}. Aceitação {{ minor() ? 'do encarregado de educação' : 'do atleta' }}</h2>
+          <label class="declare">
+            <input type="checkbox" [checked]="declared()" (change)="declared.set($any($event.target).checked)" />
+            <span
+              >Declaro que os dados indicados são verdadeiros e aceito as condições e os documentos acima, na qualidade de
+              {{ minor() ? 'encarregado de educação do atleta' : 'titular' }}. <span class="req">*</span></span
+            >
+          </label>
+          <p class="caption">
+            Depois de enviares, recebes um email para <strong>confirmar a inscrição</strong>: só segue para a secretaria depois de confirmares. Guardamos a data e
+            hora, o endereço IP e o navegador como prova, e enviamos-te o documento com a proposta.
+          </p>
 
           <div class="hp" aria-hidden="true"><label>Website <input tabindex="-1" autocomplete="off" formControlName="website" /></label></div>
 
           @if (error(); as e) {
             <p class="alert alert--warning" role="alert"><sfc-icon name="warning" size="18" /><span>{{ e }}</span></p>
           }
-          <button class="btn btn--accent btn--block" type="submit" [disabled]="busy()">{{ busy() ? 'A inscrever…' : 'Assinar e inscrever' }}</button>
+          <button class="btn btn--accent btn--block" type="submit" [disabled]="busy()">{{ busy() ? 'A enviar…' : 'Aceitar e enviar inscrição' }}</button>
           @if (missing().length && tried()) {
             <p class="caption miss" role="status">Falta: {{ missing().join(', ') }}.</p>
           }
@@ -202,7 +210,7 @@ export class AthleteSignupComponent {
   protected readonly busy = signal(false);
   protected readonly tried = signal(false);
   protected readonly done = signal<SignupResult | null>(null);
-  protected readonly signature = signal<string | null>(null);
+  protected readonly declared = signal(false);
   protected acceptRules = signal(false);
   protected acceptRgpd = signal(false);
   protected imageConsent = signal(false);
@@ -241,7 +249,7 @@ export class AthleteSignupComponent {
     const out: string[] = [];
     if (!this.acceptRules()) out.push('aceitar o regulamento');
     if (!this.acceptRgpd()) out.push('ler a informação RGPD');
-    if (!this.signature()) out.push('assinar');
+    if (!this.declared()) out.push('aceitar a declaração');
     return out;
   });
 
@@ -305,7 +313,7 @@ export class AthleteSignupComponent {
         website: v.website,
         accept: Object.fromEntries(Object.entries(f.documents).map(([k, d]) => [k, d!.version])),
         imageConsent: this.imageConsent(),
-        signature: this.signature(),
+        declaration: this.declared(),
       });
       this.done.set(out);
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });

@@ -15,6 +15,7 @@ from ...signup import (
     AthleteSignup,
     MemberSignup,
     approve,
+    confirm,
     current_documents,
     publish_document,
     register_athlete,
@@ -46,6 +47,12 @@ class AthleteBody(BaseModel):
     client: Client
 
 
+class ConfirmBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    token: str = Field(min_length=20, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
+    client: Client
+
+
 class Decision(BaseModel):
     model_config = ConfigDict(extra="forbid")
     note: str = Field(default="", max_length=2000)
@@ -73,17 +80,27 @@ def register(r: APIRouter) -> None:
             "sports": list(SPORTS),
         }
 
-    @r.post("/signup/member", tags=public, summary="Proposta de sócio com assinatura (fica pendente até a secretaria aceitar)", status_code=201)
+    @r.post(
+        "/signup/member",
+        tags=public,
+        summary="Proposta de sócio (aceitação + confirmação por email; depois fica à espera da secretaria)",
+        status_code=201,
+    )
     async def signup_member(req: Request, body: MemberBody) -> dict[str, Any]:
         async with tx(pool(req)) as c:
             return await register_member(c, body.form, body.client.model_dump())
 
-    @r.post("/signup/athlete", tags=public, summary="Proposta de inscrição de atleta com assinatura (pendente até aceitar)", status_code=201)
+    @r.post("/signup/athlete", tags=public, summary="Proposta de inscrição de atleta (aceitação + confirmação por email)", status_code=201)
     async def signup_athlete(req: Request, body: AthleteBody) -> dict[str, Any]:
         async with tx(pool(req)) as c:
             return await register_athlete(c, body.form, body.client.model_dump())
 
     # ------------------------------------------------------------- backoffice
+    @r.post("/signup/confirm", tags=public, summary="Confirmação por email: a proposta passa à secretaria (com o PDF)")
+    async def confirm_signup(req: Request, body: ConfirmBody) -> dict[str, Any]:
+        async with tx(pool(req)) as c:
+            return await confirm(c, body.token, body.client.model_dump())
+
     @r.get("/legal", tags=office, summary="Documentos legais: versão em vigor e histórico")
     async def legal(req: Request) -> dict[str, Any]:
         require(req, "registrations.manage")
@@ -111,7 +128,9 @@ def register(r: APIRouter) -> None:
 
     @r.get("/registrations", tags=office, summary="Registos online assinados (mais recentes primeiro)")
     async def registrations(
-        req: Request, kind: Literal["member", "athlete"] | None = None, status: Literal["pendente", "aceite", "recusada"] | None = None
+        req: Request,
+        kind: Literal["member", "athlete"] | None = None,
+        status: Literal["por_confirmar", "pendente", "aceite", "recusada"] | None = None,
     ) -> list[dict[str, Any]]:
         require(req, "registrations.manage")
         rows = await fetch(
@@ -120,7 +139,8 @@ def register(r: APIRouter) -> None:
                       g.signer_role as "signerRole", g.image_consent as "imageConsent", g.member_number as "memberNumber",
                       a.code as "athleteCode", coalesce(g.data->>'name', '') as name, g.evidence_sha256 as "evidenceSha256",
                       g.proposer_number as "proposerNumber", p.name as "proposerName", g.data,
-                      g.review_note as "reviewNote", g.reviewed_at as "reviewedAt", u.name as "reviewedBy"
+                      g.review_note as "reviewNote", g.reviewed_at as "reviewedAt", u.name as "reviewedBy",
+                      g.confirmed_at as "confirmedAt", (g.pdf is not null) as "hasPdf"
                  from registrations g left join athletes a on a.id = g.athlete_id
                       left join members p on p.member_number = g.proposer_number
                       left join users u on u.id = g.reviewed_by

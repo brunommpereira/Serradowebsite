@@ -20,8 +20,8 @@ export interface SignupForm {
 export interface SignupResult {
   id: string;
   evidenceSha256: string;
-  /** As propostas ficam pendentes até a secretaria as aceitar (n.º de sócio / código chegam por email) */
-  status?: 'pendente';
+  /** por_confirmar: falta abrir a ligação do email; depois fica à espera da secretaria */
+  status?: 'por_confirmar' | 'pendente';
 }
 
 /** Registo online (público): documentos a aceitar e envio do formulário assinado. */
@@ -36,6 +36,11 @@ export class SignupService {
 
   submit(kind: 'member' | 'athlete', body: Record<string, unknown>) {
     return this.api.post<SignupResult>(`/registrations/${kind}`, body);
+  }
+
+  /** Ligação do email: a proposta passa à secretaria */
+  confirm(token: string) {
+    return this.api.post<{ status: string; kind: 'member' | 'athlete'; name: string; already: boolean }>('/registrations/confirm', { token });
   }
 }
 

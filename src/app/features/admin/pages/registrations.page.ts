@@ -8,7 +8,7 @@ import { OfflineNoticeComponent } from '../../../shared/offline-notice.component
 
 type Kind = 'socio' | 'atleta' | 'rgpd' | 'imagem';
 
-type Status = 'pendente' | 'aceite' | 'recusada';
+type Status = 'por_confirmar' | 'pendente' | 'aceite' | 'recusada';
 
 interface Registration {
   id: string;
@@ -20,6 +20,8 @@ interface Registration {
   reviewNote: string;
   reviewedAt: string | null;
   reviewedBy: string | null;
+  confirmedAt: string | null;
+  hasPdf: boolean;
   signedAt: string;
   name: string;
   signerName: string;
@@ -60,6 +62,7 @@ const STATUS: { key: Status | ''; label: string }[] = [
   { key: 'pendente', label: 'Por decidir' },
   { key: 'aceite', label: 'Aceites' },
   { key: 'recusada', label: 'Recusadas' },
+  { key: 'por_confirmar', label: 'À espera do email' },
   { key: '', label: 'Todas' },
 ];
 
@@ -73,7 +76,7 @@ const STATUS: { key: Status | ''; label: string }[] = [
       <div>
         <h1>Propostas</h1>
         <p>
-          Propostas de sócio e de inscrição de atleta feitas no site, assinadas. Ao <strong>aceitar</strong>, a pessoa passa a sócio (com o n.º
+          Propostas de sócio e de inscrição de atleta feitas no site, aceites pela pessoa e confirmadas por email. Ao <strong>aceitar</strong>, a pessoa passa a sócio (com o n.º
           seguinte) ou a atleta, recebe um email e uma ligação para entrar no site. Os documentos legais têm versões: cada proposta guarda a que foi aceite.
         </p>
       </div>
@@ -133,8 +136,8 @@ const STATUS: { key: Status | ''; label: string }[] = [
                   </td>
                   <td class="hide-sm">{{ r.signerName }} <span class="caption sub">{{ r.signerRole === 'encarregado' ? 'encarregado' : 'titular' }} · {{ r.signerEmail }}</span></td>
                   <td>
-                    <span class="st" [class]="'st ' + (r.status === 'aceite' ? 'st--ok' : r.status === 'recusada' ? 'st--bad' : 'st--warn')">{{
-                      r.status === 'pendente' ? 'Por decidir' : r.status === 'aceite' ? 'Aceite' : 'Recusada'
+                    <span class="st" [class]="'st ' + (r.status === 'aceite' ? 'st--ok' : r.status === 'recusada' ? 'st--bad' : r.status === 'por_confirmar' ? 'st--muted' : 'st--warn')">{{
+                      statusLabel(r.status)
                     }}</span>
                   </td>
                   <td class="act">
@@ -142,7 +145,9 @@ const STATUS: { key: Status | ''; label: string }[] = [
                       <button type="button" class="btn btn--sm" [class.btn--primary]="r.status === 'pendente'" [class.btn--outline]="r.status !== 'pendente'" (click)="open(r)">
                         {{ r.status === 'pendente' ? 'Analisar' : 'Ver' }}
                       </button>
-                      <a class="btn btn--outline btn--sm" [href]="pdfUrl(r.id)" download [attr.aria-label]="'PDF assinado de ' + r.name"><sfc-icon name="download" size="16" />PDF</a>
+                      @if (r.hasPdf) {
+                        <a class="btn btn--outline btn--sm" [href]="pdfUrl(r.id)" download [attr.aria-label]="'PDF da proposta de ' + r.name"><sfc-icon name="download" size="16" />PDF</a>
+                      }
                     </span>
                   </td>
                 </tr>
@@ -165,9 +170,17 @@ const STATUS: { key: Status | ''; label: string }[] = [
                 <div class="wide"><dt>Encarregado</dt><dd>{{ g }}</dd></div>
               }
               <div><dt>Imagem</dt><dd>{{ r.imageConsent ? 'Autoriza' : 'Não autoriza' }}</dd></div>
-              <div class="wide"><dt>Assinou</dt><dd>{{ r.signerName }} ({{ r.signerRole }}) · {{ r.signerEmail }} · {{ r.signedAt | date: 'dd/MM/y HH:mm' }}</dd></div>
+              <div class="wide">
+                <dt>Aceite por</dt>
+                <dd>
+                  {{ r.signerName }} ({{ r.signerRole }}) · {{ r.signerEmail }} · {{ r.signedAt | date: 'dd/MM/y HH:mm' }}
+                  {{ r.confirmedAt ? '· email confirmado a ' + (r.confirmedAt | date: 'dd/MM/y HH:mm') : '· email ainda por confirmar' }}
+                </dd>
+              </div>
             </dl>
-            @if (r.status === 'pendente') {
+            @if (r.status === 'por_confirmar') {
+              <p class="alert alert--warning">A pessoa ainda não abriu a ligação de confirmação enviada por email. Só se pode decidir depois de confirmar.</p>
+            } @else if (r.status === 'pendente') {
               <form class="decide" (submit)="$event.preventDefault()">
                 @if (r.kind === 'member') {
                   <div class="field">
@@ -407,6 +420,10 @@ export class RegistrationsPage {
 
   protected count(st: Status | '') {
     return st ? this.regs().filter((r) => r.status === st).length : this.regs().length;
+  }
+
+  protected statusLabel(st: Status) {
+    return { por_confirmar: 'À espera do email', pendente: 'Por decidir', aceite: 'Aceite', recusada: 'Recusada' }[st];
   }
 
   protected label(r: Registration) {
