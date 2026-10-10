@@ -9,7 +9,7 @@ from ...config import config
 from ...db.pool import Pool, execute, fetch, fetch_one, tx
 from ...password import DUMMY_HASH, hash_password, verify_password
 from ...permissions import ADMIN, PERMISSIONS, effective
-from ...registry import NO_PASSWORD, _email
+from ...registry import NO_PASSWORD, _email, claim_athletes
 from ..accounts import MIN_PASSWORD, send_link, token_hash
 from ..core import Actor, HttpError, actor, audit, can, forbidden, not_found, pool, require
 
@@ -19,7 +19,10 @@ Provider = Annotated[str, Path(pattern=r"^[a-z0-9-]{1,32}$")]
 
 
 async def load_profile(db: Pool, user_id: str) -> dict[str, Any] | None:
-    """Perfil completo de um utilizador: papéis, permissões, sócio (opcional) e atletas a que tem acesso."""
+    """Perfil completo de um utilizador: papéis, permissões, sócio (opcional) e atletas a que tem acesso.
+    Antes, liga a conta às fichas de sócio e de atleta que lhe pertencem (pelo email; ver claim_athletes)."""
+    async with tx(db) as c:
+        await claim_athletes(c, user_id)
     row = await fetch_one(
         db,
         """select u.id, u.email, u.name,

@@ -552,3 +552,33 @@ async def test_mesma_pessoa_pelo_primeiro_e_ultimo_nome_completa_os_dados(mw):
     assert r2["completed"] == {"member": [], "athlete": []}
     # Voltar a ligar o mesmo atleta ao mesmo sócio só volta a completar (não dá erro)
     assert (await sec.post(f"/api/v1/admin/members/{n}/athletes/{adult['id']}")).status_code == 200
+
+
+async def test_educandos_pelo_numero_de_socio_mesmo_sem_email_na_ficha_de_socio(mw):
+    from serrado.password import hash_password_sync
+
+    sec = await mw.login(*SEC)
+    # Sócio da lista antiga: só nome curto, sem email nem data
+    n = (await sec.post("/api/v1/admin/members", json={"name": "Hugo Exemplo"})).json()["memberNumber"]
+    me_ath = (
+        await sec.post(
+            "/api/v1/admin/athletes",
+            json={"name": "Hugo Miguel Sousa Exemplo", "sport": "atletismo", "email": "hugo.ex@exemplo.pt", "birthDate": "1981-01-01"},
+        )
+    ).json()
+    kid = (await sec.post("/api/v1/admin/athletes", json={"name": "Lia Exemplo", "sport": "futsal", "birthDate": "2016-01-01"})).json()
+    # A secretaria liga a ficha de atleta dele e a da filha ao n.º de sócio; o sócio continua sem email
+    await execute(mw.pool, "update athletes set member_number = %s where id in (%s, %s)", [n, me_ath["id"], kid["id"]])
+    await execute(
+        mw.pool,
+        "insert into users (email, name, password_hash) values ('hugo.ex@exemplo.pt', 'Hugo', %s) on conflict (email) do nothing",
+        [hash_password_sync("segredo-2026")],
+    )
+    me = await mw.login("hugo.ex@exemplo.pt", "segredo-2026")
+    mine = {a["id"] for a in (await me.get("/api/v1/me/athletes")).json()}
+    assert mine == {me_ath["id"], kid["id"]}
+    owner = await fetch_one(mw.pool, "select u.email from members m join users u on u.id = m.user_id where m.member_number = %s", [n])
+    assert owner == {"email": "hugo.ex@exemplo.pt"}
+    # A entrada já mostra o sócio (não diz «conta não associada a um sócio»)
+    prof = (await me.get("/api/v1/me")).json()
+    assert prof["member"]["memberNumber"] == n
