@@ -451,3 +451,45 @@ async def test_conta_ve_a_ficha_com_o_seu_email_e_os_resultados_ligados_pelo_nom
     assert roles == {adult["id"]: "atleta", kid["id"]: "encarregado"}
     results = (await me.get(f"/api/v1/athletes/{adult['id']}/results")).json()
     assert [r["place"] for r in results] == [3]
+
+
+async def test_lista_de_resultados_com_filtros_e_ligacao_manual(mw):
+    admin = await mw.login("admin@serradofc.pt", "admin2026")
+    rows = [
+        {
+            "athleteCode": None,
+            "athleteName": "ZÉ DESCONHECIDO",
+            "birthYear": 1999,
+            "season": "2024/2025",
+            "round": 3,
+            "race": "Prova Y",
+            "raceBase": "Prova Y",
+            "raceDate": "2024-12-01",
+            "category": "Seniores",
+            "place": 5,
+        },
+        {
+            "athleteCode": None,
+            "athleteName": "ZÉ DESCONHECIDO",
+            "birthYear": 1999,
+            "season": "2024/2025",
+            "round": 4,
+            "race": "Prova Z",
+            "raceBase": "Prova Z",
+            "raceDate": "2025-01-12",
+            "category": "Seniores",
+            "place": 2,
+        },
+    ]
+    assert (await admin.post("/api/v1/admin/results/import", json={"rows": rows})).status_code == 200
+    out = (await admin.get("/api/v1/admin/results", params={"season": "2024/2025", "linked": "no", "q": "desconhecido"})).json()
+    assert [x["place"] for x in out["items"]] == [2, 5] and out["total"] == 2 and out["linked"] == 0
+    assert "2024/2025" in out["seasons"] and "Seniores" in out["categories"]
+    sec = await mw.login(*SEC)
+    a = (await sec.post("/api/v1/admin/athletes", json={"name": "José Outro Nome", "sport": "atletismo", "birthDate": "1999-03-03"})).json()
+    r = await admin.post("/api/v1/admin/results/link", json={"athleteName": "ZÉ DESCONHECIDO", "birthYear": 1999, "athleteId": a["id"]})
+    assert r.json() == {"updated": 2}
+    out = (await admin.get("/api/v1/admin/results", params={"linked": "yes", "q": "José Outro"})).json()
+    assert {x["linkedName"] for x in out["items"]} == {"José Outro Nome"} and out["total"] == 2
+    tes = await mw.login(*TES)
+    assert (await tes.post("/api/v1/admin/results/link", json={"athleteName": "ZÉ DESCONHECIDO", "birthYear": 1999})).status_code == 403
