@@ -195,13 +195,11 @@ async def account_for(c: Conn, email: str, name: str) -> tuple[str, bool]:
 
 # ------------------------------------------------------------------ sócios
 async def next_member_number(c: Conn) -> str:
-    for _ in range(50):
-        cur = await c.execute("select lpad(nextval('member_number_seq')::text, 5, '0') as n")
-        row = await cur.fetchone()
-        assert row is not None
-        if not await (await c.execute("select 1 from members where member_number = %s", [row["n"]])).fetchone():
-            return str(row["n"])
-    raise HttpError(409, "conflict", "Não foi possível atribuir um n.º de sócio livre")
+    """O maior n.º de sócio que existe + 1 (com um lock da transação: dois sócios ao mesmo tempo não ficam com o mesmo)."""
+    await c.execute("select pg_advisory_xact_lock(7301979)")
+    row = await (await c.execute("select coalesce(max(member_number::int), 0) + 1 as n from members where member_number ~ '^\\d{1,8}$'")).fetchone()
+    assert row is not None
+    return str(row["n"]).zfill(5)
 
 
 async def _bump_member_seq(c: Conn) -> None:
@@ -407,19 +405,26 @@ async def claim_athletes(c: Conn, user_id: str) -> int:
     u = await (await c.execute("select email from users where id = %s", [user_id])).fetchone()
     if not u or not u["email"]:
         return 0
+    # A ficha de sócio com o mesmo email fica ligada à conta (ex.: sócio importado sem conta)
+    await c.execute("update members set user_id = %s where user_id is null and lower(email) = lower(%s)", [user_id, u["email"]])
     rows = await (
         await c.execute(
-            """select a.id, (a.birth_date is null or a.birth_date <= current_date - interval '18 years') as adult,
-                      exists(select 1 from athlete_access x where x.athlete_id = a.id) as has_access
-                 from athletes a
-                where lower(a.email) = lower(%s)
+            """select a.id, a.name, (a.birth_date is null or a.birth_date <= current_date - interval '18 years') as adult,
+                      exists(select 1 from athlete_access x where x.athlete_id = a.id) as has_access,
+                      lower(coalesce(a.email, '')) = lower(%s) as by_email, m.name as member_name
+                 from athletes a left join members m on m.member_number = a.member_number and m.user_id = %s
+                where (lower(a.email) = lower(%s) or m.member_number is not null)
                   and not exists(select 1 from athlete_access x where x.athlete_id = a.id and x.user_id = %s)""",
-            [u["email"], user_id],
+            [u["email"], user_id, u["email"], user_id],
         )
     ).fetchall()
     n = 0
     for a in rows:
-        if not a["adult"] and a["has_access"]:
+        if not a["by_email"]:
+            # Ligado ao n.º de sócio desta conta pela secretaria: menor → encarregado; adulto só se for a mesma pessoa
+            if a["adult"] and name_words(a["name"]) != name_words(a["member_name"] or ""):
+                continue
+        elif not a["adult"] and a["has_access"]:
             continue  # menor com encarregado: só a secretaria dá mais acessos
         role = "atleta" if a["adult"] else "encarregado"
         await c.execute("insert into athlete_access (user_id, athlete_id, role) values (%s, %s, %s) on conflict do nothing", [user_id, a["id"], role])

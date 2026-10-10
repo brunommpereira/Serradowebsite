@@ -184,6 +184,11 @@ const STATUS: { key: Status | ''; label: string }[] = [
               <form class="decide" (submit)="$event.preventDefault()">
                 @if (r.kind === 'member') {
                   <div class="field">
+                    <label for="d-num">N.º de sócio</label>
+                    <input id="d-num" name="num" [(ngModel)]="decision.memberNumber" inputmode="numeric" maxlength="8" pattern="\\d{1,8}" />
+                    <span class="caption">Proposto: o maior n.º que existe + 1. Podes mudar (tem de estar livre).</span>
+                  </div>
+                  <div class="field">
                     <label for="d-cat">Categoria de sócio</label>
                     <input id="d-cat" name="cat" [(ngModel)]="decision.category" maxlength="40" />
                   </div>
@@ -403,7 +408,7 @@ export class RegistrationsPage {
   protected readonly shown = computed(() => this.regs().filter((r) => !this.status() || r.status === this.status()));
   protected readonly pendingCount = computed(() => this.regs().filter((r) => r.status === 'pendente').length);
   protected readonly current = signal<Registration | null>(null);
-  protected decision = { note: '', category: '' };
+  protected decision = { note: '', category: '', memberNumber: '' };
   protected readonly legal = signal<LegalState | null>(null);
   protected readonly editing = signal<Kind | null>(null);
   protected readonly busy = signal(false);
@@ -444,9 +449,13 @@ export class RegistrationsPage {
     return g ? `${g['name']} (${g['relation'] ?? 'encarregado'}) · ${g['email']} · ${g['phone']}` : null;
   }
 
-  open(r: Registration) {
-    this.decision = { note: '', category: String(r.data['category'] ?? '') };
+  async open(r: Registration) {
+    this.decision = { note: '', category: String(r.data['category'] ?? ''), memberNumber: '' };
     this.current.set(r);
+    if (r.kind === 'member' && r.status === 'pendente') {
+      const next = await this.api.get<{ memberNumber: string }>('/admin/registrations/next-member-number').catch(() => null);
+      if (next && this.current() === r && !this.decision.memberNumber) this.decision = { ...this.decision, memberNumber: next.memberNumber };
+    }
   }
 
   async decide(r: Registration, action: 'approve' | 'reject') {
@@ -455,6 +464,7 @@ export class RegistrationsPage {
     try {
       const body: Record<string, string> = { note: this.decision.note.trim() };
       if (action === 'approve' && r.kind === 'member' && this.decision.category.trim()) body['category'] = this.decision.category.trim();
+      if (action === 'approve' && r.kind === 'member' && /^\d{1,8}$/.test(this.decision.memberNumber.trim())) body['memberNumber'] = this.decision.memberNumber.trim();
       const out = await this.api.post<{ memberNumber?: string; code?: string }>(`/admin/registrations/${r.id}/${action}`, body);
       this.current.set(null);
       this.message.set({

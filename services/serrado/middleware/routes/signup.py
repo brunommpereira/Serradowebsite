@@ -52,6 +52,11 @@ def register(r: APIRouter) -> None:
         s = await staff(req)
         return await backend(req).call("GET", "/registrations", actor=s, query={"kind": kind, "status": status})
 
+    @r.get("/admin/registrations/next-member-number", tags=office, summary="N.º do próximo sócio")
+    async def next_number(req: Request) -> Any:
+        s = await staff(req)
+        return await backend(req).call("GET", "/registrations/next-member-number", actor=s)
+
     @r.post("/admin/registrations/{id}/approve", tags=office, summary="Aceitar a proposta")
     async def approve(req: Request, id: RegId, body: JsonObject) -> Any:
         s = await staff(req)

@@ -128,9 +128,15 @@ async def test_proposta_de_socio_aceite_e_confirmada_por_email(mw, mail_on):
     pend = (await sec.get("/api/v1/admin/registrations", params={"status": "pendente"})).json()
     p = next(x for x in pend if x["id"] == out["id"])
     assert (p["proposerNumber"], p["data"]["phone"]) == ("00482", "912345678")
-    ok = await sec.post(f"/api/v1/admin/registrations/{out['id']}/approve", json={"note": "Bem-vinda!"})
+    nxt = (await sec.get("/api/v1/admin/registrations/next-member-number")).json()["memberNumber"]
+    top = await fetch_one(mw.pool, "select max(member_number::int) as n from members")
+    assert nxt == str(top["n"] + 1).zfill(5)
+    taken = await sec.post(f"/api/v1/admin/registrations/{out['id']}/approve", json={"memberNumber": "482"})
+    assert taken.status_code == 409, "n.º já usado"
+    ok = await sec.post(f"/api/v1/admin/registrations/{out['id']}/approve", json={"note": "Bem-vinda!", "memberNumber": "7777"})
     assert ok.status_code == 200, ok.text
     number = ok.json()["memberNumber"]
+    assert number == "07777", "n.º escolhido pela secretaria"
     m = await fetch_one(
         mw.pool, "select status, category, phone, notes, user_id is not null as linked from members where member_number = %s", [number]
     )
