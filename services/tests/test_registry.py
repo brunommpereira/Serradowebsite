@@ -18,6 +18,8 @@ TES = ("tesouraria@serradofc.pt", "tesouraria2026")
 
 async def test_secretaria_cria_socio_com_numero_seguinte_e_conta_ligada(mw):
     sec = await mw.login(*SEC)
+    top = await fetch_one(mw.pool, "select max(member_number::int) as n from members")
+    expected = str(top["n"] + 1).zfill(5)  # o maior n.º que existe + 1
     r = await sec.post(
         "/api/v1/admin/members",
         json={"name": "Ana Exemplo", "email": "Ana@Exemplo.pt", "taxNumber": "123456789", "phone": "912345678", "category": "Efetivo"},
@@ -25,7 +27,7 @@ async def test_secretaria_cria_socio_com_numero_seguinte_e_conta_ligada(mw):
     assert r.status_code == 201, r.text
     m = r.json()
     assert (m["memberNumber"], m["email"], m["status"], m["accountEmail"], m["accountHasPassword"]) == (
-        "01000",
+        expected,
         "ana@exemplo.pt",
         "Ativo",
         "ana@exemplo.pt",
@@ -34,7 +36,7 @@ async def test_secretaria_cria_socio_com_numero_seguinte_e_conta_ligada(mw):
     # A conta criada não tem password: só entra depois do convite (ou «Esqueci-me da password»)
     no = await mw.client().post("/api/v1/auth/login", json={"login": "ana@exemplo.pt", "password": "!"}, headers=XHR)
     assert no.status_code == 401
-    assert (await sec.post("/api/v1/admin/members", json={"name": "Outra", "memberNumber": "1000"})).status_code == 409
+    assert (await sec.post("/api/v1/admin/members", json={"name": "Outra", "memberNumber": expected})).status_code == 409
     # Como o formulário do backoffice envia: campos vazios a null
     empty = {k: None for k in ("email", "phone", "taxNumber", "birthDate", "address", "postalCode", "city", "joinedOn")}
     r2 = await sec.post("/api/v1/admin/members", json={"name": "Campos Vazios", "category": "Efetivo", "status": "Ativo", "notes": None, **empty})
@@ -47,10 +49,10 @@ async def test_secretaria_cria_socio_com_numero_seguinte_e_conta_ligada(mw):
     bad = await sec.post("/api/v1/admin/members", json={"name": "Nif Errado", "taxNumber": "123456788"})
     assert bad.status_code == 400 and "NIF" in bad.text
     # Alterar e pesquisar
-    upd = await sec.put("/api/v1/admin/members/1000", json={"name": "Ana Exemplo Silva", "status": "Suspenso", "category": "Jovem"})
+    upd = await sec.put(f"/api/v1/admin/members/{expected}", json={"name": "Ana Exemplo Silva", "status": "Suspenso", "category": "Jovem"})
     assert (upd.json()["name"], upd.json()["status"], upd.json()["category"]) == ("Ana Exemplo Silva", "Suspenso", "Jovem")
     found = (await sec.get("/api/v1/admin/members?q=silva")).json()
-    assert [x["memberNumber"] for x in found] == ["01000"]
+    assert [x["memberNumber"] for x in found] == [expected]
     assert {x["memberNumber"] for x in (await sec.get("/api/v1/admin/members?q=482")).json()} == {"00482"}
     # A tesouraria vê, mas não cria; o editor nem vê
     tes = await mw.login(*TES)
@@ -493,3 +495,60 @@ async def test_lista_de_resultados_com_filtros_e_ligacao_manual(mw):
     assert {x["linkedName"] for x in out["items"]} == {"José Outro Nome"} and out["total"] == 2
     tes = await mw.login(*TES)
     assert (await tes.post("/api/v1/admin/results/link", json={"athleteName": "ZÉ DESCONHECIDO", "birthYear": 1999})).status_code == 403
+
+
+async def test_educandos_ligados_ao_numero_de_socio_aparecem_na_area_de_atletas(mw):
+    from serrado.password import hash_password_sync
+
+    sec = await mw.login(*SEC)
+    # Sócio importado sem email; a ficha de atleta dele tem o email (completa a do sócio ao ligar)
+    n = (await sec.post("/api/v1/admin/members", json={"name": "Pai Exemplo Valente"})).json()["memberNumber"]
+    me_ath = (
+        await sec.post(
+            "/api/v1/admin/athletes",
+            json={"name": "Pai Exemplo Valente", "sport": "atletismo", "email": "pai.valente@exemplo.pt", "birthDate": "1980-01-01"},
+        )
+    ).json()
+    kid1 = (await sec.post("/api/v1/admin/athletes", json={"name": "Rita Valente", "sport": "futsal", "birthDate": "2015-05-05"})).json()
+    kid2 = (await sec.post("/api/v1/admin/athletes", json={"name": "Rui Valente", "sport": "futsal", "birthDate": "2013-05-05"})).json()
+    other_adult = (
+        await sec.post("/api/v1/admin/athletes", json={"name": "Outro Adulto Valente", "sport": "atletismo", "birthDate": "1975-05-05"})
+    ).json()
+    for a in (me_ath, kid1, kid2, other_adult):
+        assert (await sec.post(f"/api/v1/admin/members/{n}/athletes/{a['id']}", params={"force": "true"})).status_code == 200
+    await execute(
+        mw.pool,
+        "insert into users (email, name, password_hash) values ('pai.valente@exemplo.pt', 'Pai', %s) on conflict (email) do nothing",
+        [hash_password_sync("segredo-2026")],
+    )
+    me = await mw.login("pai.valente@exemplo.pt", "segredo-2026")
+    mine = {a["id"] for a in (await me.get("/api/v1/me/athletes")).json()}
+    assert mine == {me_ath["id"], kid1["id"], kid2["id"]}, "o outro adulto com o mesmo n.º não"
+    linked = await fetch_one(mw.pool, "select u.email from members m join users u on u.id = m.user_id where m.member_number = %s", [n])
+    assert linked == {"email": "pai.valente@exemplo.pt"}, "a ficha de sócio fica ligada à conta"
+
+
+async def test_mesma_pessoa_pelo_primeiro_e_ultimo_nome_completa_os_dados(mw):
+    sec = await mw.login(*SEC)
+    n = (await sec.post("/api/v1/admin/members", json={"name": "Carla Exemplo"})).json()["memberNumber"]
+    adult = (
+        await sec.post(
+            "/api/v1/admin/athletes",
+            json={
+                "name": "Carla Maria Sousa Exemplo",
+                "sport": "atletismo",
+                "birthDate": "1984-02-02",
+                "email": "carla.ex@exemplo.pt",
+                "phone": "913222333",
+            },
+        )
+    ).json()
+    kid = (await sec.post("/api/v1/admin/athletes", json={"name": "Carla Pequena Exemplo", "sport": "futsal", "birthDate": "2016-02-02"})).json()
+    r = (await sec.post(f"/api/v1/admin/members/{n}/athletes/{adult['id']}")).json()
+    assert set(r["completed"]["member"]) == {"Email", "Telemóvel", "Data de nascimento"}
+    assert (r["email"], r["phone"], r["birthDate"]) == ("carla.ex@exemplo.pt", "913222333", "1984-02-02")
+    # Menor com o mesmo primeiro e último nome: é filha, não copia nada
+    r2 = (await sec.post(f"/api/v1/admin/members/{n}/athletes/{kid['id']}")).json()
+    assert r2["completed"] == {"member": [], "athlete": []}
+    # Voltar a ligar o mesmo atleta ao mesmo sócio só volta a completar (não dá erro)
+    assert (await sec.post(f"/api/v1/admin/members/{n}/athletes/{adult['id']}")).status_code == 200

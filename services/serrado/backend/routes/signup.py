@@ -57,6 +57,8 @@ class Decision(BaseModel):
     model_config = ConfigDict(extra="forbid")
     note: str = Field(default="", max_length=2000)
     category: str | None = Field(default=None, min_length=2, max_length=40)
+    # N.º de sócio escolhido pela secretaria (vazio: o maior que existe + 1)
+    memberNumber: str | None = Field(default=None, pattern=r"^\d{1,8}$")
 
 
 class LegalBody(BaseModel):
@@ -155,6 +157,14 @@ def register(r: APIRouter) -> None:
                     r["data"] = {k: v for k, v in r["data"].items() if k not in ("idNumber", "idExpiry", "taxNumber", "address", "postalCode")}
         return rows
 
+    @r.get("/registrations/next-member-number", tags=office, summary="O n.º que o próximo sócio vai ter (o maior que existe + 1)")
+    async def next_number(req: Request) -> dict[str, str]:
+        require(req, "registrations.manage")
+        row = await fetch_one(
+            pool(req), "select lpad((coalesce(max(member_number::int), 0) + 1)::text, 5, '0') as n from members where member_number ~ '^\\d{1,8}$'"
+        )
+        return {"memberNumber": str((row or {}).get("n") or "00001")}
+
     @r.post("/registrations/{id}/approve", tags=office, summary="Aceita a proposta: cria o sócio (n.º seguinte) ou o atleta")
     async def approve_registration(req: Request, id: RegId, body: Decision) -> dict[str, Any]:
         require(req, "registrations.manage")
@@ -163,7 +173,7 @@ def register(r: APIRouter) -> None:
             if not kind:
                 raise not_found("Proposta")
             require(req, "members.manage" if kind["kind"] == "member" else "athletes.manage")
-            return await approve(c, actor(req), id, category=body.category, note=body.note)
+            return await approve(c, actor(req), id, category=body.category, note=body.note, member_number=body.memberNumber)
 
     @r.post("/registrations/{id}/reject", tags=office, summary="Recusa a proposta (email com o motivo)")
     async def reject_registration(req: Request, id: RegId, body: Decision) -> dict[str, Any]:

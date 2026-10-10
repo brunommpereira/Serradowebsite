@@ -601,7 +601,9 @@ async def _decided(c: Conn, who: Actor, reg_id: str, status: str, note: str, **c
     )
 
 
-async def approve(c: Conn, who: Actor, reg_id: str, *, category: str | None = None, note: str = "") -> dict[str, Any]:
+async def approve(
+    c: Conn, who: Actor, reg_id: str, *, category: str | None = None, note: str = "", member_number: str | None = None
+) -> dict[str, Any]:
     """Aceita a proposta: cria o sócio (com o n.º seguinte) ou o atleta, dá acesso ao site e avisa por email."""
     reg = await _pending(c, reg_id)
     d: dict[str, Any] = reg["data"]
@@ -609,7 +611,10 @@ async def approve(c: Conn, who: Actor, reg_id: str, *, category: str | None = No
     if reg["kind"] == "member":
         if await (await c.execute("select 1 from members where email = %s", [d["email"]])).fetchone():
             raise HttpError(409, "already_member", "Entretanto já existe um sócio com este email")
+        if member_number and await (await c.execute("select 1 from members where member_number = %s", [member_number.zfill(5)])).fetchone():
+            raise HttpError(409, "conflict", f"Já existe o sócio n.º {member_number.zfill(5)}")
         member = MemberIn(
+            memberNumber=member_number,
             name=d["name"],
             email=d["email"],
             phone=d["phone"],
