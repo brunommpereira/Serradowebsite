@@ -10,7 +10,7 @@ import { SignupForm, SignupResult, SignupService } from './signup.service';
 
 /**
  * Registo de sócio online (modo API): dados, condições de admissão, RGPD, autorização de imagem
- * (facultativa) e assinatura desenhada. Fica ativo de imediato; o documento assinado segue por email.
+ * (facultativa) e assinatura desenhada. É uma proposta: fica pendente até a secretaria aceitar (Backoffice → Propostas).
  */
 @Component({
   selector: 'sfc-member-signup',
@@ -20,11 +20,11 @@ import { SignupForm, SignupResult, SignupService } from './signup.service';
     @if (done(); as d) {
       <div class="card done" role="status">
         <sfc-icon name="check" size="40" />
-        <h2>Bem-vindo ao Serrado FC!</h2>
-        <p>O teu n.º de sócio é <strong class="num">{{ d.memberNumber }}</strong>.</p>
-        <p>Enviámos para <strong>{{ form.value.email }}</strong> o documento assinado (PDF) e uma ligação para definires a password da área reservada.</p>
+        <h2>Proposta enviada!</h2>
+        <p>A secretaria do clube vai analisar a tua proposta de sócio. Quando for aceite, recebes um email com o teu <strong>n.º de sócio</strong> e uma ligação para entrares na área reservada.</p>
+        <p>Enviámos para <strong>{{ form.value.email }}</strong> a proposta assinada (PDF).</p>
         <p class="caption">Referência do registo: {{ d.id.slice(0, 8) }} · prova {{ d.evidenceSha256.slice(0, 16) }}…</p>
-        <a class="btn btn--primary" routerLink="/entrar" [queryParams]="{ perfil: 'socio' }">Ir para a entrada</a>
+        <a class="btn btn--primary" routerLink="/">Voltar ao início</a>
       </div>
     } @else if (loadError()) {
       <sfc-offline-notice title="Registo de sócio" [text]="loadError()!" />
@@ -69,6 +69,11 @@ import { SignupForm, SignupResult, SignupService } from './signup.service';
             <div class="field">
               <label for="ms-city">Localidade</label>
               <input id="ms-city" formControlName="city" autocomplete="address-level2" />
+            </div>
+            <div class="field">
+              <label for="ms-proposer">N.º do sócio proponente</label>
+              <input id="ms-proposer" formControlName="proposerNumber" inputmode="numeric" maxlength="8" placeholder="se um sócio te propôs" />
+              <span class="hint">Facultativo (Regulamento Interno, art.º 9.º).</span>
             </div>
             @if (f.categories.length > 1) {
               <div class="field">
@@ -132,6 +137,7 @@ export class MemberSignupComponent {
     postalCode: ['', Validators.pattern(POSTAL_CODE_PATTERN)],
     city: [''],
     category: [''],
+    proposerNumber: ['', Validators.pattern(/^\d{1,8}$/)],
     website: [''],
   });
 
@@ -177,6 +183,7 @@ export class MemberSignupComponent {
         postalCode: v.postalCode || null,
         city: v.city || null,
         category: v.category || null,
+        proposerNumber: v.proposerNumber || null,
         accept: Object.fromEntries(Object.entries(f.documents).map(([k, d]) => [k, d!.version])),
         imageConsent: this.imageConsent(),
         signature: this.signature(),

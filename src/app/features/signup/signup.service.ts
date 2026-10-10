@@ -20,8 +20,8 @@ export interface SignupForm {
 export interface SignupResult {
   id: string;
   evidenceSha256: string;
-  memberNumber?: string;
-  code?: string;
+  /** As propostas ficam pendentes até a secretaria as aceitar (n.º de sócio / código chegam por email) */
+  status?: 'pendente';
 }
 
 /** Registo online (público): documentos a aceitar e envio do formulário assinado. */

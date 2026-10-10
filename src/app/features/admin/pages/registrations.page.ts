@@ -2,14 +2,24 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiClient } from '../../../core/api/api-client';
+import { DialogComponent } from '../../../shared/dialog.component';
 import { IconComponent } from '../../../shared/icon.component';
 import { OfflineNoticeComponent } from '../../../shared/offline-notice.component';
 
 type Kind = 'socio' | 'atleta' | 'rgpd' | 'imagem';
 
+type Status = 'pendente' | 'aceite' | 'recusada';
+
 interface Registration {
   id: string;
   kind: 'member' | 'athlete';
+  status: Status;
+  data: Record<string, unknown>;
+  proposerNumber: string | null;
+  proposerName: string | null;
+  reviewNote: string;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
   signedAt: string;
   name: string;
   signerName: string;
@@ -28,16 +38,44 @@ interface LegalState {
   templates: Record<Kind, { title: string; body: string }>;
 }
 
-/** Registos online assinados (com o PDF) e os documentos legais que as pessoas aceitam, com versões. */
+/** Campos da proposta, pela ordem em que se mostram */
+const FIELDS: [string, string][] = [
+  ['email', 'Email'],
+  ['phone', 'Telemóvel'],
+  ['birthDate', 'Data de nascimento'],
+  ['taxNumber', 'NIF'],
+  ['idNumber', 'N.º do CC'],
+  ['idExpiry', 'Validade do CC'],
+  ['gender', 'Género'],
+  ['sport', 'Modalidade'],
+  ['category', 'Categoria'],
+  ['address', 'Morada'],
+  ['postalCode', 'Código postal'],
+  ['city', 'Localidade'],
+  ['emergencyName', 'Emergência'],
+  ['emergencyPhone', 'Tel. emergência'],
+  ['shirtSize', 'T-shirt'],
+];
+const STATUS: { key: Status | ''; label: string }[] = [
+  { key: 'pendente', label: 'Por decidir' },
+  { key: 'aceite', label: 'Aceites' },
+  { key: 'recusada', label: 'Recusadas' },
+  { key: '', label: 'Todas' },
+];
+
+/** Propostas de sócio e de atleta feitas no site (com o PDF assinado): aceitar ou recusar; e os documentos legais, com versões. */
 @Component({
   selector: 'sfc-admin-registrations',
-  imports: [DatePipe, FormsModule, IconComponent, OfflineNoticeComponent],
+  imports: [DatePipe, FormsModule, IconComponent, OfflineNoticeComponent, DialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="adm-head">
       <div>
-        <h1>Registos online</h1>
-        <p>Inscrições de sócios e atletas feitas no site, com os documentos aceites e a assinatura. Os documentos legais têm versões: cada registo guarda a que foi aceite.</p>
+        <h1>Propostas</h1>
+        <p>
+          Propostas de sócio e de inscrição de atleta feitas no site, assinadas. Ao <strong>aceitar</strong>, a pessoa passa a sócio (com o n.º
+          seguinte) ou a atleta, recebe um email e uma ligação para entrar no site. Os documentos legais têm versões: cada proposta guarda a que foi aceite.
+        </p>
       </div>
     </div>
 
@@ -45,7 +83,12 @@ interface LegalState {
       <sfc-offline-notice title="Só com o servidor" text="O registo online funciona com o site ligado à API (VPS)." />
     } @else {
       <div class="chips" role="tablist" aria-label="Secções">
-        <button type="button" class="chip" role="tab" [attr.aria-selected]="tab() === 'regs'" [attr.aria-pressed]="tab() === 'regs'" (click)="tab.set('regs')">Registos</button>
+        <button type="button" class="chip" role="tab" [attr.aria-selected]="tab() === 'regs'" [attr.aria-pressed]="tab() === 'regs'" (click)="tab.set('regs')">
+          Propostas
+          @if (pendingCount()) {
+            <span class="st st--warn">{{ pendingCount() }} por decidir</span>
+          }
+        </button>
         <button type="button" class="chip" role="tab" [attr.aria-selected]="tab() === 'docs'" [attr.aria-pressed]="tab() === 'docs'" (click)="tab.set('docs')">
           Documentos legais
           @if (missingDocs().length) {
@@ -62,6 +105,13 @@ interface LegalState {
         @if (missingDocs().length) {
           <p class="alert alert--warning">O registo online está desligado até publicares: {{ missingDocs().join(', ') }}. Vai a «Documentos legais».</p>
         }
+        <div class="chips filters" role="group" aria-label="Estado">
+          @for (st of statuses; track st.key) {
+            <button type="button" class="chip" [attr.aria-pressed]="status() === st.key" (click)="status.set(st.key)">
+              {{ st.label }} ({{ count(st.key) }})
+            </button>
+          }
+        </div>
         <div class="adm-table-wrap">
           <table class="adm-table">
             <thead>
@@ -69,32 +119,81 @@ interface LegalState {
                 <th scope="col">Data</th>
                 <th scope="col">Registo</th>
                 <th scope="col" class="hide-sm">Assinou</th>
-                <th scope="col">Imagem</th>
-                <th scope="col" class="act">PDF</th>
+                <th scope="col">Estado</th>
+                <th scope="col" class="act">Ações</th>
               </tr>
             </thead>
             <tbody>
-              @for (r of regs(); track r.id) {
+              @for (r of shown(); track r.id) {
                 <tr>
                   <td class="nowrap">{{ r.signedAt | date: 'dd/MM/y HH:mm' }}</td>
                   <td>
                     <strong>{{ r.name }}</strong>
-                    <span class="caption sub">{{ r.kind === 'member' ? 'Sócio n.º ' + r.memberNumber : 'Atleta ' + (r.athleteCode ?? '') }}</span>
+                    <span class="caption sub">{{ label(r) }}</span>
                   </td>
                   <td class="hide-sm">{{ r.signerName }} <span class="caption sub">{{ r.signerRole === 'encarregado' ? 'encarregado' : 'titular' }} · {{ r.signerEmail }}</span></td>
                   <td>
-                    <span class="st" [class]="'st ' + (r.imageConsent ? 'st--ok' : 'st--muted')">{{ r.imageConsent ? 'Autoriza' : 'Não autoriza' }}</span>
+                    <span class="st" [class]="'st ' + (r.status === 'aceite' ? 'st--ok' : r.status === 'recusada' ? 'st--bad' : 'st--warn')">{{
+                      r.status === 'pendente' ? 'Por decidir' : r.status === 'aceite' ? 'Aceite' : 'Recusada'
+                    }}</span>
                   </td>
                   <td class="act">
-                    <a class="btn btn--outline btn--sm" [href]="pdfUrl(r.id)" download><sfc-icon name="download" size="16" />PDF</a>
+                    <span class="row-act">
+                      <button type="button" class="btn btn--sm" [class.btn--primary]="r.status === 'pendente'" [class.btn--outline]="r.status !== 'pendente'" (click)="open(r)">
+                        {{ r.status === 'pendente' ? 'Analisar' : 'Ver' }}
+                      </button>
+                      <a class="btn btn--outline btn--sm" [href]="pdfUrl(r.id)" download [attr.aria-label]="'PDF assinado de ' + r.name"><sfc-icon name="download" size="16" />PDF</a>
+                    </span>
                   </td>
                 </tr>
               } @empty {
-                <tr><td colspan="5" class="adm-empty">Ainda não há registos online.</td></tr>
+                <tr><td colspan="5" class="adm-empty">{{ status() === 'pendente' ? 'Não há propostas por decidir.' : 'Sem propostas.' }}</td></tr>
               }
             </tbody>
           </table>
         </div>
+        <sfc-dialog [heading]="current() ? titleOf(current()!) : 'Proposta'" [open]="!!current()" (closed)="current.set(null)">
+          @if (current(); as r) {
+            <dl class="dl">
+              @for (f of fieldsOf(r); track f[0]) {
+                <div><dt>{{ f[0] }}</dt><dd>{{ f[1] }}</dd></div>
+              }
+              @if (r.kind === 'member') {
+                <div><dt>Sócio proponente</dt><dd>{{ r.proposerNumber ? 'n.º ' + r.proposerNumber + (r.proposerName ? ' · ' + r.proposerName : '') : '—' }}</dd></div>
+              }
+              @if (guardianOf(r); as g) {
+                <div class="wide"><dt>Encarregado</dt><dd>{{ g }}</dd></div>
+              }
+              <div><dt>Imagem</dt><dd>{{ r.imageConsent ? 'Autoriza' : 'Não autoriza' }}</dd></div>
+              <div class="wide"><dt>Assinou</dt><dd>{{ r.signerName }} ({{ r.signerRole }}) · {{ r.signerEmail }} · {{ r.signedAt | date: 'dd/MM/y HH:mm' }}</dd></div>
+            </dl>
+            @if (r.status === 'pendente') {
+              <form class="decide" (submit)="$event.preventDefault()">
+                @if (r.kind === 'member') {
+                  <div class="field">
+                    <label for="d-cat">Categoria de sócio</label>
+                    <input id="d-cat" name="cat" [(ngModel)]="decision.category" maxlength="40" />
+                  </div>
+                }
+                <div class="field">
+                  <label for="d-note">Nota para a pessoa (vai no email)</label>
+                  <textarea id="d-note" name="note" rows="3" maxlength="2000" [(ngModel)]="decision.note" placeholder="Obrigatória para recusar (ex.: falta o sócio proponente)"></textarea>
+                </div>
+                <div class="actions">
+                  <button type="button" class="btn btn--primary btn--sm" [disabled]="busy()" (click)="decide(r, 'approve')">
+                    {{ r.kind === 'member' ? 'Aceitar: passa a sócio' : 'Aceitar: passa a atleta' }}
+                  </button>
+                  <button type="button" class="btn btn--outline btn--sm danger" [disabled]="busy() || !decision.note.trim()" (click)="decide(r, 'reject')">Recusar</button>
+                </div>
+              </form>
+            } @else {
+              <p class="caption">
+                {{ r.status === 'aceite' ? 'Aceite' : 'Recusada' }}{{ r.reviewedBy ? ' por ' + r.reviewedBy : '' }}{{ r.reviewedAt ? ' a ' + (r.reviewedAt | date: 'dd/MM/y HH:mm') : '' }}.
+                {{ r.reviewNote ? 'Nota: ' + r.reviewNote : '' }}
+              </p>
+            }
+          }
+        </sfc-dialog>
       } @else if (legal(); as l) {
         <div class="docs">
           @for (k of l.kinds; track k.kind) {
@@ -163,6 +262,48 @@ interface LegalState {
     }
   `,
   styles: `
+    .filters {
+      margin: 0 0 1rem;
+    }
+    .row-act {
+      display: inline-flex;
+      gap: 0.4rem;
+    }
+    .dl {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem 1rem;
+      margin: 0 0 1rem;
+      dt {
+        font-size: 0.8rem;
+        color: var(--color-muted);
+      }
+      dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+      .wide {
+        grid-column: 1 / -1;
+      }
+    }
+    .decide {
+      display: grid;
+      gap: 0.6rem;
+      textarea,
+      input {
+        width: 100%;
+        font: inherit;
+      }
+      .actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .danger {
+        color: var(--color-danger);
+        border-color: currentColor;
+      }
+    }
     .chips {
       margin-bottom: 1rem;
     }
@@ -244,6 +385,12 @@ export class RegistrationsPage {
   protected readonly api = inject(ApiClient);
   protected readonly tab = signal<'regs' | 'docs'>('regs');
   protected readonly regs = signal<Registration[]>([]);
+  protected readonly statuses = STATUS;
+  protected readonly status = signal<Status | ''>('pendente');
+  protected readonly shown = computed(() => this.regs().filter((r) => !this.status() || r.status === this.status()));
+  protected readonly pendingCount = computed(() => this.regs().filter((r) => r.status === 'pendente').length);
+  protected readonly current = signal<Registration | null>(null);
+  protected decision = { note: '', category: '' };
   protected readonly legal = signal<LegalState | null>(null);
   protected readonly editing = signal<Kind | null>(null);
   protected readonly busy = signal(false);
@@ -256,6 +403,58 @@ export class RegistrationsPage {
 
   constructor() {
     if (this.api.enabled) this.load();
+  }
+
+  protected count(st: Status | '') {
+    return st ? this.regs().filter((r) => r.status === st).length : this.regs().length;
+  }
+
+  protected label(r: Registration) {
+    if (r.kind === 'member') return r.memberNumber ? `Sócio n.º ${r.memberNumber}` : 'Proposta de sócio';
+    return r.athleteCode ? `Atleta ${r.athleteCode}` : `Inscrição de atleta · ${String(r.data['sport'] ?? '')}`;
+  }
+
+  protected titleOf(r: Registration) {
+    return `${r.kind === 'member' ? 'Proposta de sócio' : 'Inscrição de atleta'}: ${r.name}`;
+  }
+
+  protected fieldsOf(r: Registration): [string, string][] {
+    return FIELDS.filter(([k]) => r.data[k] != null && r.data[k] !== '').map(([k, l]) => [l, String(r.data[k])]);
+  }
+
+  protected guardianOf(r: Registration) {
+    const g = r.data['guardian'] as Record<string, string> | null | undefined;
+    return g ? `${g['name']} (${g['relation'] ?? 'encarregado'}) · ${g['email']} · ${g['phone']}` : null;
+  }
+
+  open(r: Registration) {
+    this.decision = { note: '', category: String(r.data['category'] ?? '') };
+    this.current.set(r);
+  }
+
+  async decide(r: Registration, action: 'approve' | 'reject') {
+    if (action === 'reject' && !confirm(`Recusar a proposta de ${r.name}? A pessoa recebe um email com a nota.`)) return;
+    this.busy.set(true);
+    try {
+      const body: Record<string, string> = { note: this.decision.note.trim() };
+      if (action === 'approve' && r.kind === 'member' && this.decision.category.trim()) body['category'] = this.decision.category.trim();
+      const out = await this.api.post<{ memberNumber?: string; code?: string }>(`/admin/registrations/${r.id}/${action}`, body);
+      this.current.set(null);
+      this.message.set({
+        ok: true,
+        text:
+          action === 'reject'
+            ? `Proposta de ${r.name} recusada; enviámos o email com a nota.`
+            : out.memberNumber
+              ? `${r.name} é agora o sócio n.º ${out.memberNumber}. Enviámos o email com o convite.`
+              : `${r.name} inscrito como atleta (${out.code}). Enviámos o email com o convite.`,
+      });
+      await this.load();
+    } catch (e) {
+      this.message.set({ ok: false, text: (e as Error).message });
+    } finally {
+      this.busy.set(false);
+    }
   }
 
   private async load() {

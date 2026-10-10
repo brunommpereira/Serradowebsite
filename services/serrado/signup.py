@@ -138,6 +138,8 @@ class MemberSignup(_Signup):
     postalCode: Text = None
     city: Text = None
     category: Annotated[Annotated[str, Field(max_length=40)] | None, BeforeValidator(_blank)] = None
+    # Sócio proponente (Regulamento Interno, art.º 9.º): opcional no site; a secretaria confirma
+    proposerNumber: Annotated[str | None, BeforeValidator(lambda v: re.sub(r"\D", "", str(v or "")) or None)] = None
 
     @field_validator("phone")
     @classmethod
@@ -308,8 +310,7 @@ async def _finish(
     signature: bytes,
     signer: tuple[str, str, str],
     client: dict[str, str],
-    member_number: str | None = None,
-    athlete_id: str | None = None,
+    proposer_number: str | None = None,
 ) -> dict[str, Any]:
     signed_at = datetime.now(UTC).replace(microsecond=0)
     sig_sha = hashlib.sha256(signature).hexdigest()
@@ -327,14 +328,13 @@ async def _finish(
     }
     ev_sha = _evidence(evidence)
     cur = await c.execute(
-        """insert into registrations (kind, data, member_number, athlete_id, signer_name, signer_email, signer_role, accepted, image_consent,
-                                      signature_png, signature_sha256, ip, user_agent, signed_at, evidence_sha256)
-           values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
+        """insert into registrations (kind, data, proposer_number, signer_name, signer_email, signer_role, accepted, image_consent,
+                                      signature_png, signature_sha256, ip, user_agent, signed_at, evidence_sha256, status)
+           values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pendente') returning id""",
         [
             kind,
             Jsonb(data),
-            member_number,
-            athlete_id,
+            proposer_number,
             name,
             email,
             role,
@@ -382,15 +382,35 @@ async def _finish(
                 title,
                 [
                     f"Olá {name.split()[0]},",
-                    "Obrigado! O registo ficou feito. Em anexo segue o documento assinado, com os dados, os documentos aceites e a prova da assinatura.",
-                    "Para entrares na área reservada do site, usa a ligação que vais receber num email à parte (ou «Esqueci-me da password»).",
+                    "Obrigado! Recebemos a proposta. A secretaria do clube vai analisá-la e recebes um email quando for aceite.",
+                    "Em anexo segue o documento assinado, com os dados, os documentos aceites e a prova da assinatura.",
                 ],
                 footer="Se não foste tu, responde a este email ou contacta a secretaria do clube.",
             ),
             attachments=[{"name": f"registo-serrado-{reg_id[:8]}.pdf", "content": base64.b64encode(pdf).decode()}],
         )
     await audit(c, SYSTEM, f"registrations.{kind}", "registrations", reg_id, {"evidence": ev_sha[:16]})
-    return {"id": reg_id, "evidenceSha256": ev_sha}
+    await _notify_club(c, kind, str(data.get("name", "")), reg_id)
+    return {"id": reg_id, "evidenceSha256": ev_sha, "status": "pendente"}
+
+
+async def _notify_club(c: Conn, kind: str, name: str, reg_id: str) -> None:
+    if not config.mail.enabled:
+        return
+    from .backend.routes.interest import club_email
+
+    what = "sócio" if kind == "member" else "atleta"
+    await enqueue(
+        c,
+        to_email=await club_email(c),
+        to_name="Serrado FC",
+        subject=f"Nova proposta de {what}: {name}",
+        html_body=layout(
+            f"Nova proposta de {what}",
+            [f"{name} submeteu uma proposta de {what} no site, com assinatura.", "Aceita ou recusa no backoffice, em Propostas."],
+            ("Ver propostas", f"{config.oauth.site_url}/admin/registos"),
+        ),
+    )
 
 
 async def _invite_if_new(c: Conn, email: str, name: str) -> None:
@@ -410,33 +430,32 @@ async def register_member(c: Conn, body: MemberSignup, client: dict[str, str]) -
     accepted, docs = await _accepted(c, "member", body)
     if await (await c.execute("select 1 from members where email = %s", [body.email])).fetchone():
         raise HttpError(409, "already_member", "Já existe um sócio com este email. Entra na área reservada ou contacta a secretaria.")
+    if await (
+        await c.execute(
+            "select 1 from registrations where kind = 'member' and status = 'pendente' and lower(data->>'email') = lower(%s)", [body.email]
+        )
+    ).fetchone():
+        raise HttpError(409, "already_proposed", "Já há uma proposta de sócio com este email à espera da secretaria.")
     categories = {r["category"] for r in await fetch(c, "select category from quota_plans where active")}
     category: str = (
         body.category
         if body.category and body.category in categories
         else ("Efetivo" if not categories or "Efetivo" in categories else sorted(categories)[0])
     )
-    member = MemberIn(
-        name=body.name,
-        email=body.email,
-        phone=body.phone,
-        taxNumber=body.taxNumber,
-        birthDate=body.birthDate,
-        address=body.address,
-        postalCode=body.postalCode,
-        city=body.city,
-        category=category,
-        status="Ativo",
-        joinedOn=date.today().isoformat(),
-        notes="Registo online",
-    )
-    number, _ = await save_member(c, SYSTEM, member)
-    data = {k: v for k, v in body.model_dump().items() if k not in ("signature", "website", "accept")} | {
-        "memberNumber": number,
+    if (
+        body.proposerNumber
+        and not await (
+            await c.execute("select 1 from members where member_number = %s and status = 'Ativo'", [body.proposerNumber.zfill(5)])
+        ).fetchone()
+    ):
+        raise HttpError(400, "validation", "proposerNumber: não há um sócio ativo com esse número")
+    proposer = body.proposerNumber.zfill(5) if body.proposerNumber else None
+    data = {k: v for k, v in body.model_dump().items() if k not in ("signature", "website", "accept", "proposerNumber")} | {
         "category": category,
+        "proposerNumber": proposer,
     }
     labels = [
-        ("N.º de sócio", number),
+        ("N.º de sócio", "a atribuir pela secretaria"),
         ("Nome", body.name),
         ("Email", body.email),
         ("Telemóvel", body.phone),
@@ -444,12 +463,13 @@ async def register_member(c: Conn, body: MemberSignup, client: dict[str, str]) -
         ("Data de nascimento", body.birthDate),
         ("Morada", ", ".join(x for x in (body.address, body.postalCode, body.city) if x)),
         ("Categoria", category),
+        ("Sócio proponente", f"n.º {proposer}" if proposer else ""),
         ("Imagem", "Autoriza" if body.imageConsent else "Não autoriza"),
     ]
-    out = await _finish(
+    return await _finish(
         c,
         kind="member",
-        title="Ficha de inscrição de sócio",
+        title="Proposta de sócio",
         data=data,
         labels=labels,
         accepted=accepted,
@@ -458,10 +478,8 @@ async def register_member(c: Conn, body: MemberSignup, client: dict[str, str]) -
         signature=signature,
         signer=(body.name, body.email, "titular"),
         client=client,
-        member_number=number,
+        proposer_number=proposer,
     )
-    await _invite_if_new(c, body.email, body.name)
-    return {**out, "memberNumber": number}
 
 
 async def register_athlete(c: Conn, body: AthleteSignup, client: dict[str, str]) -> dict[str, Any]:
@@ -476,46 +494,26 @@ async def register_athlete(c: Conn, body: AthleteSignup, client: dict[str, str])
     accepted, docs = await _accepted(c, "athlete", body)
     if await (await c.execute("select 1 from athletes where lower(name) = lower(%s) and birth_date = %s", [body.name, body.birthDate])).fetchone():
         raise HttpError(409, "already_registered", "Este atleta já está inscrito. Fala com a secretaria para renovar ou alterar a inscrição.")
-    athlete = AthleteIn(
-        name=body.name,
-        birthDate=body.birthDate,
-        gender=body.gender,
-        sport=body.sport,
-        idNumber=body.idNumber,
-        idExpiry=body.idExpiry,
-        taxNumber=body.taxNumber,
-        email=body.email,
-        phone=body.phone,
-        address=body.address,
-        postalCode=body.postalCode,
-        city=body.city,
-        guardianName=body.guardian.name if minor and body.guardian else None,
-        guardianEmail=body.guardian.email if minor and body.guardian else None,
-        accountEmail=None if minor else body.email,
-    )
-    athlete_id, _ = await save_athlete(c, SYSTEM, athlete)
-    await c.execute(
-        """update athletes set emergency_name = %s, emergency_phone = %s, shirt_size = %s, consent_rgpd = true, consent_image = %s
-            where id = %s""",
-        [body.emergencyName, body.emergencyPhone, body.shirtSize, body.imageConsent, athlete_id],
-    )
-    code = (await (await c.execute("select code from athletes where id = %s", [athlete_id])).fetchone() or {}).get("code")
+    if await (
+        await c.execute(
+            "select 1 from registrations where kind = 'athlete' and status = 'pendente' and lower(data->>'name') = lower(%s) and data->>'birthDate' = %s",
+            [body.name, body.birthDate],
+        )
+    ).fetchone():
+        raise HttpError(409, "already_proposed", "Já há uma inscrição deste atleta à espera da secretaria.")
     if minor and body.guardian:
         signer = (body.guardian.name, body.guardian.email, "encarregado")
     else:
         assert body.email is not None
         signer = (body.name, body.email, "titular")
-    data = {k: v for k, v in body.model_dump().items() if k not in ("signature", "website", "accept")} | {"code": code}
+    data = {k: v for k, v in body.model_dump().items() if k not in ("signature", "website", "accept")}
     g = body.guardian
     labels = [
-        ("Código", code or ""),
+        ("Código", "a atribuir pela secretaria"),
         ("Nome", body.name),
         ("Data de nascimento", body.birthDate),
         ("Género", body.gender),
-        (
-            "Modalidade",
-            dict(zip(SPORTS, ("Atletismo", "Escola de Futsal", "Escola de Rugby", "Formação", "Escola de Desporto"), strict=True))[body.sport],
-        ),
+        ("Modalidade", SPORT_NAMES[body.sport]),
         ("N.º do CC", body.idNumber or ""),
         ("NIF", body.taxNumber or ""),
         ("Email", body.email or ""),
@@ -525,10 +523,10 @@ async def register_athlete(c: Conn, body: AthleteSignup, client: dict[str, str])
         ("Encarregado", f"{g.name} ({g.relation}) · {g.email} · {g.phone}" if minor and g else ""),
         ("Imagem", "Autoriza" if body.imageConsent else "Não autoriza"),
     ]
-    out = await _finish(
+    return await _finish(
         c,
         kind="athlete",
-        title="Ficha de inscrição de atleta",
+        title="Proposta de inscrição de atleta",
         data=data,
         labels=labels,
         accepted=accepted,
@@ -537,10 +535,124 @@ async def register_athlete(c: Conn, body: AthleteSignup, client: dict[str, str])
         signature=signature,
         signer=signer,
         client=client,
-        athlete_id=athlete_id,
     )
-    await _invite_if_new(c, signer[1], signer[0])
-    return {**out, "code": code}
+
+
+# ------------------------------------------------------------------ decisão da secretaria
+SPORT_NAMES = dict(zip(SPORTS, ("Atletismo", "Escola de Futsal", "Escola de Rugby", "Formação", "Escola de Desporto"), strict=True))
+
+
+async def _pending(c: Conn, reg_id: str) -> Row:
+    row = await (await c.execute("select * from registrations where id = %s for update", [reg_id])).fetchone()
+    if not row:
+        raise HttpError(404, "not_found", "Proposta não encontrada")
+    if row["status"] != "pendente":
+        raise HttpError(409, "conflict", f"A proposta já foi {row['status']}")
+    return row
+
+
+async def _decided(c: Conn, who: Actor, reg_id: str, status: str, note: str, **cols: Any) -> None:
+    extra = "".join(f", {k} = %s" for k in cols)
+    await c.execute(
+        f"update registrations set status = %s, review_note = %s, reviewed_by = %s, reviewed_at = now(){extra} where id = %s",
+        [status, note, who.id, *cols.values(), reg_id],
+    )
+
+
+async def approve(c: Conn, who: Actor, reg_id: str, *, category: str | None = None, note: str = "") -> dict[str, Any]:
+    """Aceita a proposta: cria o sócio (com o n.º seguinte) ou o atleta, dá acesso ao site e avisa por email."""
+    reg = await _pending(c, reg_id)
+    d: dict[str, Any] = reg["data"]
+    first = str(reg["signer_name"]).split()[0]
+    if reg["kind"] == "member":
+        if await (await c.execute("select 1 from members where email = %s", [d["email"]])).fetchone():
+            raise HttpError(409, "already_member", "Entretanto já existe um sócio com este email")
+        member = MemberIn(
+            name=d["name"],
+            email=d["email"],
+            phone=d["phone"],
+            taxNumber=d.get("taxNumber"),
+            birthDate=d["birthDate"],
+            address=d.get("address"),
+            postalCode=d.get("postalCode"),
+            city=d.get("city"),
+            category=category or d.get("category") or "Efetivo",
+            status="Ativo",
+            joinedOn=date.today().isoformat(),
+            notes="Proposta online" + (f" (proponente n.º {reg['proposer_number']})" if reg["proposer_number"] else ""),
+        )
+        number, _ = await save_member(c, who, member)
+        await _decided(c, who, reg_id, "aceite", note, member_number=number)
+        lines = [f"Olá {first},", f"A tua proposta foi aceite: és o sócio n.º {number} do Serrado Futebol Clube. Bem-vindo à família!"]
+        result: dict[str, Any] = {"memberNumber": number}
+    else:
+        minor = age_on(d["birthDate"], date.today()) < 18
+        g = d.get("guardian") or {}
+        athlete = AthleteIn(
+            name=d["name"],
+            birthDate=d["birthDate"],
+            gender=d["gender"],
+            sport=d["sport"],
+            idNumber=d.get("idNumber"),
+            idExpiry=d.get("idExpiry"),
+            taxNumber=d.get("taxNumber"),
+            email=d.get("email"),
+            phone=d.get("phone"),
+            address=d.get("address"),
+            postalCode=d.get("postalCode"),
+            city=d.get("city"),
+            guardianName=g.get("name") if minor and g else None,
+            guardianEmail=g.get("email") if minor and g else None,
+            accountEmail=None if minor else d.get("email"),
+        )
+        athlete_id, _ = await save_athlete(c, who, athlete)
+        await c.execute(
+            """update athletes set emergency_name = %s, emergency_phone = %s, shirt_size = %s, consent_rgpd = true, consent_image = %s
+                where id = %s""",
+            [d.get("emergencyName"), d.get("emergencyPhone"), d.get("shirtSize"), bool(d.get("imageConsent")), athlete_id],
+        )
+        code = (await (await c.execute("select code from athletes where id = %s", [athlete_id])).fetchone() or {}).get("code")
+        await _decided(c, who, reg_id, "aceite", note, athlete_id=athlete_id)
+        lines = [f"Olá {first},", f"A inscrição de {d['name']} em {SPORT_NAMES.get(d['sport'], d['sport'])} foi aceite. Código de atleta: {code}."]
+        result = {"athleteId": athlete_id, "code": code}
+    if note:
+        lines.append(f"Nota da secretaria: {note}")
+    lines.append("Vais receber (ou já recebeste) uma ligação para definir a password da área reservada; também podes usar «Esqueci-me da password».")
+    if config.mail.enabled:
+        await enqueue(
+            c,
+            to_email=reg["signer_email"],
+            to_name=reg["signer_name"],
+            subject="Proposta aceite — Serrado FC",
+            html_body=layout("Proposta aceite", lines, (("Entrar no site", f"{config.oauth.site_url}/entrar"))),
+        )
+    await _invite_if_new(c, reg["signer_email"], reg["signer_name"])
+    await audit(c, who, "registrations.approve", "registrations", reg_id, {"kind": reg["kind"], **result})
+    return {"id": reg_id, "status": "aceite", **result}
+
+
+async def reject(c: Conn, who: Actor, reg_id: str, note: str) -> dict[str, Any]:
+    reg = await _pending(c, reg_id)
+    await _decided(c, who, reg_id, "recusada", note)
+    if config.mail.enabled:
+        what = "de sócio" if reg["kind"] == "member" else f"de inscrição de {reg['data'].get('name', 'atleta')}"
+        await enqueue(
+            c,
+            to_email=reg["signer_email"],
+            to_name=reg["signer_name"],
+            subject="Proposta não aceite — Serrado FC",
+            html_body=layout(
+                "Proposta não aceite",
+                [
+                    f"Olá {str(reg['signer_name']).split()[0]},",
+                    f"A proposta {what} não foi aceite pela secretaria do clube.",
+                    *([f"Motivo: {note}"] if note else []),
+                    "Se tiveres dúvidas, responde a este email.",
+                ],
+            ),
+        )
+    await audit(c, who, "registrations.reject", "registrations", reg_id, {"kind": reg["kind"]})
+    return {"id": reg_id, "status": "recusada"}
 
 
 __all__ = [
@@ -552,7 +664,9 @@ __all__ = [
     "check_signature",
     "current_documents",
     "doc_hash",
+    "approve",
     "publish_document",
     "register_athlete",
     "register_member",
+    "reject",
 ]

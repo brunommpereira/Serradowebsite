@@ -27,7 +27,7 @@ function ageOn(birth: string, today = new Date()): number {
 
 /**
  * Inscrição de atleta online (modo API). Menor de 18 anos: assina o encarregado de educação.
- * Adulto: assina o próprio. Fica ativa de imediato e o documento assinado segue por email.
+ * Adulto: assina o próprio. Fica pendente até a secretaria aceitar; o documento assinado segue por email.
  */
 @Component({
   selector: 'sfc-athlete-signup',
@@ -37,11 +37,11 @@ function ageOn(birth: string, today = new Date()): number {
     @if (done(); as d) {
       <div class="card done" role="status">
         <sfc-icon name="check" size="40" />
-        <h2>Inscrição feita!</h2>
-        <p>O código de atleta é <strong class="num">{{ d.code }}</strong>.</p>
-        <p>Enviámos para <strong>{{ signerEmail() }}</strong> o documento assinado (PDF) e uma ligação para definires a password da Área de Atletas, onde podes entregar os documentos em falta (exame médico, fotografia…).</p>
+        <h2>Proposta de inscrição enviada!</h2>
+        <p>A secretaria do clube vai analisar a inscrição. Quando for aceite, recebes um email com o <strong>código de atleta</strong> e uma ligação para a Área de Atletas, onde podes entregar os documentos em falta (exame médico, fotografia…).</p>
+        <p>Enviámos para <strong>{{ signerEmail() }}</strong> a proposta assinada (PDF).</p>
         <p class="caption">Referência do registo: {{ d.id.slice(0, 8) }} · prova {{ d.evidenceSha256.slice(0, 16) }}…</p>
-        <a class="btn btn--primary" routerLink="/entrar" [queryParams]="{ perfil: 'atleta' }">Ir para a entrada</a>
+        <a class="btn btn--primary" routerLink="/">Voltar ao início</a>
       </div>
     } @else if (loadError()) {
       <sfc-offline-notice title="Inscrição de atleta" [text]="loadError()!" />
