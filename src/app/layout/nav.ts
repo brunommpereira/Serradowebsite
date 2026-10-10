@@ -65,18 +65,11 @@ export const MAIN_NAV: NavItem[] = [
           { label: 'Atletismo', link: '/modalidades/atletismo' },
           { label: 'Futsal', link: '/modalidades/futsal' },
           { label: 'Rugby', link: '/modalidades/rugby', href: 'https://almadarugby.pt/' },
-        ],
-      },
-      {
-        title: 'Formação',
-        links: [
           { label: 'Formação', link: '/modalidades/formacao' },
-          { label: 'Escola de Desporto', link: '/modalidades/escola-de-desporto' },
-          { label: 'Horários de treino', link: '/modalidades' },
         ],
       },
     ],
-    promo: { title: 'Experimenta um treino', text: 'Inscrições abertas em todos os escalões.', link: '/contactos', cta: 'Fala connosco' },
+    promo: { title: 'Experimenta um treino', text: 'Inscrições abertas em todos os escalões.', link: '/pre-inscricao', cta: 'Faz a pré-inscrição' },
   },
   {
     label: 'Notícias',

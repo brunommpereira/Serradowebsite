@@ -14,11 +14,11 @@ import { ApiClient } from '../../core/api/api-client';
     @if (apiMode) {
       <div class="card online">
         <h3>Inscrição · {{ sport().name }}</h3>
-        <p>Inscreve o atleta online: preenches a ficha, aceitas o regulamento e assinas no ecrã. Recebes o documento assinado por email.</p>
-        <a class="btn btn--accent" routerLink="/inscricao" [queryParams]="{ modalidade: sport().slug }">Fazer a inscrição online</a>
+        <p>Deixa os teus contactos e ligamos-te para marcar um treino de experiência. A inscrição completa faz-se depois, com a ajuda do treinador.</p>
+        <a class="btn btn--accent" routerLink="/pre-inscricao" [queryParams]="{ modalidade: sport().slug }">Fazer a inscrição online</a>
         <p class="pre">
-          Ainda só queres experimentar ou ser contactado?
-          <a routerLink="/pre-inscricao" [queryParams]="{ modalidade: sport().slug }">Faz a pré-inscrição</a> e ligamos-te para marcar um treino.
+          Já combinaste com o treinador?
+          <a routerLink="/inscricao" [queryParams]="{ modalidade: sport().slug }">Faz a inscrição completa do atleta</a>.
         </p>
       </div>
     } @else if (sent()) {

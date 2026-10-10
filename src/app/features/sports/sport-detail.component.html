@@ -166,6 +166,39 @@
     </section>
 
     <!-- EQUIPAS -->
+    @if (school(); as e) {
+      <!-- ESCOLA DE DESPORTO (só no Futsal) -->
+      <section class="section school" id="escola-de-desporto" aria-labelledby="h-escola">
+        <div class="container split">
+          <div>
+            <p class="eyebrow">{{ e.tagline }}</p>
+            <h2 id="h-escola">{{ e.name }}</h2>
+            <p class="prose">{{ e.description }}</p>
+            <ul class="checklist">
+              @for (h of e.highlights; track h) {
+                <li>{{ h }}</li>
+              }
+            </ul>
+            <a class="btn btn--accent" routerLink="/pre-inscricao" [queryParams]="{ modalidade: 'escola-de-desporto' }">Fazer a inscrição online</a>
+          </div>
+          <div class="glance">
+            @for (t of e.trainings; track t.team) {
+              <div class="glance__box">
+                <p class="glance__label">Treinos · {{ t.team }}</p>
+                <p class="glance__title">{{ t.days }}</p>
+                <p class="glance__meta">{{ t.time }} · {{ t.location }}</p>
+              </div>
+            }
+            <div class="glance__box glance__box--dark">
+              <p class="glance__label">Contacto</p>
+              <p class="glance__title">{{ e.contactEmail }}</p>
+              <p class="glance__meta">O primeiro treino é de experiência.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    }
+
     <section class="section section--soft" id="equipas" aria-labelledby="h-equipas">
       <div class="container">
         <div class="section-head">
