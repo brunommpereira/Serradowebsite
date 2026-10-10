@@ -3,16 +3,18 @@ import { DatePipe } from '@angular/common';
 import { ContentService } from '../../core/services/content.service';
 import { SeoService } from '../../core/services/seo.service';
 import { PageHeroComponent } from '../../shared/page-hero.component';
+import { SocialFeedComponent } from '../../shared/social-feed.component';
 import { IconComponent } from '../../shared/icon.component';
 
 const SPORT_OF: Record<string, string> = { Atletismo: 'atletismo', Futsal: 'futsal', Rugby: 'rugby', Eventos: 'formacao', Comunidade: 'escola-de-desporto' };
 
 @Component({
   selector: 'sfc-media',
-  imports: [DatePipe, PageHeroComponent, IconComponent],
+  imports: [DatePipe, PageHeroComponent, IconComponent, SocialFeedComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <sfc-page-hero eyebrow="Multimédia" title="Fotografias e vídeos" subtitle="Os melhores momentos do Serrado FC." [crumbs]="[{ label: 'Multimédia' }]" />
+    <sfc-social-feed />
     <section class="section">
       <div class="container">
         <div class="toolbar">

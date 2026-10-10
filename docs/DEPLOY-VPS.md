@@ -178,11 +178,12 @@ Os botões só aparecem para os fornecedores configurados.
 
 Ficam de fora, mas podem acrescentar-se mais tarde.
 
-## 5c. Página de Facebook → notícias e eventos (opcional)
+## 5c. Página de Facebook → notícias, eventos, reels e histórias (opcional)
 
 O site vai buscar à página de Facebook do clube, de 15 em 15 minutos:
 - **publicações → notícias:** o título é a primeira frase e o resto do texto fica como resumo. A foto passa a capa e a notícia leva uma ligação «Ver no Facebook». A categoria vem das hashtags (`#futsal`, `#atletismo`, `#rugby`, `#formacao`…). Se não houver nenhuma, fica «Clube»;
-- **eventos → eventos:** com a data e a hora de Portugal, o local, a capa e o tipo (corrida, caminhada, torneio…). Um evento cancelado no Facebook é arquivado no site.
+- **eventos → eventos:** com a data e a hora de Portugal, o local, a capa e o tipo (corrida, caminhada, torneio…). Um evento cancelado no Facebook é arquivado no site;
+- **reels e histórias → página inicial e Multimédia:** aparecem na secção «No Facebook». O site guarda só a miniatura e a legenda. O vídeo continua no Facebook e só é carregado quando o visitante carrega no reel. As **histórias** só se veem no site durante 24 horas, como no Facebook, e ao fim de 7 dias são apagadas da base de dados.
 
 **Regras:**
 - **Sem duplicados:** cada publicação ou evento só entra uma vez.
@@ -190,6 +191,10 @@ O site vai buscar à página de Facebook do clube, de 15 em 15 minutos:
 - **O que não entra:** as partilhas de publicações de outras páginas e as fotos sem texto.
 
 **Custos:** a Graph API da Meta é gratuita e não se paga por pedido.
+
+**Controlo:** em **Backoffice → Reels e histórias** vês tudo o que foi importado e podes **esconder** do site o que não deve lá estar. No modo rascunho (resposta **n** em `sudo serrado facebook`), os reels e as histórias entram escondidos e só aparecem depois de carregares em «Mostrar».
+
+**Leitor dos reels:** o leitor do Facebook abre dentro do site, e para isso a Content-Security-Policy tem de permitir `https://www.facebook.com`. Numa VPS instalada antes desta versão, volta a correr o `bootstrap.sh` uma vez, com as mesmas opções da instalação, para atualizar o Caddy. Até lá, o reel abre num quadro vazio, mas o botão «Ver no Facebook» funciona.
 
 ### Obter o token da página (uma vez, com a conta de um administrador da página)
 
@@ -206,6 +211,8 @@ O site vai buscar à página de Facebook do clube, de 15 em 15 minutos:
 - `sudo serrado logs`: mostra os erros.
 
 O token deixa de valer se o administrador mudar a password ou deixar de gerir a página. Nesse caso, gera um novo e volta a correr `sudo serrado facebook`.
+
+> **Reels e histórias:** usam o mesmo token (`pages_read_engagement`). Se a Meta recusar a leitura, os registos mostram `reels: …` ou `histórias: …` e o resto continua a ser importado.
 
 > **Eventos:** a Meta tem restringido o acesso aos eventos das páginas. Se a leitura de eventos for recusada, a sincronização continua a importar as publicações e os registos mostram `eventos: OAuthException …`.
 

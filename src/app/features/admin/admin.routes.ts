@@ -57,6 +57,13 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./pages/media.page').then((m) => m.MediaPage),
       },
       {
+        path: 'redes-sociais',
+        title: 'Reels e histórias',
+        canActivate: [staffGuard],
+        data: { permissions: ['cms.edit'] },
+        loadComponent: () => import('./pages/social.page').then((m) => m.SocialPage),
+      },
+      {
         path: 'atletas',
         canActivate: [staffGuard],
         data: { permissions: ['athletes.view', 'athletes.manage'] },
