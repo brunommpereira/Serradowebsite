@@ -52,14 +52,18 @@ export class SportDetailComponent {
   protected readonly trainings = computed(() => {
     const s = this.sport();
     if (!s) return [];
+    if (this.school()) return [...s.trainings, ...this.school()!.trainings];
     if (!this.isUmbrella() || s.trainings.length) return s.trainings;
     return this.content.sports().flatMap((x) => x.trainings.filter((t) => /sub|forma|escola/i.test(t.team)));
   });
   protected readonly teamName = (sportSlug: string) => this.content.sport(sportSlug)?.name;
+  /** A Escola de Desporto (4–8 anos) aparece dentro da página do Futsal */
+  protected readonly school = computed(() => (this.slug() === 'futsal' ? this.content.sport('escola-de-desporto') : undefined));
 
   protected readonly tabs = computed(() => {
     const t = [
       { id: 'inicio', label: 'Início' },
+      ...(this.school() ? [{ id: 'escola-de-desporto', label: 'Escola de Desporto' }] : []),
       { id: 'equipas', label: 'Equipas' },
       { id: 'treinadores', label: 'Treinadores' },
       { id: 'calendario', label: 'Calendário' },

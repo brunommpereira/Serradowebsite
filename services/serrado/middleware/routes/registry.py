@@ -47,6 +47,21 @@ def register(r: APIRouter) -> None:
         s = await staff(req)
         return await backend(req).call("POST", f"/members/{number}/quotas", actor=s, body=body)
 
+    @r.get("/admin/members/{number}/athlete-suggestions", tags=tags, summary="Atletas que podem ser deste sócio (ou pesquisa com q)")
+    async def athlete_suggestions(req: Request, number: Number) -> Any:
+        s = await staff(req)
+        return await backend(req).call("GET", f"/members/{number}/athlete-suggestions", actor=s, query=_q(req))
+
+    @r.post("/admin/members/{number}/athletes/{id}", tags=tags, summary="Ligar atleta ao sócio")
+    async def link_athlete(req: Request, number: Number, id: AthleteId) -> Any:
+        s = await staff(req)
+        return await backend(req).call("POST", f"/members/{number}/athletes/{id}", actor=s, query=_q(req))
+
+    @r.delete("/admin/members/{number}/athletes/{id}", tags=tags, summary="Desligar atleta do sócio")
+    async def unlink_athlete(req: Request, number: Number, id: AthleteId) -> Any:
+        s = await staff(req)
+        return await backend(req).call("DELETE", f"/members/{number}/athletes/{id}", actor=s)
+
     @r.post("/admin/athletes", tags=tags, summary="Criar atleta", status_code=201)
     async def create_athlete(req: Request, body: JsonObject) -> Any:
         s = await staff(req)

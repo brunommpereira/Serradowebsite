@@ -1,7 +1,8 @@
 """
 Página de Facebook do clube → site (Graph API da Meta).
 
-As publicações da página passam a notícias e os eventos da página a eventos do CMS.
+As publicações da página passam a notícias, os eventos da página a eventos do CMS e os reels e
+histórias aparecem no site (tabela social_items: só a miniatura; o vídeo fica no Facebook).
 Corre de 15 em 15 minutos no servidor (serrado-facebook.timer) ou à mão:
 
     python -m serrado.facebook check    # confirma o token e mostra o nome da página
@@ -13,6 +14,8 @@ Regras:
 - FACEBOOK_SYNC_MODE=publish publica logo; =draft deixa em rascunho para a equipa rever.
 - FACEBOOK_SYNC_TAG (opcional, ex.: site) importa só as publicações com essa hashtag.
 - Partilhas de publicações de outras páginas não entram. Eventos cancelados são arquivados.
+- Reels: os mais recentes (até 25). Histórias: só se veem no site nas 24 h seguintes; ao fim de
+  7 dias saem da base de dados (com a miniatura). Com FACEBOOK_SYNC_MODE=draft entram escondidos.
 """
 
 import asyncio
@@ -23,7 +26,7 @@ import re
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -127,18 +130,39 @@ class Summary:
     events_created: int = 0
     events_updated: int = 0
     events_archived: int = 0
+    reels_created: int = 0
+    reels_updated: int = 0
+    stories_created: int = 0
+    stories_removed: int = 0
     skipped: int = 0
     errors: list[str] = field(default_factory=list)
 
 
 # ------------------------------------------------------------------ conversão
-def _parse_time(value: str | None) -> datetime | None:
-    if not value:
+def _parse_time(value: str | int | None) -> datetime | None:
+    """Datas da Graph API: «2026-10-01T09:00:00+0000» ou, nas histórias, segundos desde 1970."""
+    if value is None or value == "":
         return None
+    if isinstance(value, int) or str(value).isdigit():
+        return datetime.fromtimestamp(int(value), UTC)
     try:
-        return datetime.strptime(value, "%Y-%m-%dT%H:%M:%S%z")
+        return datetime.strptime(str(value), "%Y-%m-%dT%H:%M:%S%z")
     except ValueError:
         return None
+
+
+def facebook_url(link: str | None) -> str | None:
+    """Os vídeos devolvem o permalink relativo («/reel/123»): passa a endereço completo."""
+    if not link:
+        return None
+    full = f"https://www.facebook.com{link}" if link.startswith("/") else link
+    return full if re.match(r"^https://(www\.|m\.)?facebook\.com/", full) else None
+
+
+def best_thumbnail(video: dict[str, Any]) -> str | None:
+    thumbs = [t for t in (video.get("thumbnails") or {}).get("data", []) if isinstance(t, dict) and t.get("uri")]
+    preferred = next((t for t in thumbs if t.get("is_preferred")), thumbs[0] if thumbs else None)
+    return str(preferred["uri"]) if preferred else (str(video["picture"]) if video.get("picture") else None)
 
 
 def _hashtags(text: str) -> set[str]:
@@ -379,6 +403,118 @@ async def sync_events(c: Conn, client: GraphClient, cfg: FacebookConfig, summary
             await _link(c, eid, "events", ext["entry_id"], e.get("updated_time"))
 
 
+# ------------------------------------------------------------------ reels e histórias
+async def _social(c: Conn, external_id: str) -> dict[str, Any] | None:
+    cur = await c.execute("select * from social_items where source = %s and external_id = %s", [SOURCE, external_id])
+    return await cur.fetchone()
+
+
+async def _store_thumb(c: Conn, client: GraphClient, url: str | None, name: str, alt: str) -> tuple[str, int] | None:
+    stored = await _store_image(c, client, url, name, alt)
+    if not stored:
+        return None
+    row = await (await c.execute("select id from cms_media where key = %s::uuid", [stored.rsplit("/", 1)[-1].split(".")[0]])).fetchone()
+    assert row is not None
+    return stored, int(row["id"])
+
+
+async def sync_reels(c: Conn, client: GraphClient, cfg: FacebookConfig, summary: Summary) -> None:
+    reels = await client.items(
+        f"{cfg.page_id}/video_reels",
+        {"fields": "id,description,created_time,updated_time,permalink_url,length,picture,thumbnails{uri,is_preferred}", "limit": "25"},
+        max_pages=1,
+    )
+    for v in reels:
+        vid, posted = str(v.get("id", "")), _parse_time(v.get("created_time"))
+        link = facebook_url(v.get("permalink_url")) or (f"https://www.facebook.com/reel/{vid}" if vid.isdigit() else None)
+        if not vid or not posted or not link:
+            summary.skipped += 1
+            continue
+        caption = _shorten(str(v.get("description") or "").strip(), 2000)
+        ext = await _social(c, vid)
+        if ext is None:
+            thumb = await _store_thumb(c, client, best_thumbnail(v), f"facebook-reel-{vid}.jpg", _shorten(caption, 300) or "Reel do Serrado FC")
+            await c.execute(
+                """insert into social_items (source, kind, external_id, caption, permalink, media_type, thumb_url, thumb_media_id,
+                     duration_seconds, posted_at, hidden, remote_updated_at)
+                   values (%s, 'reel', %s, %s, %s, 'video', %s, %s, %s, %s, %s, %s)""",
+                [
+                    SOURCE,
+                    vid,
+                    caption,
+                    link,
+                    thumb and thumb[0],
+                    thumb and thumb[1],
+                    v.get("length"),
+                    posted,
+                    cfg.mode == "draft",
+                    v.get("updated_time"),
+                ],
+            )
+            summary.reels_created += 1
+        elif ext["remote_updated_at"] != v.get("updated_time"):
+            await c.execute(
+                "update social_items set caption = %s, permalink = %s, duration_seconds = %s, remote_updated_at = %s, updated_at = now() where id = %s",
+                [caption, link, v.get("length"), v.get("updated_time"), ext["id"]],
+            )
+            summary.reels_updated += 1
+
+
+async def sync_stories(c: Conn, client: GraphClient, cfg: FacebookConfig, summary: Summary) -> None:
+    # Histórias com mais de 7 dias saem (com a miniatura): no site só se mostram durante 24 horas
+    old = await (
+        await c.execute(
+            "delete from social_items where kind = 'story' and source = %s and posted_at < now() - interval '7 days' returning thumb_media_id",
+            [SOURCE],
+        )
+    ).fetchall()
+    media = [r["thumb_media_id"] for r in old if r["thumb_media_id"]]
+    if media:
+        await c.execute("delete from cms_media where id = any(%s)", [media])
+    summary.stories_removed += len(old)
+    stories = await client.items(
+        f"{cfg.page_id}/stories", {"fields": "post_id,status,creation_time,media_type,media_id,url", "limit": "25"}, max_pages=1
+    )
+    for st in stories:
+        sid, posted = str(st.get("post_id") or st.get("id") or ""), _parse_time(st.get("creation_time"))
+        if not sid or not posted or str(st.get("status", "PUBLISHED")).upper() != "PUBLISHED":
+            summary.skipped += 1
+            continue
+        if posted < datetime.now(UTC) - timedelta(days=1) or await _social(c, sid):
+            continue
+        kind = "photo" if str(st.get("media_type", "")).lower() == "photo" else "video"
+        thumb_url: str | None = None
+        if st.get("media_id"):
+            try:
+                if kind == "photo":
+                    photo = await client.get(str(st["media_id"]), {"fields": "images"})
+                    images = sorted((i for i in photo.get("images", []) if i.get("source")), key=lambda i: -int(i.get("width") or 0))
+                    # A maior que não passe de ~1080 px (as originais podem ter vários MB)
+                    fit = [i for i in images if int(i.get("width") or 0) <= 1080]
+                    thumb_url = str((fit or images)[0]["source"]) if images else None
+                else:
+                    thumb_url = best_thumbnail(await client.get(str(st["media_id"]), {"fields": "picture,thumbnails{uri,is_preferred}"}))
+            except FacebookError:
+                thumb_url = None
+        thumb = await _store_thumb(c, client, thumb_url, f"facebook-historia-{sid}.jpg", "História do Serrado FC")
+        await c.execute(
+            """insert into social_items (source, kind, external_id, permalink, media_type, thumb_url, thumb_media_id, posted_at, expires_at, hidden)
+               values (%s, 'story', %s, %s, %s, %s, %s, %s, %s, %s)""",
+            [
+                SOURCE,
+                sid,
+                facebook_url(st.get("url")),
+                kind,
+                thumb and thumb[0],
+                thumb and thumb[1],
+                posted,
+                posted + timedelta(days=1),
+                cfg.mode == "draft",
+            ],
+        )
+        summary.stories_created += 1
+
+
 async def sync(pool: Pool, cfg: FacebookConfig | None = None, client: GraphClient | None = None) -> Summary:
     """Importa publicações e eventos. Cada parte numa transação: um erro nos eventos não perde as notícias."""
     cfg = cfg or config.facebook
@@ -393,7 +529,8 @@ async def sync(pool: Pool, cfg: FacebookConfig | None = None, client: GraphClien
             summary.errors.append("já há uma sincronização a correr")
             return summary
         try:
-            for name, step in (("publicações", sync_posts), ("eventos", sync_events)):
+            steps = (("publicações", sync_posts), ("eventos", sync_events), ("reels", sync_reels), ("histórias", sync_stories))
+            for name, step in steps:
                 try:
                     async with pool.connection() as c:
                         await step(c, client, cfg, summary)

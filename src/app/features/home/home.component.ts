@@ -5,10 +5,11 @@ import { ContentService } from '../../core/services/content.service';
 import { SeoService } from '../../core/services/seo.service';
 import { EventCardComponent, MatchCardComponent, NewsCardComponent, SponsorCardComponent, SportCardComponent } from '../../shared/cards';
 import { IconComponent } from '../../shared/icon.component';
+import { SocialFeedComponent } from '../../shared/social-feed.component';
 
 @Component({
   selector: 'sfc-home',
-  imports: [RouterLink, DatePipe, NewsCardComponent, MatchCardComponent, EventCardComponent, SportCardComponent, SponsorCardComponent, IconComponent],
+  imports: [RouterLink, DatePipe, NewsCardComponent, MatchCardComponent, EventCardComponent, SportCardComponent, SponsorCardComponent, IconComponent, SocialFeedComponent],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

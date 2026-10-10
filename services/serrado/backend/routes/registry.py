@@ -1,5 +1,7 @@
 """Backoffice: sócios e atletas criados à mão ou por ficheiro, contas ligadas e quotas avulsas."""
 
+import re
+import unicodedata
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Path, Query, Request
@@ -70,6 +72,27 @@ async def _member_detail(req: Request, number: str) -> dict[str, Any]:
     return out
 
 
+def _words(name: str) -> list[str]:
+    """Nome → palavras sem acentos nem partículas (de, da, dos…), para comparar nomes."""
+    plain = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode().lower()
+    return [w for w in re.sub(r"[^a-z ]", " ", plain).split() if w not in {"de", "da", "do", "das", "dos", "e"}]
+
+
+def match_reason(member: list[str], athlete: list[str], *, guardian: bool) -> tuple[int, str] | None:
+    """Porque é que um atleta pode ser deste sócio (pontuação, motivo) — ou None."""
+    if guardian:
+        return 95, "O sócio é encarregado deste atleta no site"
+    if not member or not athlete:
+        return None
+    if member == athlete:
+        return 100, "Mesmo nome"
+    if len(member) > 1 and len(athlete) > 1 and (member[0], member[-1]) == (athlete[0], athlete[-1]):
+        return 80, "Primeiro e último nome iguais"
+    if len(member[-1]) >= 3 and member[-1] == athlete[-1]:
+        return 40, "Mesmo apelido (pode ser filho/a)"
+    return None
+
+
 def register(r: APIRouter) -> None:
     office: list[str | Any] = ["Backoffice · Sócios e atletas"]
 
@@ -118,6 +141,74 @@ def register(r: APIRouter) -> None:
             if not await (await c.execute("select 1 from members where member_number = %s", [number])).fetchone():
                 raise not_found("Sócio")
             await save_member(c, actor(req), body.model_copy(update={"memberNumber": None}), number=number)
+        return await _member_detail(req, number)
+
+    @r.get(
+        "/members/{number}/athlete-suggestions",
+        tags=office,
+        summary="Atletas que podem ser deste sócio (pelo nome ou por ser encarregado); com q, pesquisa",
+    )
+    async def athlete_suggestions(req: Request, number: Number, q: Annotated[str | None, Query(max_length=80)] = None) -> list[dict[str, Any]]:
+        require(req, "members.view")
+        require(req, "athletes.view")
+        number = number.zfill(5)
+        m = await fetch_one(pool(req), "select name, user_id from members where member_number = %s", [number])
+        if not m:
+            raise not_found("Sócio")
+        rows = await fetch(
+            pool(req),
+            """select a.id, a.code, a.name, a.sport_slug as sport, a.category, a.birth_date, a.member_number,
+                      exists(select 1 from athlete_access x where x.athlete_id = a.id and x.user_id = %s) as guardian
+                 from athletes a where a.member_number is distinct from %s""",
+            [m["user_id"], number],
+        )
+        out: list[dict[str, Any]] = []
+        if q and q.strip():
+            needle = _words(q)
+            for a in rows:
+                words = _words(a["name"])
+                if needle and all(any(w.startswith(n) for w in words) for n in needle):
+                    out.append({**camel(a), "score": 0, "reason": "Pesquisa"})
+            return sorted(out, key=lambda x: x["name"])[:30]
+        mine = _words(m["name"])
+        for a in rows:
+            hit = match_reason(mine, _words(a["name"]), guardian=a["guardian"])
+            # Já ligado a outro sócio: só se mostra quando há forte indício (nome igual ou encarregado)
+            if hit and (a["member_number"] is None or hit[0] >= 95):
+                out.append({**camel(a), "score": hit[0], "reason": hit[1]})
+        out.sort(key=lambda x: (-x["score"], x["name"]))
+        return out[:30]
+
+    @r.post("/members/{number}/athletes/{id}", tags=office, summary="Liga o atleta a este sócio (preenche o n.º de sócio na ficha do atleta)")
+    async def link_athlete(req: Request, number: Number, id: AthleteId, force: Annotated[bool, Query()] = False) -> dict[str, Any]:
+        require(req, "members.manage")
+        require(req, "athletes.manage")
+        number = number.zfill(5)
+        async with tx(pool(req)) as c:
+            if not await (await c.execute("select 1 from members where member_number = %s", [number])).fetchone():
+                raise not_found("Sócio")
+            a = await (await c.execute("select member_number from athletes where id = %s for update", [id])).fetchone()
+            if not a:
+                raise not_found("Atleta")
+            before = a["member_number"]
+            if before and before != number and not force:
+                raise HttpError(409, "conflict", f"O atleta já está ligado ao sócio n.º {before}")
+            await c.execute("update athletes set member_number = %s, updated_at = now() where id = %s", [number, id])
+            await audit(c, actor(req), "athletes.link_member", "athletes", id, {"member": number, "before": before})
+        return await _member_detail(req, number)
+
+    @r.delete("/members/{number}/athletes/{id}", tags=office, summary="Desliga o atleta deste sócio")
+    async def unlink_athlete(req: Request, number: Number, id: AthleteId) -> dict[str, Any]:
+        require(req, "members.manage")
+        require(req, "athletes.manage")
+        number = number.zfill(5)
+        async with tx(pool(req)) as c:
+            cur = await c.execute(
+                "update athletes set member_number = null, updated_at = now() where id = %s and member_number = %s returning id", [id, number]
+            )
+            if not await cur.fetchone():
+                raise not_found("Ligação")
+            await audit(c, actor(req), "athletes.unlink_member", "athletes", id, {"member": number})
         return await _member_detail(req, number)
 
     @r.post("/members/{number}/quotas", tags=office, summary="Acrescenta uma quota avulsa (ex.: joia ou quota em atraso)", status_code=201)

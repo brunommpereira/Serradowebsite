@@ -54,6 +54,18 @@ export interface MemberDetail {
   quotas: { id: number; period: string; amount: number; dueDate: string; paidAt: string | null; paymentMethod: string | null; receiptNumber: string | null; status: string }[];
 }
 
+export interface AthleteSuggestion {
+  id: string;
+  code: string;
+  name: string;
+  sport: string;
+  category: string | null;
+  birthDate: string | null;
+  memberNumber: string | null;
+  score: number;
+  reason: string;
+}
+
 export interface AthleteAccess {
   userId: string;
   name: string;
@@ -201,6 +213,16 @@ export class RegistryApi {
   }
   invite(userId: string) {
     return this.api.post(`/admin/users/${userId}/invite`);
+  }
+  /** Atletas que podem ser deste sócio (pelo nome ou por ser encarregado); com q, pesquisa por nome. */
+  athleteSuggestions(number: string, q?: string) {
+    return this.api.get<AthleteSuggestion[]>(`/admin/members/${number}/athlete-suggestions`, q ? { q } : {});
+  }
+  linkAthlete(number: string, athleteId: string, force = false) {
+    return this.api.post<MemberDetail>(`/admin/members/${number}/athletes/${athleteId}${force ? '?force=true' : ''}`);
+  }
+  unlinkAthlete(number: string, athleteId: string) {
+    return this.api.delete<MemberDetail>(`/admin/members/${number}/athletes/${athleteId}`);
   }
 
   createAthlete(body: Record<string, unknown>) {
