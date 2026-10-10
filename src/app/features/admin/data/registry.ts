@@ -219,7 +219,9 @@ export class RegistryApi {
     return this.api.get<AthleteSuggestion[]>(`/admin/members/${number}/athlete-suggestions`, q ? { q } : {});
   }
   linkAthlete(number: string, athleteId: string, force = false) {
-    return this.api.post<MemberDetail>(`/admin/members/${number}/athletes/${athleteId}${force ? '?force=true' : ''}`);
+    return this.api.post<MemberDetail & { completed?: { member: string[]; athlete: string[] } }>(
+      `/admin/members/${number}/athletes/${athleteId}${force ? '?force=true' : ''}`,
+    );
   }
   unlinkAthlete(number: string, athleteId: string) {
     return this.api.delete<MemberDetail>(`/admin/members/${number}/athletes/${athleteId}`);

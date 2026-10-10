@@ -287,3 +287,49 @@ async def test_ficha_do_socio_sugere_atletas_e_a_secretaria_liga(mw):
     # Quem não gere sócios e atletas não liga
     tes = await mw.login(*TES)
     assert (await tes.post(f"/api/v1/admin/members/{n}/athletes/{same}")).status_code == 403
+
+
+async def test_mesma_pessoa_completa_os_dados_em_falta_nas_duas_fichas(mw):
+    sec = await mw.login(*SEC)
+    m = (
+        await sec.post(
+            "/api/v1/admin/members",
+            json={"name": "Joana de Exemplo Pires", "email": "joana.pires@exemplo.pt", "taxNumber": "451234561", "city": "Almada"},
+        )
+    ).json()
+    n = m["memberNumber"]
+    same = await sec.post(
+        "/api/v1/admin/athletes",
+        json={
+            "name": "Joana Exemplo Pires",
+            "sport": "atletismo",
+            "birthDate": "1990-03-04",
+            "phone": "912000111",
+            "city": "Charneca",
+            "address": "Rua A, 1",
+        },
+    )
+    child = await sec.post("/api/v1/admin/athletes", json={"name": "Rui Exemplo Pires", "sport": "futsal", "birthDate": "2015-01-01"})
+    r = await sec.post(f"/api/v1/admin/members/{n}/athletes/{same.json()['id']}")
+    assert r.status_code == 200, r.text
+    done = r.json()["completed"]
+    assert done == {"member": ["Telemóvel", "Data de nascimento", "Morada"], "athlete": ["Email", "NIF"]}
+    member = r.json()
+    # O que já estava preenchido não muda (localidade do sócio fica Almada)
+    assert (member["phone"], member["birthDate"], member["address"], member["city"], member["taxNumber"]) == (
+        "912000111",
+        "1990-03-04",
+        "Rua A, 1",
+        "Almada",
+        "451234561",
+    )
+    a = await fetch_one(mw.pool, "select email, tax_number, city from athletes where id = %s", [same.json()["id"]])
+    assert a == {"email": "joana.pires@exemplo.pt", "tax_number": "451234561", "city": "Charneca"}
+    # Filho/a (outro nome): liga, mas não copia dados
+    r2 = await sec.post(f"/api/v1/admin/members/{n}/athletes/{child.json()['id']}")
+    assert r2.json()["completed"] == {"member": [], "athlete": []}
+    kid = await fetch_one(mw.pool, "select tax_number, email from athletes where id = %s", [child.json()["id"]])
+    assert kid == {"tax_number": None, "email": None}
+    # Alterar o sócio depois também completa a ficha do atleta que é a mesma pessoa
+    await sec.put(f"/api/v1/admin/members/{n}", json={"name": "Joana de Exemplo Pires", "postalCode": "2820-001"})
+    assert (await fetch_one(mw.pool, "select postal_code from athletes where id = %s", [same.json()["id"]])) == {"postal_code": "2820-001"}

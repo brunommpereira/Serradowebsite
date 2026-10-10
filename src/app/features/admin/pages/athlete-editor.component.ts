@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DialogComponent } from '../../../shared/dialog.component';
+import { AuthService } from '../../../core/services/auth.service';
 import { AthleteAccess, RegistryApi, SPORT_OPTIONS } from '../data/registry';
 
 type Draft = Record<string, string>;
@@ -53,15 +54,18 @@ const ROLE_LABEL: Record<string, string> = { encarregado: 'Encarregado', 'co-enc
         </div>
         <div class="field">
           <label for="a-cc">N.º do CC</label>
-          <input id="a-cc" name="cc" [(ngModel)]="draft()['idNumber']" inputmode="numeric" maxlength="12" />
+          <input id="a-cc" name="cc" [disabled]="!sensitive" [(ngModel)]="draft()['idNumber']" inputmode="numeric" maxlength="12" />
         </div>
         <div class="field">
           <label for="a-ccv">Validade do CC</label>
-          <input id="a-ccv" name="ccv" type="date" [(ngModel)]="draft()['idExpiry']" />
+          <input id="a-ccv" name="ccv" [disabled]="!sensitive" type="date" [(ngModel)]="draft()['idExpiry']" />
         </div>
         <div class="field">
           <label for="a-nif">NIF</label>
-          <input id="a-nif" name="nif" [(ngModel)]="draft()['taxNumber']" inputmode="numeric" maxlength="9" />
+          <input id="a-nif" name="nif" [disabled]="!sensitive" [(ngModel)]="draft()['taxNumber']" inputmode="numeric" maxlength="9" />
+          @if (!sensitive) {
+            <span class="hint">CC, NIF e morada: só quem tem acesso aos dados sensíveis.</span>
+          }
         </div>
         <div class="field">
           <label for="a-email">Email (contacto)</label>
@@ -73,11 +77,11 @@ const ROLE_LABEL: Record<string, string> = { encarregado: 'Encarregado', 'co-enc
         </div>
         <div class="field wide">
           <label for="a-addr">Morada</label>
-          <input id="a-addr" name="addr" [(ngModel)]="draft()['address']" maxlength="300" />
+          <input id="a-addr" name="addr" [disabled]="!sensitive" [(ngModel)]="draft()['address']" maxlength="300" />
         </div>
         <div class="field">
           <label for="a-cp">Código postal</label>
-          <input id="a-cp" name="cp" [(ngModel)]="draft()['postalCode']" placeholder="0000-000" />
+          <input id="a-cp" name="cp" [disabled]="!sensitive" [(ngModel)]="draft()['postalCode']" placeholder="0000-000" />
         </div>
         <div class="field">
           <label for="a-city">Localidade</label>
@@ -216,6 +220,8 @@ const ROLE_LABEL: Record<string, string> = { encarregado: 'Encarregado', 'co-enc
 })
 export class AthleteEditorComponent {
   private readonly api = inject(RegistryApi);
+  /** CC, NIF e morada: só quem vê os dados sensíveis os pode preencher (o servidor recusa os outros) */
+  protected readonly sensitive = inject(AuthService).can('athletes.sensitive');
   /** Ficha atual (do GET /admin/athletes/{id}) ou null para um atleta novo */
   readonly athlete = input<Record<string, unknown> | null>(null);
   readonly open = input(false);

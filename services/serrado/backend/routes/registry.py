@@ -1,14 +1,12 @@
 """Backoffice: sócios e atletas criados à mão ou por ficheiro, contas ligadas e quotas avulsas."""
 
-import re
-import unicodedata
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Path, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from ...db.pool import fetch, fetch_one, tx
-from ...registry import MAX_ROWS, AthleteIn, MemberIn, grant_access, import_rows, save_athlete, save_member, validate_rows
+from ...registry import MAX_ROWS, AthleteIn, MemberIn, complete_pair, grant_access, import_rows, name_words, save_athlete, save_member, validate_rows
 from ..core import HttpError, actor, audit, camel, can, forbidden, not_found, pool, require
 
 Number = Annotated[str, Path(pattern=r"^\d{1,8}$")]
@@ -70,12 +68,6 @@ async def _member_detail(req: Request, number: str) -> dict[str, Any]:
         )
     ]
     return out
-
-
-def _words(name: str) -> list[str]:
-    """Nome → palavras sem acentos nem partículas (de, da, dos…), para comparar nomes."""
-    plain = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode().lower()
-    return [w for w in re.sub(r"[^a-z ]", " ", plain).split() if w not in {"de", "da", "do", "das", "dos", "e"}]
 
 
 def match_reason(member: list[str], athlete: list[str], *, guardian: bool) -> tuple[int, str] | None:
@@ -141,6 +133,9 @@ def register(r: APIRouter) -> None:
             if not await (await c.execute("select 1 from members where member_number = %s", [number])).fetchone():
                 raise not_found("Sócio")
             await save_member(c, actor(req), body.model_copy(update={"memberNumber": None}), number=number)
+            # Atletas ligados que são a mesma pessoa: completa o que falta numa ficha e na outra
+            for a in await (await c.execute("select id from athletes where member_number = %s", [number])).fetchall():
+                await complete_pair(c, actor(req), number, str(a["id"]))
         return await _member_detail(req, number)
 
     @r.get(
@@ -164,15 +159,15 @@ def register(r: APIRouter) -> None:
         )
         out: list[dict[str, Any]] = []
         if q and q.strip():
-            needle = _words(q)
+            needle = name_words(q)
             for a in rows:
-                words = _words(a["name"])
+                words = name_words(a["name"])
                 if needle and all(any(w.startswith(n) for w in words) for n in needle):
                     out.append({**camel(a), "score": 0, "reason": "Pesquisa"})
             return sorted(out, key=lambda x: x["name"])[:30]
-        mine = _words(m["name"])
+        mine = name_words(m["name"])
         for a in rows:
-            hit = match_reason(mine, _words(a["name"]), guardian=a["guardian"])
+            hit = match_reason(mine, name_words(a["name"]), guardian=a["guardian"])
             # Já ligado a outro sócio: só se mostra quando há forte indício (nome igual ou encarregado)
             if hit and (a["member_number"] is None or hit[0] >= 95):
                 out.append({**camel(a), "score": hit[0], "reason": hit[1]})
@@ -195,7 +190,8 @@ def register(r: APIRouter) -> None:
                 raise HttpError(409, "conflict", f"O atleta já está ligado ao sócio n.º {before}")
             await c.execute("update athletes set member_number = %s, updated_at = now() where id = %s", [number, id])
             await audit(c, actor(req), "athletes.link_member", "athletes", id, {"member": number, "before": before})
-        return await _member_detail(req, number)
+            completed = await complete_pair(c, actor(req), number, id)
+        return {**await _member_detail(req, number), "completed": completed}
 
     @r.delete("/members/{number}/athletes/{id}", tags=office, summary="Desliga o atleta deste sócio")
     async def unlink_athlete(req: Request, number: Number, id: AthleteId) -> dict[str, Any]:

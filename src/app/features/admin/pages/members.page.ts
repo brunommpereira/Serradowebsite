@@ -503,19 +503,30 @@ export class MembersPage {
 
   async link(d: MemberDetail, s: AthleteSuggestion) {
     if (s.memberNumber && !confirm(`${s.name} está ligado ao sócio n.º ${s.memberNumber}. Passar para o sócio n.º ${d.memberNumber}?`)) return;
-    await this.changeLink(d, () => this.api.linkAthlete(d.memberNumber, s.id, !!s.memberNumber), `${s.name} ligado ao sócio n.º ${d.memberNumber}.`);
+    let done = '';
+    await this.changeLink(
+      d,
+      async () => {
+        const out = await this.api.linkAthlete(d.memberNumber, s.id, !!s.memberNumber);
+        const c = out.completed;
+        if (c?.member.length) done += ` Completado na ficha do sócio: ${c.member.join(', ')}.`;
+        if (c?.athlete.length) done += ` Completado na ficha do atleta: ${c.athlete.join(', ')}.`;
+        return out;
+      },
+      () => `${s.name} ligado ao sócio n.º ${d.memberNumber}.${done}`,
+    );
   }
 
   async unlink(d: MemberDetail, id: string, name: string) {
     if (!confirm(`Desligar ${name} do sócio n.º ${d.memberNumber}?`)) return;
-    await this.changeLink(d, () => this.api.unlinkAthlete(d.memberNumber, id), `${name} desligado.`);
+    await this.changeLink(d, () => this.api.unlinkAthlete(d.memberNumber, id), () => `${name} desligado.`);
   }
 
-  private async changeLink(d: MemberDetail, call: () => Promise<MemberDetail>, ok: string) {
+  private async changeLink(d: MemberDetail, call: () => Promise<MemberDetail>, ok: () => string) {
     this.linkBusy.set(true);
     try {
       this.detail.set(await call());
-      this.message.set({ ok: true, text: ok });
+      this.message.set({ ok: true, text: ok() });
       this.reloads.update((n) => n + 1);
       await this.loadSuggestions(d, this.sq);
     } catch (e) {

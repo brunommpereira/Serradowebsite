@@ -6,8 +6,9 @@ from datetime import date
 
 
 def is_valid_nif(nif: str) -> bool:
-    """NIF português: 9 dígitos com dígito de controlo (módulo 11)."""
-    if not re.fullmatch(r"[1235689]\d{8}", nif):
+    """NIF português: 9 dígitos com dígito de controlo (módulo 11), com as mesmas regras do site."""
+    # Pessoas (1, 2, 3), empresas (5, 6, 8, 9) e não residentes / casos especiais (45, 70–79, 90–99), como no site
+    if not re.fullmatch(r"[1235689]\d{8}", nif) and not re.fullmatch(r"(45|70|71|72|74|75|77|79|90|91|98|99)\d{7}", nif):
         return False
     total = sum(int(d) * (9 - i) for i, d in enumerate(nif[:8]))
     check = 11 - (total % 11)
