@@ -526,3 +526,29 @@ async def test_educandos_ligados_ao_numero_de_socio_aparecem_na_area_de_atletas(
     assert mine == {me_ath["id"], kid1["id"], kid2["id"]}, "o outro adulto com o mesmo n.º não"
     linked = await fetch_one(mw.pool, "select u.email from members m join users u on u.id = m.user_id where m.member_number = %s", [n])
     assert linked == {"email": "pai.valente@exemplo.pt"}, "a ficha de sócio fica ligada à conta"
+
+
+async def test_mesma_pessoa_pelo_primeiro_e_ultimo_nome_completa_os_dados(mw):
+    sec = await mw.login(*SEC)
+    n = (await sec.post("/api/v1/admin/members", json={"name": "Carla Exemplo"})).json()["memberNumber"]
+    adult = (
+        await sec.post(
+            "/api/v1/admin/athletes",
+            json={
+                "name": "Carla Maria Sousa Exemplo",
+                "sport": "atletismo",
+                "birthDate": "1984-02-02",
+                "email": "carla.ex@exemplo.pt",
+                "phone": "913222333",
+            },
+        )
+    ).json()
+    kid = (await sec.post("/api/v1/admin/athletes", json={"name": "Carla Pequena Exemplo", "sport": "futsal", "birthDate": "2016-02-02"})).json()
+    r = (await sec.post(f"/api/v1/admin/members/{n}/athletes/{adult['id']}")).json()
+    assert set(r["completed"]["member"]) == {"Email", "Telemóvel", "Data de nascimento"}
+    assert (r["email"], r["phone"], r["birthDate"]) == ("carla.ex@exemplo.pt", "913222333", "1984-02-02")
+    # Menor com o mesmo primeiro e último nome: é filha, não copia nada
+    r2 = (await sec.post(f"/api/v1/admin/members/{n}/athletes/{kid['id']}")).json()
+    assert r2["completed"] == {"member": [], "athlete": []}
+    # Voltar a ligar o mesmo atleta ao mesmo sócio só volta a completar (não dá erro)
+    assert (await sec.post(f"/api/v1/admin/members/{n}/athletes/{adult['id']}")).status_code == 200

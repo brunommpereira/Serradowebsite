@@ -375,13 +375,31 @@ SHARED = {
 SENSITIVE_COLS = {"tax_number", "address", "postal_code"}
 
 
+def same_person(m_name: str, a_name: str, m_birth: Any, a_birth: Any) -> bool:
+    """Sócio e atleta são a mesma pessoa? Nome igual; ou o primeiro e o último nome iguais (ex.: «Bruno Pereira» e
+    «Bruno Miguel Silva Pereira") desde que as datas de nascimento não se contradigam e o atleta seja adulto."""
+    m, a = name_words(m_name), name_words(a_name)
+    if m and m == a:
+        return True
+    if len(m) < 2 or len(a) < 2 or (m[0], m[-1]) != (a[0], a[-1]):
+        return False
+    if m_birth and a_birth and str(m_birth)[:10] != str(a_birth)[:10]:
+        return False
+    if a_birth:
+        b = date.fromisoformat(str(a_birth)[:10])
+        t = date.today()
+        if t.year - b.year - ((t.month, t.day) < (b.month, b.day)) < 18:
+            return False  # um menor com o primeiro e último nome do sócio é, quase sempre, filho/a
+    return True
+
+
 async def complete_pair(c: Conn, who: Actor, number: str, athlete_id: str) -> dict[str, list[str]]:
-    """Sócio e atleta ligados com o mesmo nome são a mesma pessoa: o que falta numa ficha vem da outra.
+    """Sócio e atleta ligados que são a mesma pessoa (ver same_person): o que falta numa ficha vem da outra.
     Nunca substitui o que já está preenchido. Devolve os campos completados em cada ficha."""
     cols = ", ".join(SHARED)
     m = await (await c.execute(f"select name, {cols} from members where member_number = %s", [number])).fetchone()
     a = await (await c.execute(f"select name, {cols} from athletes where id = %s and member_number = %s", [athlete_id, number])).fetchone()
-    if not m or not a or name_words(m["name"]) != name_words(a["name"]):
+    if not m or not a or not same_person(m["name"], a["name"], m["birth_date"], a["birth_date"]):
         return {"member": [], "athlete": []}
     to_member = {k: a[k] for k in SHARED if not m[k] and a[k] and (k not in SENSITIVE_COLS or "athletes.sensitive" in who.permissions)}
     to_athlete = {k: m[k] for k in SHARED if not a[k] and m[k]}
@@ -422,7 +440,7 @@ async def claim_athletes(c: Conn, user_id: str) -> int:
     for a in rows:
         if not a["by_email"]:
             # Ligado ao n.º de sócio desta conta pela secretaria: menor → encarregado; adulto só se for a mesma pessoa
-            if a["adult"] and name_words(a["name"]) != name_words(a["member_name"] or ""):
+            if a["adult"] and not same_person(a["member_name"] or "", a["name"], None, None):
                 continue
         elif not a["adult"] and a["has_access"]:
             continue  # menor com encarregado: só a secretaria dá mais acessos

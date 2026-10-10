@@ -134,7 +134,10 @@ const EMPTY: Draft = { name: '', email: '', phone: '', taxNumber: '', birthDate:
             <li>
               <span>{{ a.name }} <span class="caption">{{ a.code }} · {{ a.sport }}{{ a.category ? ' · ' + a.category : '' }}</span></span>
               @if (canLink()) {
-                <button type="button" class="btn btn--outline btn--sm" [disabled]="linkBusy()" (click)="unlink(d, a.id, a.name)">Desligar</button>
+                <span class="sugg__actions">
+                  <button type="button" class="btn btn--outline btn--sm" [disabled]="linkBusy()" (click)="refresh(d, a.id, a.name)" title="Se for a mesma pessoa, completa os dados em falta nas duas fichas">Completar dados</button>
+                  <button type="button" class="btn btn--outline btn--sm" [disabled]="linkBusy()" (click)="unlink(d, a.id, a.name)">Desligar</button>
+                </span>
               }
             </li>
           } @empty {
@@ -578,6 +581,21 @@ export class MembersPage {
   protected countType(t: 'all' | 'same' | 'guardian') {
     const l = (this.suggestions() ?? []).filter((s) => s.type !== 'search');
     return t === 'all' ? l.length : l.filter((s) => s.type === t).length;
+  }
+
+  async refresh(d: MemberDetail, id: string, name: string) {
+    let done = '';
+    await this.changeLink(
+      d,
+      async () => {
+        const out = await this.api.linkAthlete(d.memberNumber, id);
+        const c = out.completed;
+        if (c?.member.length) done += ` Completado na ficha do sócio: ${c.member.join(', ')}.`;
+        if (c?.athlete.length) done += ` Completado na ficha do atleta: ${c.athlete.join(', ')}.`;
+        return out;
+      },
+      () => done.trim() || `${name}: nada a completar (já está tudo preenchido, ou não é a mesma pessoa).`,
+    );
   }
 
   async unlink(d: MemberDetail, id: string, name: string) {
