@@ -73,6 +73,14 @@ class FacebookConfig:
     tag: str
 
 
+@dataclass
+class XistarcaConfig:
+    """Conta Xistarca do clube para as inscrições no Troféu de Almada (serrado.xistarca). Só no servidor."""
+
+    email: str
+    password: str
+
+
 def _pairs(value: str) -> dict[str, int]:
     """«quota:12,futsal:34» → {"quota": 12, "futsal": 34} (ignora entradas mal formadas)."""
     out: dict[str, int] = {}
@@ -163,6 +171,7 @@ class Config:
     version: str
     oauth: OAuthConfig = field(repr=False)
     facebook: FacebookConfig = field(repr=False)
+    xistarca: XistarcaConfig = field(repr=False)
     payments: PaymentsConfig = field(repr=False)
     mail: MailConfig = field(repr=False)
 
@@ -194,6 +203,11 @@ config = Config(
         graph_version=env.get("FACEBOOK_GRAPH_VERSION", "v25.0"),
         mode="draft" if env.get("FACEBOOK_SYNC_MODE") == "draft" else "publish",
         tag=env.get("FACEBOOK_SYNC_TAG", "").strip().lstrip("#").lower(),
+    ),
+    xistarca=XistarcaConfig(
+        email=env.get("XISTARCA_EMAIL", "").strip(),
+        # Em base64 no serrado.env (a password pode ter « $ " ' \\ # »)
+        password=base64.b64decode(env["XISTARCA_PASSWORD_B64"]).decode() if env.get("XISTARCA_PASSWORD_B64") else "",
     ),
     payments=PaymentsConfig(
         stripe_secret_key=env.get("STRIPE_SECRET_KEY", ""),

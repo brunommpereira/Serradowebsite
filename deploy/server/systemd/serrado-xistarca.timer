@@ -1,0 +1,10 @@
+[Unit]
+Description=Serrado FC — envia à Xistarca os pedidos de inscrição no Troféu (de 10 em 10 minutos)
+
+[Timer]
+OnBootSec=6min
+OnUnitActiveSec=10min
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

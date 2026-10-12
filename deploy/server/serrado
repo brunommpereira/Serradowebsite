@@ -16,6 +16,10 @@
 #   serrado facebook                  liga a página de Facebook (publicações → notícias, eventos → eventos)
 #   serrado facebook off              desliga
 #   serrado facebook-sync             sincroniza agora
+#   serrado xistarca                  conta Xistarca do clube (inscrições no Troféu de Almada)
+#   serrado xistarca off              desliga
+#   serrado xistarca-run              envia agora os pedidos de inscrição em fila
+#   serrado xistarca-discover [url]   mostra os campos do formulário da Xistarca (sem dados pessoais)
 #   serrado payments                  liga os pagamentos online (Stripe) e as faturas-recibo (Moloni ON)
 #   serrado payments off              desliga
 #   serrado moloni-info               empresas, séries, artigos e métodos de pagamento do Moloni (para configurar)
@@ -276,6 +280,31 @@ cmd_facebook_sync() {
   (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.facebook sync)
 }
 
+xis_py() { (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.xistarca "$@"); }
+
+cmd_xistarca() {
+  if [ "${1:-}" = off ]; then
+    sed -i '/^XISTARCA_/d' "$ETC/serrado.env"
+    $SYSTEMCTL disable --now serrado-xistarca.timer 2>/dev/null || true
+    $SYSTEMCTL restart serrado-backend
+    echo '✔ Inscrições na Xistarca desligadas (os pedidos ficam em fila no site)'
+    return
+  fi
+  local email pass
+  echo 'Conta Xistarca do CLUBE (não uses uma conta pessoal): é com ela que ficam feitas as inscrições.'
+  read -rp 'Email da conta Xistarca: ' email
+  read -rsp 'Password (não aparece no ecrã): ' pass; echo
+  [[ $email =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]] || die 'Email inválido'
+  [ -n "$pass" ] || die 'Password vazia'
+  set_env XISTARCA_EMAIL "$email"
+  set_env XISTARCA_PASSWORD_B64 "$(printf '%s' "$pass" | base64 -w0)"
+  unset pass
+  xis_py check || die 'A Xistarca recusou o login (confirma o email e a password em checkout.xistarca.pt).'
+  $SYSTEMCTL restart serrado-backend
+  $SYSTEMCTL enable --now serrado-xistarca.timer
+  echo '✔ Conta Xistarca configurada. No backoffice → Inscrições no Troféu cria a edição (modo de teste primeiro).'
+}
+
 pay_py() { (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.payments "$@"); }
 
 cmd_payments() {
@@ -404,15 +433,18 @@ case "${1:-}" in
   status) cmd_status ;;
   admin) shift; [ $# -eq 2 ] || die 'Uso: serrado admin <email> "<nome>"'; (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.db.create_admin "$1" "$2") ;;
   content) (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.db.content) ;;
-  logs) journalctl -u serrado-middleware -u serrado-backend -u serrado-facebook -u serrado-receipts -u serrado-fees -u serrado-mail -u caddy -n "${2:-100}" --no-pager ;;
+  logs) journalctl -u serrado-middleware -u serrado-backend -u serrado-facebook -u serrado-xistarca -u serrado-receipts -u serrado-fees -u serrado-mail -u caddy -n "${2:-100}" --no-pager ;;
   cf-ips) cmd_cf_ips ;;
   oauth) shift; cmd_oauth "$@" ;;
   facebook) shift; cmd_facebook "$@" ;;
   facebook-sync) cmd_facebook_sync ;;
+  xistarca) shift; cmd_xistarca "$@" ;;
+  xistarca-run) xis_py run ;;
+  xistarca-discover) shift; [[ -z ${1:-} || $1 =~ ^https://checkout\.xistarca\.pt/evento/[A-Za-z0-9._~%-]+$ ]] || die 'Endereço inválido'; xis_py discover "$@" ;;
   payments) shift; cmd_payments "$@" ;;
   moloni-info) pay_py moloni-info ;;
   receipts) pay_py receipts ;;
   fees) shift; [[ -z ${1:-} || $1 =~ ^[0-9]{4}-(0[1-9]|1[0-2])$ ]] || die 'Uso: serrado fees [AAAA-MM]'; pay_py generate-fees "$@" ;;
   email) shift; cmd_email "$@" ;;
-  *) sed -n '2,28p' "$0"; exit 1 ;;
+  *) sed -n '2,32p' "$0"; exit 1 ;;
 esac
