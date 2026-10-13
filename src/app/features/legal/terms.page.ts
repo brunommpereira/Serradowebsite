@@ -44,6 +44,14 @@ import { RAL, COMPLAINTS_URL } from './legal-info';
           <dd>{{ club.name }} (associação sem fins lucrativos)</dd>
           <dt>NIF / NIPC</dt>
           <dd>{{ club.nipc }}</dd>
+          @if (club.cae) {
+            <dt>CAE</dt>
+            <dd>{{ club.cae }}</dd>
+          }
+          @if (club.regulator) {
+            <dt>Entidade reguladora/fiscalizadora</dt>
+            <dd>{{ club.regulator }}</dd>
+          }
           <dt>Sede (morada física)</dt>
           <dd>{{ club.address }}, {{ club.postalCode }} {{ club.locality }}, Portugal</dd>
           @if (club.phone) {
@@ -278,6 +286,9 @@ import { RAL, COMPLAINTS_URL } from './legal-info';
           eletrónico, em
           <a [href]="complaintsUrl" target="_blank" rel="noopener">www.livroreclamacoes.pt</a>.
         </p>
+        @if (club.regulator) {
+          <p>Entidade competente para as reclamações: {{ club.regulator }}.</p>
+        }
         <p>
           <a class="lr-badge" [href]="complaintsUrl" target="_blank" rel="noopener"
             >Livro de Reclamações<span class="visually-hidden"> (abre numa nova janela)</span></a

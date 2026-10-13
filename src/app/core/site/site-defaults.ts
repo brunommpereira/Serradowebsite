@@ -47,6 +47,8 @@ export const SITE_DEFAULTS: SiteData = {
     phone2: '',
     email: DATA.CLUB.email,
     nipc: DATA.CLUB.nipc,
+    cae: '93120 – Atividades dos clubes desportivos',
+    regulator: 'ASAE – Autoridade de Segurança Alimentar e Económica',
     hours: DATA.CLUB.hours,
     facebook: DATA.CLUB.social.facebook,
     instagram: DATA.CLUB.social.instagram,

@@ -93,7 +93,7 @@ import { COMPLAINTS_URL, RAL } from '../../features/legal/legal-info';
       </div>
       <div class="container footer__bottom">
         <p class="footer__ident">
-          © {{ year }} {{ club.name }} · NIF {{ club.nipc }} · {{ club.address }}, {{ club.postalCode }} {{ club.locality }} ·
+          © {{ year }} {{ club.name }} · NIF {{ club.nipc }}{{ club.cae ? ' · CAE ' + club.cae.split(' ')[0] : '' }} · {{ club.address }}, {{ club.postalCode }} {{ club.locality }} ·
           @if (club.phone) {
             <a [href]="'tel:' + tel(club.phone)">{{ club.phone }}</a> ·
           }

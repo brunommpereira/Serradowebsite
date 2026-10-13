@@ -38,6 +38,8 @@ export interface ClubInfo {
   phone2: string;
   email: string;
   nipc: string;
+  cae: string;
+  regulator: string;
   hours: { days: string; time: string }[];
   social: { facebook: string; instagram: string; youtube: string };
   map: { lat: number; lng: number };
@@ -74,6 +76,8 @@ export class ContentService {
       phone2: c.phone2,
       email: c.email,
       nipc: c.nipc,
+      cae: c.cae,
+      regulator: c.regulator,
       hours: c.hours,
       social: { facebook: c.facebook, instagram: c.instagram, youtube: c.youtube },
       map: { lat: Number(c.mapLat), lng: Number(c.mapLng) },

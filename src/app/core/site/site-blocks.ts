@@ -209,6 +209,8 @@ export const BLOCKS: BlockDef[] = [
       { key: 'name', label: 'Nome oficial', kind: 'text', required: true, max: 120 },
       { key: 'shortName', label: 'Nome curto', kind: 'text', required: true, max: 40 },
       { key: 'nipc', label: 'NIPC', kind: 'text', max: 20 },
+      { key: 'cae', label: 'CAE (código de atividade económica)', kind: 'text', max: 160, hint: 'Como aparece nas Finanças (dados cadastrais). Separe vários com «;».' },
+      { key: 'regulator', label: 'Entidade reguladora/fiscalizadora', kind: 'text', max: 160, hint: 'A indicada no registo do Livro de Reclamações (normalmente a ASAE).' },
     ],
   },
   {
