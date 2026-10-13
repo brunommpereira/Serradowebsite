@@ -135,3 +135,22 @@
   align-items: center;
   gap: 0.3rem;
 }
+.footer__bottom {
+  flex-direction: column;
+  a {
+    color: inherit;
+  }
+}
+.footer__ident a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.footer__lr {
+  padding: 0.1rem 0.6rem;
+  border: 1.5px solid currentColor;
+  border-radius: 4px;
+  font-weight: 700;
+}
+.footer__ral {
+  opacity: 0.8;
+}

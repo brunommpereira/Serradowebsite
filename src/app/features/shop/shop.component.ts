@@ -21,6 +21,10 @@ import { IconComponent } from '../../shared/icon.component';
             <span>{{ notice }} <a routerLink="/contactos" [queryParams]="{ assunto: 'Encomendas' }">Fazer uma encomenda</a>.</span>
           </p>
         }
+        <p class="caption shop__terms">
+          Preços com impostos incluídos. Levantamento na sede ou envio para Portugal (continente e ilhas); prazos, custos de envio e direito de
+          livre resolução nos <a routerLink="/termos-e-condicoes" fragment="entregas">Termos e Condições</a>.
+        </p>
         <ul class="products">
           @for (p of products; track p.id) {
             <li class="card">
@@ -56,6 +60,7 @@ import { IconComponent } from '../../shared/icon.component';
   `,
   styles: `
     .alert { margin-bottom: 2rem; }
+    .shop__terms { margin: 0 0 1.2rem; }
     .products { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.2rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); li { display: grid; gap: 0.5rem; justify-items: start; } h2 { text-transform: none; margin: 0; } p { margin: 0; } }
     .products__img { width: 100%; aspect-ratio: 1; border-radius: var(--radius-s); img { width: 80px; } }
     .products__photo { display: block; object-fit: cover; }

@@ -9,19 +9,15 @@ interface LegalPage {
   sections: { h: string; p: string[] }[];
 }
 
-/**
- * Políticas RGPD (secção 37). Texto-base a validar juridicamente pelo clube
- * antes da publicação.
- */
+/** Política de Privacidade e Política de Cookies (RGPD). Os dados do clube vêm de Conteúdos do site → Contactos. */
 @Component({
   selector: 'sfc-legal',
   imports: [PageHeroComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <sfc-page-hero eyebrow="RGPD" [title]="doc().title" [crumbs]="[{ label: doc().title }]" />
+    <sfc-page-hero eyebrow="Informação legal" [title]="doc().title" [crumbs]="[{ label: doc().title }]" />
     <section class="section">
       <div class="container prose">
-        <p class="alert alert--warning">Texto-base para validação jurídica pela Direção antes da publicação.</p>
         <p class="caption">Última atualização: {{ doc().updated }}</p>
         @for (s of doc().sections; track s.h) {
           <h2 class="h-s">{{ s.h }}</h2>
@@ -55,13 +51,19 @@ export class LegalComponent {
   private privacy(): LegalPage {
     return {
       title: 'Política de Privacidade',
-      updated: '08/10/2026',
+      updated: '13/10/2026',
       sections: [
-        { h: '1. Responsável pelo tratamento', p: [`${this.club.name}, NIPC ${this.club.nipc}, com sede no ${this.club.address}, ${this.club.postalCode} ${this.club.locality}. Contacto: ${this.club.email}.`] },
+        {
+          h: '1. Responsável pelo tratamento',
+          p: [
+            `${this.club.name}, NIF/NIPC ${this.club.nipc}, com sede em ${this.club.address}, ${this.club.postalCode} ${this.club.locality}. Contactos: ${this.club.email} · ${this.club.phone}.`,
+            'Para qualquer questão sobre dados pessoais ou para exercer os seus direitos, escreva para o email acima com o assunto «Dados pessoais».',
+          ],
+        },
         { h: '2. Dados tratados', p: ['Identificação (nome, data de nascimento, NIF, documento de identificação), contactos, morada, dados de sócio e de pagamento de quotas, inscrições em modalidades e eventos e, quando autorizado, imagem.'] },
         { h: '3. Finalidades e fundamentos', p: ['Gestão da relação associativa e de quotas (execução de contrato), inscrições desportivas e em eventos, cumprimento de obrigações legais e fiscais, e envio de comunicações quando consentido.'] },
         { h: '4. Conservação', p: ['Os dados são conservados durante a relação com o clube e pelos prazos legais aplicáveis (por exemplo, obrigações fiscais), sendo depois eliminados ou anonimizados.'] },
-        { h: '5. Os seus direitos', p: ['Acesso, retificação, apagamento (quando aplicável), limitação, portabilidade (exportação de dados), oposição e retirada do consentimento a qualquer momento. Pode exercê-los através do email do clube ou na Área de Sócio, e apresentar reclamação à CNPD.'] },
+        { h: '5. Os seus direitos', p: ['Acesso, retificação, apagamento (quando aplicável), limitação, portabilidade (exportação de dados), oposição e retirada do consentimento a qualquer momento. Pode exercê-los através do email do clube ou na Área de Sócio, sem custos, e respondemos no prazo de um mês. Tem ainda o direito de apresentar reclamação à Comissão Nacional de Proteção de Dados (CNPD, www.cnpd.pt).'] },
         { h: '6. Segurança', p: ['Ligações cifradas (HTTPS), controlo de acessos por perfis, autenticação forte para administradores, registos de auditoria e cópias de segurança.'] },
         {
           h: '7. Entrar com Google ou Microsoft',
@@ -77,9 +79,9 @@ export class LegalComponent {
         },
         { h: '9. Menores', p: ['O tratamento de dados de menores de 13 anos requer o consentimento do titular das responsabilidades parentais.'] },
         {
-          h: '10. Registo online e assinatura',
+          h: '10. Propostas online e aceitação',
           p: [
-            'Quando te inscreves no site como sócio ou atleta, guardamos, como prova da aceitação: os dados do formulário, a versão exata dos documentos aceites, a imagem da assinatura desenhada, a data e hora, o endereço IP e a identificação do navegador. Com estes elementos geramos um documento PDF, que te enviamos por email e que fica guardado pelo clube enquanto durar a inscrição e pelos prazos legais.',
+            'Quando envia uma proposta de sócio ou de atleta pelo site, guardamos, como prova da aceitação: os dados do formulário, a versão exata dos documentos aceites, a declaração de aceitação, a confirmação feita pela ligação enviada para o seu email, a data e hora, o endereço IP e a identificação do navegador. Com estes elementos geramos um documento PDF, que lhe enviamos por email e que fica guardado pelo clube enquanto durar a inscrição e pelos prazos legais.',
             'A autorização de imagem é facultativa e pode ser retirada a qualquer momento junto da secretaria.',
           ],
         },
@@ -90,6 +92,18 @@ export class LegalComponent {
             'Na equipa do clube, cada pessoa só acede ao que a sua função exige (por exemplo, só a secretaria vê os dados de identificação dos atletas). Todos os acessos de gestão ficam registados.',
           ],
         },
+        {
+          h: '12. Inscrições em provas de terceiros',
+          p: [
+            'Quando o atleta ou o encarregado de educação pede, na Área de Atletas, a inscrição numa prova organizada por terceiros (por exemplo, o Troféu de Almada, gerido pela Xistarca), o clube envia a essa entidade os dados necessários à inscrição: nome, data de nascimento, género, n.º do documento de identificação, telefone, email, localidade e contacto de emergência. O envio só é feito com a autorização dada no pedido. A entidade organizadora trata depois esses dados como responsável, de acordo com a sua política de privacidade.',
+          ],
+        },
+        {
+          h: '13. Redes sociais',
+          p: [
+            'O site mostra publicações, eventos, reels e histórias da página pública de Facebook do clube. O vídeo do Facebook só é carregado quando carrega em reproduzir; a partir desse momento aplica-se a política de privacidade da Meta.',
+          ],
+        },
       ],
     };
   }
@@ -97,11 +111,17 @@ export class LegalComponent {
   private cookies(): LegalPage {
     return {
       title: 'Política de Cookies',
-      updated: '06/10/2026',
+      updated: '13/10/2026',
       sections: [
         { h: '1. O que são cookies', p: ['Pequenos ficheiros guardados no seu dispositivo que permitem ao site funcionar e lembrar preferências.'] },
-        { h: '2. Cookies que utilizamos', p: ['Essenciais: necessários ao funcionamento do site e da Área de Sócio (sessão). Analíticos (apenas com consentimento): medição de audiências para melhorar o site.'] },
-        { h: '3. Gestão', p: ['Pode aceitar ou recusar cookies não essenciais e alterar a sua escolha a qualquer momento nas definições do browser.'] },
+        {
+          h: '2. Cookies que utilizamos',
+          p: [
+            'Apenas cookies essenciais: o cookie de sessão, criado quando entra na Área de Sócio, na Área de Atletas ou no backoffice, que expira ao fim de algumas horas ou quando sai. Não usamos cookies de publicidade nem de medição de audiências, por isso não pedimos consentimento.',
+            'O leitor de vídeo do Facebook só é carregado quando carrega em reproduzir um reel; a partir daí a Meta pode usar os seus próprios cookies, de acordo com a política dela.',
+          ],
+        },
+        { h: '3. Gestão', p: ['Pode apagar ou bloquear cookies nas definições do navegador. Se bloquear o cookie de sessão, não consegue entrar nas áreas reservadas.'] },
       ],
     };
   }

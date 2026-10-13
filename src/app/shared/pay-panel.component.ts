@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Charges, PaymentsService, PayItem } from '../core/services/payments.service';
 import { isValidNif } from '../core/validators';
 import { IconComponent } from './icon.component';
@@ -17,7 +17,7 @@ const STATUS_LABEL: Record<string, string> = { open: 'A aguardar pagamento', pai
  */
 @Component({
   selector: 'sfc-pay-panel',
-  imports: [CurrencyPipe, DatePipe, IconComponent, OfflineNoticeComponent],
+  imports: [CurrencyPipe, DatePipe, RouterLink, IconComponent, OfflineNoticeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (result() === 'ok') {
@@ -69,6 +69,7 @@ const STATUS_LABEL: Record<string, string> = { open: 'A aguardar pagamento', pai
             {{ busy() ? 'A abrir o pagamento…' : 'Pagar ' + (total() | currency: 'EUR') }}
           </button>
           <p class="caption pay__methods"><sfc-icon name="shield" size="14" /> Pagamento seguro no Stripe: cartão, MB WAY ou Multibanco.</p>
+          <p class="caption">Ao pagar, aceitas os <a routerLink="/termos-e-condicoes">Termos e Condições</a> (incluindo o <a routerLink="/termos-e-condicoes" fragment="livre-resolucao">direito de livre resolução</a>).</p>
         </form>
       } @else {
         <p class="alert alert--success pay__none"><sfc-icon name="check" size="18" /><span>Não há nada por pagar.</span></p>
