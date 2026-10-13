@@ -84,7 +84,9 @@ import { COMPLAINTS_URL, RAL } from '../../features/legal/legal-info';
         <address>
           <p class="footer__title">Contactos</p>
           <span>{{ club.address }}<br />{{ club.postalCode }} {{ club.locality }}</span>
-          <a [href]="'tel:' + tel(club.phone)">{{ club.phone }}</a>
+          @if (club.phone) {
+            <a [href]="'tel:' + tel(club.phone)">{{ club.phone }}</a>
+          }
           <a [href]="'mailto:' + club.email">{{ club.email }}</a>
           <a routerLink="/contactos" class="footer__more">Horários e mapa →</a>
         </address>
@@ -92,7 +94,10 @@ import { COMPLAINTS_URL, RAL } from '../../features/legal/legal-info';
       <div class="container footer__bottom">
         <p class="footer__ident">
           © {{ year }} {{ club.name }} · NIF {{ club.nipc }} · {{ club.address }}, {{ club.postalCode }} {{ club.locality }} ·
-          <a [href]="'tel:' + tel(club.phone)">{{ club.phone }}</a> · <a [href]="'mailto:' + club.email">{{ club.email }}</a>
+          @if (club.phone) {
+            <a [href]="'tel:' + tel(club.phone)">{{ club.phone }}</a> ·
+          }
+          <a [href]="'mailto:' + club.email">{{ club.email }}</a>
         </p>
         <p class="footer__legal">
           <a routerLink="/termos-e-condicoes">Termos e Condições</a>

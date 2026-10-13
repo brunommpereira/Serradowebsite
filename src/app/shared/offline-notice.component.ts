@@ -19,7 +19,9 @@ import { IconComponent } from './icon.component';
         <p>{{ text() }}</p>
         <p>
           <a [href]="'mailto:' + club.email">{{ club.email }}</a> ·
-          <a [href]="'tel:' + tel">{{ club.phone }}</a> ·
+          @if (club.phone) {
+            <a [href]="'tel:' + tel">{{ club.phone }}</a> ·
+          }
           <a routerLink="/contactos">Contactos e horários</a>
         </p>
       </div>

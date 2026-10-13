@@ -56,7 +56,7 @@ export class LegalComponent {
         {
           h: '1. Responsável pelo tratamento',
           p: [
-            `${this.club.name}, NIF/NIPC ${this.club.nipc}, com sede em ${this.club.address}, ${this.club.postalCode} ${this.club.locality}. Contactos: ${this.club.email} · ${this.club.phone}.`,
+            `${this.club.name}, NIF/NIPC ${this.club.nipc}, com sede em ${this.club.address}, ${this.club.postalCode} ${this.club.locality}. Contacto: ${this.club.email}${this.club.phone ? ' · ' + this.club.phone : ''}.`,
             'Para qualquer questão sobre dados pessoais ou para exercer os seus direitos, escreva para o email acima com o assunto «Dados pessoais».',
           ],
         },

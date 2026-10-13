@@ -21,14 +21,16 @@ const SUBJECTS = ['Informações gerais', 'Inscrição numa modalidade', 'Ser s�
         <div class="stack">
           <ul class="info">
             <li><sfc-icon name="pin" /><span><strong>Morada</strong>{{ club.name }}<br />{{ club.address }}<br />{{ club.postalCode }} {{ club.locality }}</span></li>
-            <li>
-              <sfc-icon name="phone" /><span
-                ><strong>Telefone</strong><a [href]="'tel:' + tel(club.phone)">{{ club.phone }}</a>
-                @if (club.phone2) {
-                  <br /><a [href]="'tel:' + tel(club.phone2)">{{ club.phone2 }}</a>
-                }
-              </span>
-            </li>
+            @if (club.phone || club.phone2) {
+              <li>
+                <sfc-icon name="phone" /><span
+                  ><strong>Telefone</strong><a [href]="'tel:' + tel(club.phone)">{{ club.phone }}</a>
+                  @if (club.phone2) {
+                    <br /><a [href]="'tel:' + tel(club.phone2)">{{ club.phone2 }}</a>
+                  }
+                </span>
+              </li>
+            }
             <li><sfc-icon name="mail" /><span><strong>Email</strong><a [href]="'mailto:' + club.email">{{ club.email }}</a></span></li>
             <li><sfc-icon name="file" /><span><strong>Identificação fiscal</strong>{{ club.name }} · NIF {{ club.nipc }}<br /><a routerLink="/termos-e-condicoes">Termos e Condições</a> · <a [href]="complaintsUrl" target="_blank" rel="noopener">Livro de Reclamações</a></span></li>
           </ul>

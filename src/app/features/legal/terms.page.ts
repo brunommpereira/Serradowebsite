@@ -46,10 +46,12 @@ import { RAL, COMPLAINTS_URL } from './legal-info';
           <dd>{{ club.nipc }}</dd>
           <dt>Sede (morada física)</dt>
           <dd>{{ club.address }}, {{ club.postalCode }} {{ club.locality }}, Portugal</dd>
-          <dt>Telefone</dt>
-          <dd>
-            <a [href]="'tel:' + tel(club.phone)">{{ club.phone }}</a> ({{ callCost(club.phone) }})
-          </dd>
+          @if (club.phone) {
+            <dt>Telefone</dt>
+            <dd>
+              <a [href]="'tel:' + tel(club.phone)">{{ club.phone }}</a> ({{ callCost(club.phone) }})
+            </dd>
+          }
           <dt>Email</dt>
           <dd>
             <a [href]="'mailto:' + club.email">{{ club.email }}</a>

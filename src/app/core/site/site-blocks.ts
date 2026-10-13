@@ -177,7 +177,7 @@ export const BLOCKS: BlockDef[] = [
     icon: 'phone',
     publicPath: '/contactos',
     fields: [
-      { key: 'phone', label: 'Telefone', kind: 'text', required: true, max: 40 },
+      { key: 'phone', label: 'Telefone (opcional)', kind: 'text', max: 40 },
       { key: 'phone2', label: 'Outro telefone (opcional)', kind: 'text', max: 40 },
       { key: 'email', label: 'Email', kind: 'email', required: true, max: 120 },
       { key: 'address', label: 'Morada', kind: 'text', required: true, max: 160 },
