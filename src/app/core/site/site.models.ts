@@ -67,6 +67,10 @@ export interface ContactsBlock {
   phone2: string;
   email: string;
   nipc: string;
+  /** Código de Atividade Económica (Finanças), ex.: 93120 */
+  cae: string;
+  /** Entidade reguladora/fiscalizadora (Livro de Reclamações) */
+  regulator: string;
   hours: { days: string; time: string }[];
   facebook: string;
   instagram: string;

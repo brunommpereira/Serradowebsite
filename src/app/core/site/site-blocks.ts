@@ -177,7 +177,7 @@ export const BLOCKS: BlockDef[] = [
     icon: 'phone',
     publicPath: '/contactos',
     fields: [
-      { key: 'phone', label: 'Telefone', kind: 'text', required: true, max: 40 },
+      { key: 'phone', label: 'Telefone (opcional)', kind: 'text', max: 40 },
       { key: 'phone2', label: 'Outro telefone (opcional)', kind: 'text', max: 40 },
       { key: 'email', label: 'Email', kind: 'email', required: true, max: 120 },
       { key: 'address', label: 'Morada', kind: 'text', required: true, max: 160 },
@@ -209,6 +209,8 @@ export const BLOCKS: BlockDef[] = [
       { key: 'name', label: 'Nome oficial', kind: 'text', required: true, max: 120 },
       { key: 'shortName', label: 'Nome curto', kind: 'text', required: true, max: 40 },
       { key: 'nipc', label: 'NIPC', kind: 'text', max: 20 },
+      { key: 'cae', label: 'CAE (código de atividade económica)', kind: 'text', max: 160, hint: 'Como aparece nas Finanças (dados cadastrais). Separe vários com «;».' },
+      { key: 'regulator', label: 'Entidade reguladora/fiscalizadora', kind: 'text', max: 160, hint: 'A indicada no registo do Livro de Reclamações (normalmente a ASAE).' },
     ],
   },
   {

@@ -326,6 +326,31 @@ Se a VPS já tinha sido instalada antes desta versão, corre outra vez o `bootst
 - usa como remetente uma caixa real, que receba respostas (não `nao-responder@`);
 - se continuar, a alternativa é a Brevo (`sudo serrado email brevo`), com melhor reputação de envio. Se falhar com «recusou o utilizador ou a password», confirma o utilizador (endereço completo) e corre outra vez `sudo serrado email smtp`.
 
+## 5f. Inscrições no Troféu de Almada (Xistarca)
+
+Na área do atleta (separador **Competições**) aparece a edição do Troféu com as provas e o botão
+**Inscrever no Troféu**. O atleta ou o encarregado autoriza o envio dos dados e o servidor faz a inscrição
+na Xistarca com a **conta Xistarca do clube**, pelos mesmos pedidos que a página do checkout faz
+(a Xistarca não tem API pública). Uma inscrição na 1.ª prova vale para todas as provas da época. A inscrição
+é gratuita: se o checkout pedir um valor acima de 0 €, o servidor para e o pedido fica em erro.
+
+1. Cria (ou usa) uma conta em checkout.xistarca.pt **do clube** (não uma conta pessoal) e muda a password
+   se ela alguma vez foi escrita num script ou num email.
+2. Na VPS: `sudo serrado xistarca` (pede o email e a password, que não aparecem no ecrã nem nos registos;
+   fica em `/etc/serrado/serrado.env` em base64). Faz login de teste e liga o envio de 10 em 10 minutos.
+3. Backoffice → **Inscrições no Troféu** → **Nova edição**: época, endereço do evento da 1.ª prova
+   (`https://checkout.xistarca.pt/evento/...`), datas em que o botão aparece no site e **modo de teste**.
+   Em **Provas** acrescenta o calendário. **Testar ligação** mostra se as inscrições estão abertas e as
+   modalidades do evento (se houver mais de uma, indica o id da modalidade certa).
+4. Em modo de teste os pedidos são validados na Xistarca (ficam «Validado (teste)») mas não são submetidos.
+   Quando estiver tudo bem, muda a edição para **modo real**: os validados e os novos pedidos são inscritos.
+5. Se a Xistarca mudar a página e algo falhar, `sudo serrado xistarca-discover <url do evento>` lista os
+   campos do formulário (nomes e tipos, sem dados pessoais): envia esse resultado para se ajustar o código.
+
+Quem já tem conta Xistarca (pelo email da ficha) é importado com os dados dessa conta; os outros são
+preenchidos com os dados da ficha (nome, data de nascimento, género, CC, telefone, localidade e contacto
+de emergência), equipa «Serrado FC» e o clube «Serrado FC / Outdoor Training Camp» na lista de Almada.
+
 ## 6. Cópias de segurança
 
 | | Onde | Quando | Quanto tempo |
@@ -367,6 +392,7 @@ sudo serrado offsite-latest /root/recuperar                  # descarrega a últ
 | `sudo serrado payments` / `receipts` / `fees AAAA-MM` / `moloni-info` | Pagamentos online e faturas-recibo |
 | `sudo serrado email [smtp\|brevo]` / `email test <endereço>` / `email log` / `email off` | Emails do site (caixa do domínio ou Brevo): passwords, convites, fichas assinadas |
 | `sudo serrado facebook` / `facebook-sync` / `facebook off` | Ligar, sincronizar agora ou desligar a página de Facebook |
+| `sudo serrado xistarca` / `xistarca-run` / `xistarca-discover [url]` / `xistarca off` | Inscrições no Troféu de Almada pela Xistarca |
 | `sudo serrado oauth google` / `microsoft` | Ativar a entrada com Google ou Microsoft (`… off` para desativar) |
 
 Para mudar o domínio ou passar a usar a Cloudflare, volta a correr o `bootstrap.sh` com as novas opções. Os dados e os segredos mantêm-se.

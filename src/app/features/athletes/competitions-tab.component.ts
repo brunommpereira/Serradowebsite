@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { AthleteAreaService, formatClock, paceSecPerKm, timeToSeconds } from '../../core/services/athlete-area.service';
 import { Athlete } from '../../core/data/athletes-data';
 import { IconComponent } from '../../shared/icon.component';
+import { TrophySignupComponent } from './trophy-signup.component';
 
 /** «2025/2026» → «25/26» */
 const shortSeason = (s: string) => `${s.slice(2, 4)}/${s.slice(7, 9)}`;
@@ -11,7 +12,7 @@ const shortSeason = (s: string) => `${s.slice(2, 4)}/${s.slice(7, 9)}`;
 /** Separador «Competições»: resultados no Troféu Almada em Atletismo e evolução entre épocas. */
 @Component({
   selector: 'sfc-competitions-tab',
-  imports: [DatePipe, RouterLink, IconComponent],
+  imports: [DatePipe, RouterLink, IconComponent, TrophySignupComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './competitions-tab.component.html',
   styleUrl: './competitions-tab.component.scss',

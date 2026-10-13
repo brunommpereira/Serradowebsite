@@ -203,7 +203,7 @@
   <div class="container contact-cta">
     <div>
       <h2>Fala connosco</h2>
-      <p>{{ club.address }}, {{ club.postalCode }} {{ club.locality }} · {{ club.phone }} · {{ club.email }}</p>
+      <p>{{ club.address }}, {{ club.postalCode }} {{ club.locality }} · {{ club.phone ? club.phone + ' · ' : '' }}{{ club.email }}</p>
     </div>
     <a class="btn btn--accent" routerLink="/contactos">Contactos e horários</a>
   </div>

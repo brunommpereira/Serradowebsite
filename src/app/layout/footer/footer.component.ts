@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../../shared/icon.component';
 import { ContentService, tel } from '../../core/services/content.service';
 import { ApiClient } from '../../core/api/api-client';
+import { COMPLAINTS_URL, RAL } from '../../features/legal/legal-info';
 
 @Component({
   selector: 'sfc-footer',
@@ -83,17 +84,33 @@ import { ApiClient } from '../../core/api/api-client';
         <address>
           <p class="footer__title">Contactos</p>
           <span>{{ club.address }}<br />{{ club.postalCode }} {{ club.locality }}</span>
-          <a [href]="'tel:' + tel(club.phone)">{{ club.phone }}</a>
+          @if (club.phone) {
+            <a [href]="'tel:' + tel(club.phone)">{{ club.phone }}</a>
+          }
           <a [href]="'mailto:' + club.email">{{ club.email }}</a>
           <a routerLink="/contactos" class="footer__more">Horários e mapa →</a>
         </address>
       </div>
       <div class="container footer__bottom">
-        <p>© {{ year }} {{ club.name }} · Fundado a 29.04.1978 · NIPC {{ club.nipc }}</p>
+        <p class="footer__ident">
+          © {{ year }} {{ club.name }} · NIF {{ club.nipc }}{{ club.cae ? ' · CAE ' + club.cae.split(' ')[0] : '' }} · {{ club.address }}, {{ club.postalCode }} {{ club.locality }} ·
+          @if (club.phone) {
+            <a [href]="'tel:' + tel(club.phone)">{{ club.phone }}</a> ·
+          }
+          <a [href]="'mailto:' + club.email">{{ club.email }}</a>
+        </p>
         <p class="footer__legal">
+          <a routerLink="/termos-e-condicoes">Termos e Condições</a>
+          <a routerLink="/termos-e-condicoes" fragment="entregas">Entregas</a>
+          <a routerLink="/termos-e-condicoes" fragment="livre-resolucao">Livre resolução</a>
+          <a routerLink="/termos-e-condicoes" fragment="litigios">Resolução de litígios (RAL)</a>
           <a routerLink="/privacidade">Política de Privacidade</a>
           <a routerLink="/cookies">Política de Cookies</a>
-          <a routerLink="/contactos">Contactos</a>
+          <a [href]="complaintsUrl" target="_blank" rel="noopener" class="footer__lr">Livro de Reclamações<span class="visually-hidden"> (abre numa nova janela)</span></a>
+        </p>
+        <p class="footer__ral">
+          Em caso de litígio de consumo, pode recorrer ao {{ ral.name }} ({{ ral.url.replace('https://', '') }}). Mais informação em
+          <a href="https://www.consumidor.gov.pt" target="_blank" rel="noopener">www.consumidor.gov.pt</a>.
         </p>
       </div>
     </footer>
@@ -107,6 +124,8 @@ export class FooterComponent {
     return this.content.club;
   }
   protected readonly tel = tel;
+  protected readonly ral = RAL;
+  protected readonly complaintsUrl = COMPLAINTS_URL;
   protected readonly year = new Date().getFullYear();
   protected email = '';
   protected readonly subscribed = signal(false);

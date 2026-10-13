@@ -51,6 +51,8 @@ export const routes: Routes = [
   { path: 'contactos', loadComponent: () => import('./features/contacts/contacts.component').then((m) => m.ContactsComponent) },
   { path: 'pesquisa', loadComponent: () => import('./features/search/search.component').then((m) => m.SearchComponent) },
   { path: 'privacidade', loadComponent: () => import('./features/legal/legal.component').then((m) => m.LegalComponent), data: { page: 'privacidade' } },
+  { path: 'termos-e-condicoes', loadComponent: () => import('./features/legal/terms.page').then((m) => m.TermsPage) },
+  { path: 'termos', redirectTo: 'termos-e-condicoes' },
   { path: 'cookies', loadComponent: () => import('./features/legal/legal.component').then((m) => m.LegalComponent), data: { page: 'cookies' } },
   { path: '**', loadComponent: () => import('./features/not-found/not-found.component').then((m) => m.NotFoundComponent) },
 ];

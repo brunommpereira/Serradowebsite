@@ -12,7 +12,9 @@
       <span class="topbar__match">{{ club.tagline }}</span>
     }
     <div class="topbar__right">
-      <a [href]="'tel:' + tel(club.phone)"><sfc-icon name="phone" size="15" />{{ club.phone }}</a>
+      @if (club.phone) {
+        <a [href]="'tel:' + tel(club.phone)"><sfc-icon name="phone" size="15" />{{ club.phone }}</a>
+      }
       <a [href]="'mailto:' + club.email"><sfc-icon name="mail" size="15" />{{ club.email }}</a>
       <span class="topbar__social">
         @if (club.social.facebook) {

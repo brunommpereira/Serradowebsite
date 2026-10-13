@@ -9,6 +9,10 @@
   }
 </div>
 
+@if (a.sportSlug === 'atletismo') {
+  <sfc-trophy-signup [athleteId]="a.id" />
+}
+
 @if (!all().length) {
   <div class="empty-state">
     <sfc-icon name="run" size="32" />

@@ -32,10 +32,11 @@ export const CLUB = {
   shortName: 'Serrado FC',
   founded: '1978-04-29',
   tagline: 'Uma história. Uma família. Várias modalidades.',
-  address: 'Bairro do Serrado',
-  postalCode: '2825-095',
-  locality: 'Caparica, Almada',
-  phone: '+351 210 000 000',
+  address: 'Rua Casa do Felismino, 3B',
+  postalCode: '2825-086',
+  locality: 'Caparica',
+  // Sem telefone público por agora (aparece no site quando for preenchido em Conteúdos do site → Contactos)
+  phone: '',
   email: 'geral@serradofc.pt',
   nipc: '501523332',
   hours: [
