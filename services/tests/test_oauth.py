@@ -242,3 +242,44 @@ async def test_desligar_a_conta_google_e_conta_desativada_deixa_de_entrar(mw):
     off = await finish(mw, await start(mw), {"sub": "g-joao", "email": "joao@exemplo.pt", "email_verified": True})
     assert off["location"] == f"{SITE}/entrar?erro=sem-conta"
     assert off["session"] is None
+
+
+async def test_atleta_da_base_de_dados_sem_conta_entra_com_google(mw):
+    # Atleta adulto importado (ficha com email), ainda sem conta no site
+    await execute(
+        mw.pool,
+        """insert into athletes (code, name, birth_date, gender, sport_slug, email)
+           values ('SFC-0901', 'Marta Corredora', '1990-05-01', 'Feminino', 'atletismo', 'Marta.Corredora@Gmail.com')""",
+    )
+    r = await finish(mw, await start(mw, "/area-atletas"), {"sub": "g-marta", "email": "marta.corredora@gmail.com", "email_verified": True})
+    assert r["location"] == f"{SITE}/area-atletas" and r["session"]
+    profile = (await me(mw, r["session"])).json()
+    assert profile["email"] == "marta.corredora@gmail.com" and profile["name"] == "Marta Corredora"
+    a = await fetch_one(
+        mw.pool,
+        "select x.role from athlete_access x join athletes a on a.id = x.athlete_id join users u on u.id = x.user_id where a.code = 'SFC-0901' and u.email = %s",
+        ["marta.corredora@gmail.com"],
+    )
+    assert a == {"role": "atleta"}
+    # Sem email verificado não cria nada
+    await execute(
+        mw.pool, "insert into athletes (code, name, sport_slug, email) values ('SFC-0902', 'Outro Atleta', 'atletismo', 'outro.atleta@gmail.com')"
+    )
+    b = await finish(mw, await start(mw), {"sub": "g-outro", "email": "outro.atleta@gmail.com", "email_verified": False})
+    assert b["session"] is None
+    assert (await fetch_one(mw.pool, "select count(*)::int as n from users where email = 'outro.atleta@gmail.com'")) == {"n": 0}
+
+
+async def test_encarregado_com_o_email_na_ficha_do_menor_entra_e_ve_o_educando(mw):
+    await execute(
+        mw.pool,
+        """insert into athletes (code, name, birth_date, gender, sport_slug, email)
+           values ('SFC-0903', 'Miúdo Exemplo', '2016-02-02', 'Masculino', 'futsal', 'pai.exemplo@gmail.com')""",
+    )
+    r = await finish(mw, await start(mw), {"sub": "g-pai", "email": "pai.exemplo@gmail.com", "email_verified": True})
+    assert r["session"]
+    a = await fetch_one(
+        mw.pool,
+        "select x.role from athlete_access x join athletes a on a.id = x.athlete_id where a.code = 'SFC-0903'",
+    )
+    assert a == {"role": "encarregado"}
