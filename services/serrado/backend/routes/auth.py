@@ -6,10 +6,10 @@ from fastapi import APIRouter, Path, Request
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 from ...config import config
-from ...db.pool import Pool, execute, fetch, fetch_one, tx
+from ...db.pool import Conn, Pool, execute, fetch, fetch_one, tx
 from ...password import DUMMY_HASH, hash_password, verify_password
 from ...permissions import ADMIN, PERMISSIONS, effective
-from ...registry import NO_PASSWORD, _email, claim_athletes
+from ...registry import NO_PASSWORD, _email, account_for, claim_athletes
 from ..accounts import MIN_PASSWORD, send_link, token_hash
 from ..core import Actor, HttpError, actor, audit, can, forbidden, not_found, pool, require
 
@@ -127,6 +127,30 @@ def check_permissions(perms: list[str]) -> list[str]:
     return sorted(set(perms))
 
 
+async def _account_from_records(c: Conn, email: str, provider: str) -> dict[str, Any] | None:
+    """Conta nova para quem está na base de dados (ficha de sócio ou de atleta com este email) e entra com Google/Microsoft.
+
+    O nome vem da ficha de sócio, ou da ficha do atleta adulto; se o email só estiver em fichas de menores
+    (o email do encarregado), fica o nome do email até a pessoa o alterar.
+    """
+    row = await (
+        await c.execute(
+            """select coalesce(
+                        (select name from members where lower(trim(email)) = %s order by member_number limit 1),
+                        (select name from athletes where lower(trim(email)) = %s
+                            and (birth_date is null or birth_date <= current_date - interval '18 years') order by created_at limit 1),
+                        (select %s from athletes where lower(trim(email)) = %s limit 1)
+                      ) as name""",
+            [email, email, email.split("@")[0], email],
+        )
+    ).fetchone()
+    if not row or not row["name"]:
+        return None
+    user_id, _ = await account_for(c, email, str(row["name"]))
+    await audit(c, Actor(id=user_id), "users.create_from_oauth", "users", user_id, {"provider": provider})
+    return {"id": user_id}
+
+
 def register(r: APIRouter) -> None:
     @r.post("/auth/verify", tags=["Sessão"], summary="Valida credenciais (email ou n.º de sócio + password)")
     async def verify(req: Request, body: Credentials) -> dict[str, Any]:
@@ -199,7 +223,8 @@ def register(r: APIRouter) -> None:
         tags=["Sessão"],
         summary="Entrada com uma conta externa (Google, Microsoft…) já validada pelo middleware",
         description="Procura a conta ligada a (provider, subject). Na primeira vez, liga-a à conta do clube com o mesmo email, "
-        "só se o fornecedor garantir que o email está verificado. Não cria contas novas.",
+        "só se o fornecedor garantir que o email está verificado. Se ainda não houver conta mas o email estiver numa ficha "
+        "de sócio ou de atleta, cria a conta (sem password) e liga-a; as fichas ficam ligadas ao carregar o perfil.",
     )
     async def oauth_login(req: Request, body: ExternalIdentity) -> dict[str, Any]:
         user_id: str | None = None
@@ -218,8 +243,12 @@ def register(r: APIRouter) -> None:
             elif body.emailVerified and body.email:
                 # Primeira entrada com esta conta: só com email verificado pelo fornecedor e igual ao da conta do clube
                 email = body.email.strip().lower()
-                cur = await c.execute("select id from users where email = %s and not disabled", [email])
+                cur = await c.execute("select id, disabled from users where lower(email) = %s", [email])
                 found = await cur.fetchone()
+                if found and found["disabled"]:
+                    found = None
+                elif not found:
+                    found = await _account_from_records(c, email, body.provider)
                 if found:
                     cur = await c.execute("select 1 from user_identities where user_id = %s and provider = %s", [found["id"], body.provider])
                     if await cur.fetchone():
