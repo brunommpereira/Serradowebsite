@@ -71,8 +71,6 @@ export interface ContactsBlock {
   cae: string;
   /** Entidade reguladora/fiscalizadora (Livro de Reclamações) */
   regulator: string;
-  /** ID do site no Umami (estatísticas sem cookies em /estatisticas); vazio = desligado */
-  statsWebsiteId: string;
   hours: { days: string; time: string }[];
   facebook: string;
   instagram: string;

@@ -47,6 +47,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
   {
     title: 'Gestão',
     items: [
+      { label: 'Estatísticas', link: '/admin/estatisticas', icon: 'eye', permissions: ['stats.view'] },
       { label: 'Utilizadores', link: '/admin/utilizadores', icon: 'user', permissions: ['users.manage'] },
       { label: 'Papéis e permissões', link: '/admin/papeis', icon: 'shield', permissions: ['users.manage'] },
       { label: 'Auditoria', link: '/admin/auditoria', icon: 'clock', permissions: [] },

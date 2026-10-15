@@ -167,6 +167,11 @@ def register(r: APIRouter) -> None:
         xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{body}</urlset>\n'
         return Response(content=xml, media_type="application/xml", headers={"cache-control": "public, max-age=3600"})
 
+    @r.get("/content/analytics", tags=tags, summary="ID do site para o contador de visitas (Umami, sem cookies); vazio = desligado")
+    async def analytics(resp: Response) -> dict[str, str]:
+        resp.headers["cache-control"] = "public, max-age=300"
+        return {"websiteId": config.umami.website_id if config.umami.enabled else ""}
+
     @r.get("/content/partners", tags=tags, summary="Parceiros e patrocinadores")
     async def partners(req: Request) -> list[Row]:
         return [to_partner(p) for p in await listing(req, "partners")]

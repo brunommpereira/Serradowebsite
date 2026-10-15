@@ -1,4 +1,4 @@
-# Estatísticas de visitas (Umami, sem cookies) no próprio servidor, em https://<domínio>/estatisticas.
+# Estatísticas de visitas (Umami, sem cookies) no próprio servidor; veem-se só no backoffice → Estatísticas.
 # Corre-se à mão uma vez (e para atualizar a versão): Actions → Estatísticas (Umami) → Run workflow.
 # Compila o Umami aqui (a VPS não precisa de Node nem de memória para compilar) e envia-o pelo serrado-ssh-gate.
 name: Estatísticas (Umami)
@@ -69,7 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://${{ vars.SITE_DOMAIN }}/estatisticas
+      url: https://${{ vars.SITE_DOMAIN }}/admin/estatisticas
     steps:
       - uses: actions/download-artifact@v4
         with:

@@ -353,18 +353,19 @@ de emergência), equipa «Serrado FC» e o clube «Serrado FC / Outdoor Training
 
 ## 5g. Estatísticas de visitas (Umami, sem cookies)
 
-O Umami corre no próprio servidor, em `https://<domínio>/estatisticas`: não usa cookies, não guarda o IP
-e não envia nada a terceiros (dispensa o banner de consentimento). Só conta as páginas públicas.
+As visitas veem-se só no **backoffice → Estatísticas** (permissão «Ver as estatísticas de visitas ao site»,
+que o admin tem e se pode dar a outros papéis). Por baixo está o Umami, instalado no próprio servidor: não usa
+cookies, não guarda o IP e não envia nada a terceiros (dispensa o banner de consentimento). Na internet só
+ficam acessíveis o contador (`/estatisticas/script.js` e o envio das visitas); o painel e a API do Umami
+respondem 404 e só o backend lhes chega, por dentro (127.0.0.1).
 
-1. Depois de voltar a correr o `bootstrap.sh` (acrescenta a permissão `umami` ao utilizador `deploy` e o
-   encaminhamento `/estatisticas` no Caddy), no GitHub: **Actions → Estatísticas (Umami) → Run workflow**.
-   O Umami é compilado no GitHub e instalado na VPS (Node incluído; base de dados `umami` no PostgreSQL local).
-2. Na VPS: `sudo cat /etc/serrado/umami-admin.txt` mostra a password do painel (utilizador `admin`).
-   Guarda-a no gestor de passwords e apaga o ficheiro (`sudo rm /etc/serrado/umami-admin.txt`).
-3. Em `https://<domínio>/estatisticas` → **Definições → Sites → Adicionar site** (domínio `www.serradofc.pt`).
-   Copia o **ID do site** e cola-o em Backoffice → Conteúdos do site → Contactos → «Estatísticas: ID do site no Umami».
-4. Para atualizar a versão: mudar `UMAMI_VERSION` em `.github/workflows/umami.yml` e voltar a correr o workflow.
-   Para desligar: `sudo serrado umami off` e apagar o ID no backoffice.
+1. Depois de voltar a correr o `bootstrap.sh` (dá ao GitHub a permissão `umami` e prepara o Caddy), no GitHub:
+   **Actions → Estatísticas (Umami) → Run workflow**. O Umami é compilado no GitHub e instalado na VPS (Node
+   incluído; base de dados `umami` no PostgreSQL local).
+2. Não há mais nada a configurar: a instalação troca a password por omissão do Umami por uma aleatória
+   (guardada só em `/etc/serrado/serrado.env`, para o backend), cria o site e liga o contador.
+3. Para atualizar a versão: mudar `UMAMI_VERSION` em `.github/workflows/umami.yml` e voltar a correr o workflow.
+   Para desligar: `sudo serrado umami off`.
 
 ## 6. Cópias de segurança
 
@@ -408,7 +409,7 @@ sudo serrado offsite-latest /root/recuperar                  # descarrega a últ
 | `sudo serrado email [smtp\|brevo]` / `email test <endereço>` / `email log` / `email off` | Emails do site (caixa do domínio ou Brevo): passwords, convites, fichas assinadas |
 | `sudo serrado facebook` / `facebook-sync` / `facebook off` | Ligar, sincronizar agora ou desligar a página de Facebook |
 | `sudo serrado xistarca` / `xistarca-run` / `xistarca-discover [url]` / `xistarca off` | Inscrições no Troféu de Almada pela Xistarca |
-| `sudo serrado umami off` | Desligar as estatísticas (a instalação é pelo GitHub Actions) |
+| `sudo serrado umami off` | Desligar as estatísticas (a instalação é pelo GitHub Actions; ver no backoffice → Estatísticas) |
 | `sudo serrado oauth google` / `microsoft` | Ativar a entrada com Google ou Microsoft (`… off` para desativar) |
 
 Para mudar o domínio ou passar a usar a Cloudflare, volta a correr o `bootstrap.sh` com as novas opções. Os dados e os segredos mantêm-se.

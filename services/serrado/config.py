@@ -74,6 +74,20 @@ class FacebookConfig:
 
 
 @dataclass
+class UmamiConfig:
+    """Estatísticas de visitas (Umami no próprio servidor, só acessível pelo backend; ver serrado umami)."""
+
+    url: str
+    username: str
+    password: str
+    website_id: str
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self.url and self.username and self.password and self.website_id)
+
+
+@dataclass
 class XistarcaConfig:
     """Conta Xistarca do clube para as inscrições no Troféu de Almada (serrado.xistarca). Só no servidor."""
 
@@ -172,6 +186,7 @@ class Config:
     oauth: OAuthConfig = field(repr=False)
     facebook: FacebookConfig = field(repr=False)
     xistarca: XistarcaConfig = field(repr=False)
+    umami: UmamiConfig = field(repr=False)
     payments: PaymentsConfig = field(repr=False)
     mail: MailConfig = field(repr=False)
 
@@ -208,6 +223,12 @@ config = Config(
         email=env.get("XISTARCA_EMAIL", "").strip(),
         # Em base64 no serrado.env (a password pode ter « $ " ' \\ # »)
         password=base64.b64decode(env["XISTARCA_PASSWORD_B64"]).decode() if env.get("XISTARCA_PASSWORD_B64") else "",
+    ),
+    umami=UmamiConfig(
+        url=env.get("UMAMI_URL", "http://127.0.0.1:3001/estatisticas").rstrip("/"),
+        username=env.get("UMAMI_USERNAME", ""),
+        password=base64.b64decode(env["UMAMI_PASSWORD_B64"]).decode() if env.get("UMAMI_PASSWORD_B64") else "",
+        website_id=env.get("UMAMI_WEBSITE_ID", "").strip(),
     ),
     payments=PaymentsConfig(
         stripe_secret_key=env.get("STRIPE_SECRET_KEY", ""),

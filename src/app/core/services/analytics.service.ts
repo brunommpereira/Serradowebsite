@@ -1,9 +1,8 @@
-import { DOCUMENT, effect, inject, Injectable, PLATFORM_ID } from '@angular/core';
+import { DOCUMENT, inject, Injectable, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import { ApiClient } from '../api/api-client';
-import { SiteStore } from '../site/site-store';
 
 /** Áreas que não contam para as estatísticas (dados pessoais e trabalho interno). */
 const PRIVATE = /^\/(admin|area-socio|area-atletas|entrar|propostas)(\/|$|\?)/;
@@ -15,26 +14,28 @@ interface Umami {
 
 /**
  * Estatísticas de visitas com o Umami instalado no próprio servidor (/estatisticas): sem cookies,
- * sem guardar o IP e sem enviar dados a terceiros. Só com o ID do site em Conteúdos do site → Contactos.
+ * sem guardar o IP e sem enviar dados a terceiros. Os números veem-se só no backoffice (Estatísticas).
  * As visitas contam-se aqui, em cada mudança de página, e nunca nas áreas reservadas.
  */
 @Injectable({ providedIn: 'root' })
 export class AnalyticsService {
   private readonly doc = inject(DOCUMENT);
   private readonly router = inject(Router);
-  private readonly site = inject(SiteStore);
-  private readonly enabled = isPlatformBrowser(inject(PLATFORM_ID)) && inject(ApiClient).enabled;
-  private loaded = false;
+  private readonly api = inject(ApiClient);
+  private readonly enabled = isPlatformBrowser(inject(PLATFORM_ID)) && this.api.enabled;
   /** Endereço da última navegação concluída (antes disso o router ainda está em «/»). */
   private current: string | null = null;
   private lastSent: string | null = null;
 
   start() {
     if (!this.enabled) return;
-    effect(() => {
-      const id = String(this.site.data('contacts').statsWebsiteId ?? '').trim();
-      if (id && UUID.test(id) && !this.loaded) this.load(id);
-    });
+    // O ID do site vem do servidor (configurado na instalação do Umami); vazio = estatísticas desligadas
+    void this.api
+      .get<{ websiteId: string }>('/content/analytics')
+      .then(({ websiteId }) => {
+        if (websiteId && UUID.test(websiteId)) this.load(websiteId);
+      })
+      .catch(() => undefined);
     // A primeira navegação pode já ter terminado antes de o site arrancar (página pré-renderizada)
     if (this.router.navigated) this.current = this.router.url.split(/[?#]/)[0];
     this.router.events
@@ -46,7 +47,6 @@ export class AnalyticsService {
   }
 
   private load(id: string) {
-    this.loaded = true;
     const s = this.doc.createElement('script');
     s.src = '/estatisticas/script.js';
     s.defer = true;

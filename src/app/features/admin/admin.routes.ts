@@ -110,6 +110,13 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./pages/results-import.page').then((m) => m.ResultsImportPage),
       },
       {
+        path: 'estatisticas',
+        title: 'Estatísticas',
+        canActivate: [staffGuard],
+        data: { permissions: ['stats.view'] },
+        loadComponent: () => import('./pages/visits.page').then((m) => m.VisitsPage),
+      },
+      {
         path: 'inscricoes-trofeu',
         title: 'Inscrições no Troféu',
         canActivate: [staffGuard],

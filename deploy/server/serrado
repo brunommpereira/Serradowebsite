@@ -312,7 +312,9 @@ cmd_umami() {
   if [ "${1:-}" = off ]; then
     $SYSTEMCTL disable --now serrado-umami 2>/dev/null || true
     rm -f /etc/caddy/umami.caddy && $SYSTEMCTL reload caddy
-    echo '✔ Estatísticas desligadas (os dados ficam na base de dados «umami»)'
+    sed -i '/^UMAMI_WEBSITE_ID=/d' "$ETC/serrado.env"
+    $SYSTEMCTL restart serrado-backend serrado-middleware
+    echo '✔ Estatísticas desligadas (os dados ficam na base de dados «umami»; para voltar: Actions → Estatísticas (Umami))'
     return
   fi
   local sum=${1:-}
@@ -346,30 +348,55 @@ cmd_umami() {
   $SYSTEMCTL daemon-reload
   $SYSTEMCTL enable serrado-umami >/dev/null 2>&1 || true
   $SYSTEMCTL restart serrado-umami
-  printf 'handle /estatisticas* {\n\treverse_proxy 127.0.0.1:3001\n}\n' > /etc/caddy/umami.caddy
+  # Na internet só o contador (script e envio das visitas); o painel e a API ficam só para o backend (127.0.0.1)
+  cat > /etc/caddy/umami.caddy <<'CADDY'
+@umami_public path /estatisticas/script.js /estatisticas/api/send
+handle @umami_public {
+	reverse_proxy 127.0.0.1:3001
+}
+handle /estatisticas* {
+	error 404
+}
+CADDY
   $SYSTEMCTL reload caddy
   local ok=''
   for _ in $(seq 30); do curl -fsS -o /dev/null http://127.0.0.1:3001/estatisticas/script.js && ok=1 && break; sleep 2; done
   [ -n "$ok" ] || die 'O Umami não arrancou (sudo journalctl -u serrado-umami -n 50).'
 
-  # Primeira instalação: a conta por omissão (admin/umami) passa a ter uma password aleatória
-  local login token
-  login=$(curl -fsS -X POST http://127.0.0.1:3001/estatisticas/api/auth/login -H 'content-type: application/json' \
+  # Primeira instalação: a conta por omissão (admin/umami) passa a ter uma password aleatória, que só o backend conhece
+  local api=http://127.0.0.1:3001/estatisticas login token
+  login=$(curl -fsS -X POST "$api/api/auth/login" -H 'content-type: application/json' \
     -d '{"username":"admin","password":"umami"}' 2>/dev/null || true)
   token=$(jq -r '.token // empty' <<<"$login" 2>/dev/null || true)
   if [ -n "$token" ]; then
     local uid pass
     uid=$(jq -r '.user.id' <<<"$login")
-    pass=$(openssl rand -base64 18 | tr -d '/+=')
-    curl -fsS -o /dev/null -X POST "http://127.0.0.1:3001/estatisticas/api/users/$uid" -H "authorization: Bearer $token" \
+    pass=$(openssl rand -base64 24 | tr -d '/+=')
+    curl -fsS -o /dev/null -X POST "$api/api/users/$uid" -H "authorization: Bearer $token" \
       -H 'content-type: application/json' -d "{\"password\":\"$pass\"}" || die 'Não consegui trocar a password do Umami.'
-    # Corre pelo GitHub Actions: a password nunca vai para a saída (ficaria nos registos do Actions)
-    ( umask 077; printf 'Umami (https://.../estatisticas)\nutilizador: admin\npassword: %s\n' "$pass" > "$ETC/umami-admin.txt" )
-    echo "✔ Conta do painel criada. Password em: sudo cat $ETC/umami-admin.txt (guarda-a e apaga o ficheiro)"
+    set_env UMAMI_USERNAME admin
+    set_env UMAMI_PASSWORD_B64 "$(printf '%s' "$pass" | base64 -w0)"
+    unset pass
   fi
+  grep -q '^UMAMI_PASSWORD_B64=' "$ETC/serrado.env" || die 'Falta a conta do Umami em serrado.env (a password por omissão já tinha sido trocada à mão?).'
+  # O site no Umami (criado uma vez) e o seu ID para o contador do site
+  if ! grep -q '^UMAMI_WEBSITE_ID=' "$ETC/serrado.env"; then
+    local user b64 domain wid
+    user=$(grep '^UMAMI_USERNAME=' "$ETC/serrado.env" | cut -d= -f2-)
+    b64=$(grep '^UMAMI_PASSWORD_B64=' "$ETC/serrado.env" | cut -d= -f2-)
+    token=$(jq -n --arg u "$user" --arg p "$(base64 -d <<<"$b64")" '{username:$u,password:$p}' \
+      | curl -fsS -X POST "$api/api/auth/login" -H 'content-type: application/json' -d @- | jq -r '.token')
+    domain=$(grep '^SITE_DOMAIN=' "$ETC/serrado.env" | cut -d= -f2)
+    wid=$(curl -fsS "$api/api/websites" -H "authorization: Bearer $token" | jq -r --arg d "$domain" '[.data[] | select(.domain == $d)][0].id // empty')
+    [ -n "$wid" ] || wid=$(jq -n --arg d "$domain" '{name:"Serrado FC",domain:$d}' \
+      | curl -fsS -X POST "$api/api/websites" -H "authorization: Bearer $token" -H 'content-type: application/json' -d @- | jq -r '.id')
+    [[ $wid =~ ^[0-9a-f-]{36}$ ]] || die 'Não consegui criar o site no Umami.'
+    set_env UMAMI_WEBSITE_ID "$wid"
+  fi
+  $SYSTEMCTL restart serrado-backend serrado-middleware
   # Versões antigas: ficam as 2 mais recentes
   ls -1d "$UMAMI"/releases/* | sort | head -n -2 | xargs -r rm -rf
-  echo "✔ Estatísticas ativas em https://$(grep '^SITE_DOMAIN=' "$ETC/serrado.env" | cut -d= -f2)/estatisticas ($(cat "$dir/VERSION" 2>/dev/null))"
+  echo "✔ Estatísticas ativas ($(cat "$dir/VERSION" 2>/dev/null)): veem-se no backoffice → Estatísticas"
 }
 
 pay_py() { (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.payments "$@"); }

@@ -26,6 +26,11 @@ def register(r: APIRouter) -> None:
         client = {"ip": str(req.state.ip), "userAgent": req.headers.get("user-agent", "")[:400]}
         return await backend(req).call("POST", "/contact", body={"form": body, "client": client})
 
+    @r.get("/admin/visits", tags=["Backoffice · Estatísticas"], summary="Visitas ao site (período: 7d, 30d, 90d, 12m)")
+    async def stats(req: Request) -> Any:
+        s = await staff(req)
+        return await backend(req).call("GET", "/visits", actor=s, query=dict(req.query_params))
+
     tags: list[str | Any] = ["Backoffice · Pré-inscrições"]
 
     @r.get("/admin/interest", tags=tags, summary="Pré-inscrições (filtros: status, sport)")

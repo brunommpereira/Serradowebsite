@@ -217,13 +217,6 @@ export const BLOCKS: BlockDef[] = [
         hint: 'Como aparece nas Finanças (dados cadastrais). Separe vários com «;».',
       },
       {
-        key: 'statsWebsiteId',
-        label: 'Estatísticas: ID do site no Umami',
-        kind: 'text',
-        max: 36,
-        hint: 'Em serradofc.pt/estatisticas → Definições → Sites → Editar. Vazio = sem estatísticas.',
-      },
-      {
         key: 'regulator',
         label: 'Entidade reguladora/fiscalizadora',
         kind: 'text',
