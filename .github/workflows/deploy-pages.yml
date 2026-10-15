@@ -30,7 +30,7 @@ jobs:
           REPO="${GITHUB_REPOSITORY#*/}"
           npx ng build --base-href "/${REPO}/"
           SITE_URL="https://${GITHUB_REPOSITORY_OWNER}.github.io/${REPO}" node scripts/postbuild.mjs
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist/serrado-fc/browser
