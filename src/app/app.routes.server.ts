@@ -1,5 +1,5 @@
 import { RenderMode, ServerRoute } from '@angular/ssr';
-import { EVENTS, NEWS, SPORTS } from './core/data/mock-data';
+import { SPORTS } from './core/data/mock-data';
 
 /**
  * Todas as páginas públicas são pré-geradas em HTML estático (SEO + performance).
@@ -19,15 +19,12 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Prerender,
     getPrerenderParams: async () => SPORTS.map((s) => ({ slug: s.slug })),
   },
-  {
-    path: 'noticias/:slug',
-    renderMode: RenderMode.Prerender,
-    getPrerenderParams: async () => NEWS.map((n) => ({ slug: n.slug })),
-  },
-  {
-    path: 'eventos/:slug',
-    renderMode: RenderMode.Prerender,
-    getPrerenderParams: async () => EVENTS.map((e) => ({ slug: e.slug })),
-  },
+  // Notícias e eventos vêm do CMS (podem ser criados a qualquer momento): renderizados no browser;
+  // os endereços entram no sitemap dinâmico (/api/v1/content/sitemap.xml)
+  { path: 'noticias/:slug', renderMode: RenderMode.Client },
+  { path: 'eventos/:slug', renderMode: RenderMode.Client },
+  // Endereços antigos: o servidor (Caddy) responde com 301
+  { path: 'termos', renderMode: RenderMode.Client },
+  { path: 'modalidades/escola-de-desporto', renderMode: RenderMode.Client },
   { path: '**', renderMode: RenderMode.Prerender },
 ];

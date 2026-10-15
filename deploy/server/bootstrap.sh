@@ -190,11 +190,39 @@ $TLS
 		}
 	}
 
+	# Estatísticas (Umami no próprio servidor, só depois de «Actions → Estatísticas (Umami)»)
+	import /etc/caddy/umami*.caddy
+
+	# Endereços antigos: redirecionamento permanente (301)
+	redir /termos /termos-e-condicoes 301
+	redir /modalidades/escola-de-desporto /modalidades/futsal#escola-de-desporto 301
+	redir /area-socio/entrar /entrar?perfil=socio 301
+
 	handle {
 		root * $ROOT/current/web
 		@assets path_regexp -[0-9A-Za-z]{8}\.(js|css)$
 		header @assets Cache-Control "public, max-age=31536000, immutable"
-		try_files {path} {path}/index.html /index.csr.html
+		# Páginas pré-renderizadas e ficheiros
+		@static file {path} {path}/index.html
+		handle @static {
+			try_files {path} {path}/index.html
+			file_server
+		}
+		# Páginas feitas no browser: áreas reservadas e notícias, eventos e páginas do CMS
+		@client path /area-socio /area-socio/* /area-atletas /area-atletas/* /admin /admin/* /entrar /entrar/* /paginas/* /propostas/* /noticias/* /eventos/*
+		handle @client {
+			rewrite * /index.csr.html
+			file_server
+		}
+		# O resto não existe: página 404 com o código 404 (e não 200)
+		handle {
+			error 404
+		}
+	}
+
+	handle_errors 404 {
+		root * $ROOT/current/web
+		rewrite * /404.html
 		file_server
 	}
 
@@ -239,7 +267,7 @@ if [ -n "$DEPLOY_KEY" ]; then
   echo "restrict,command=\"/usr/local/sbin/serrado-ssh-gate\" $DEPLOY_KEY" > /home/deploy/.ssh/authorized_keys
   chown deploy:deploy /home/deploy/.ssh/authorized_keys && chmod 600 /home/deploy/.ssh/authorized_keys
   cat > /etc/sudoers.d/serrado-deploy <<'EOF'
-deploy ALL=(root) NOPASSWD: /usr/local/sbin/serrado status, /usr/local/sbin/serrado backup, /usr/local/sbin/serrado rollback, /usr/local/sbin/serrado deploy *
+deploy ALL=(root) NOPASSWD: /usr/local/sbin/serrado status, /usr/local/sbin/serrado backup, /usr/local/sbin/serrado rollback, /usr/local/sbin/serrado deploy *, /usr/local/sbin/serrado umami *
 EOF
   chmod 440 /etc/sudoers.d/serrado-deploy && visudo -cf /etc/sudoers.d/serrado-deploy
 fi

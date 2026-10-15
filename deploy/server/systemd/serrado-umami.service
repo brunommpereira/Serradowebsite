@@ -1,0 +1,38 @@
+[Unit]
+Description=Serrado FC — estatísticas de visitas (Umami, sem cookies) em /estatisticas
+After=network-online.target postgresql.service
+Wants=network-online.target
+ConditionPathExists=/opt/umami/current/node
+
+[Service]
+Type=simple
+User=umami
+Group=umami
+EnvironmentFile=/etc/serrado/umami.env
+Environment=NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 DISABLE_UPDATES=1 DISABLE_TELEMETRY=1 HOSTNAME=127.0.0.1 PORT=3001
+WorkingDirectory=/opt/umami/current/app
+ExecStart=/opt/umami/current/node server.js
+Restart=on-failure
+RestartSec=5
+MemoryMax=600M
+# Isolamento: sem escrita no disco, sem privilégios, só rede local e o socket do PostgreSQL
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+# A cache do Next.js é o único sítio onde escreve
+ReadWritePaths=/opt/umami/current/app/.next/cache
+
+[Install]
+WantedBy=multi-user.target

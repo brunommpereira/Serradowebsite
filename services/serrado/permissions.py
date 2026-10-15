@@ -11,6 +11,7 @@ PERMISSIONS: dict[str, str] = {
     "payments.manage": "Registar pagamentos, emitir recibos, valores de quotas e mensalidades",
     "results.import": "Importar resultados de provas",
     "registrations.manage": "Documentos legais (condições, RGPD, imagem) e registos online",
+    "stats.view": "Ver as estatísticas de visitas ao site",
     "users.manage": "Utilizadores, papéis e permissões",
     "audit.all": "Ver toda a auditoria (os outros veem só as suas ações)",
 }

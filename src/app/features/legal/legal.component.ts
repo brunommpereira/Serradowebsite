@@ -62,7 +62,7 @@ export class LegalComponent {
         },
         { h: '2. Dados tratados', p: ['Identificação (nome, data de nascimento, NIF, documento de identificação), contactos, morada, dados de sócio e de pagamento de quotas, inscrições em modalidades e eventos e, quando autorizado, imagem.'] },
         { h: '3. Finalidades e fundamentos', p: ['Gestão da relação associativa e de quotas (execução de contrato), inscrições desportivas e em eventos, cumprimento de obrigações legais e fiscais, e envio de comunicações quando consentido.'] },
-        { h: '4. Conservação', p: ['Os dados são conservados durante a relação com o clube e pelos prazos legais aplicáveis (por exemplo, obrigações fiscais), sendo depois eliminados ou anonimizados.'] },
+        { h: '4. Conservação', p: ['Os dados são conservados durante a relação com o clube e pelos prazos legais aplicáveis (por exemplo, obrigações fiscais), sendo depois eliminados ou anonimizados. As mensagens enviadas pelo formulário de contacto são apagadas ao fim de um ano.'] },
         { h: '5. Os seus direitos', p: ['Acesso, retificação, apagamento (quando aplicável), limitação, portabilidade (exportação de dados), oposição e retirada do consentimento a qualquer momento. Pode exercê-los através do email do clube ou na Área de Sócio, sem custos, e respondemos no prazo de um mês. Tem ainda o direito de apresentar reclamação à Comissão Nacional de Proteção de Dados (CNPD, www.cnpd.pt).'] },
         { h: '6. Segurança', p: ['Ligações cifradas (HTTPS), controlo de acessos por perfis, autenticação forte para administradores, registos de auditoria e cópias de segurança.'] },
         {
@@ -99,7 +99,13 @@ export class LegalComponent {
           ],
         },
         {
-          h: '13. Redes sociais',
+          h: '13. Estatísticas de visitas',
+          p: [
+            'Contamos as visitas às páginas públicas com o Umami, alojado no servidor do clube, sem cookies e sem guardar o endereço IP: só ficam dados agregados (página, origem da visita, tipo de dispositivo, país). As áreas reservadas não são contadas.',
+          ],
+        },
+        {
+          h: '14. Redes sociais',
           p: [
             'O site mostra publicações, eventos, reels e histórias da página pública de Facebook do clube. O vídeo do Facebook só é carregado quando carrega em reproduzir; a partir desse momento aplica-se a política de privacidade da Meta.',
           ],
@@ -118,6 +124,7 @@ export class LegalComponent {
           h: '2. Cookies que utilizamos',
           p: [
             'Apenas cookies essenciais: o cookie de sessão, criado quando entra na Área de Sócio, na Área de Atletas ou no backoffice, que expira ao fim de algumas horas ou quando sai. Não usamos cookies de publicidade nem de medição de audiências, por isso não pedimos consentimento.',
+            'Para saber quantas pessoas visitam o site, usamos o Umami, instalado no servidor do próprio clube: não usa cookies, não guarda o endereço IP nem dados que identifiquem o visitante, não conta as áreas reservadas e respeita a opção «Não rastrear» do navegador. Nada é enviado a terceiros.',
             'O leitor de vídeo do Facebook só é carregado quando carrega em reproduzir um reel; a partir daí a Meta pode usar os seus próprios cookies, de acordo com a política dela.',
           ],
         },

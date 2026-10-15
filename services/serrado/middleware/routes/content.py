@@ -5,12 +5,14 @@ o front já usa (NewsArticle, ClubEvent, Sponsor) e guarda em cache 60 s.
 
 import base64
 from datetime import datetime
+from html import escape
 from typing import Annotated, Any
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Path, Query, Request, Response
 
+from ...config import config
 from ...html import to_html
 from ..deps import backend, cache
 
@@ -151,6 +153,24 @@ def register(r: APIRouter) -> None:
         else:
             headers["content-security-policy"] = "default-src 'none'"
         return Response(content=base64.b64decode(img["data"]), media_type=img["mime"], headers=headers)
+
+    @r.get("/content/sitemap.xml", tags=tags, summary="Sitemap das notícias, eventos e páginas do CMS (referido no sitemap.xml do site)")
+    async def sitemap(req: Request) -> Response:
+        site = config.oauth.site_url or str(req.base_url).rstrip("/")
+        entries: list[tuple[str, str]] = []
+        for type_, prefix in (("news", "/noticias/"), ("events", "/eventos/"), ("pages", "/paginas/")):
+            for item in await listing(req, type_):
+                slug = str(item.get("slug") or "")
+                if slug:
+                    entries.append((prefix + quote(slug), str(item.get("updatedAt") or item.get("publishedAt") or "")[:10]))
+        body = "".join(f"  <url><loc>{escape(site + path)}</loc>{f'<lastmod>{d}</lastmod>' if len(d) == 10 else ''}</url>\n" for path, d in entries)
+        xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{body}</urlset>\n'
+        return Response(content=xml, media_type="application/xml", headers={"cache-control": "public, max-age=3600"})
+
+    @r.get("/content/analytics", tags=tags, summary="ID do site para o contador de visitas (Umami, sem cookies); vazio = desligado")
+    async def analytics(resp: Response) -> dict[str, str]:
+        resp.headers["cache-control"] = "public, max-age=300"
+        return {"websiteId": config.umami.website_id if config.umami.enabled else ""}
 
     @r.get("/content/partners", tags=tags, summary="Parceiros e patrocinadores")
     async def partners(req: Request) -> list[Row]:

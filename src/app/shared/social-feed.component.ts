@@ -85,7 +85,7 @@ const FACEBOOK = /^https:\/\/(www\.|m\.)?facebook\.com\//;
               <iframe [src]="src" title="Reel do Serrado FC no Facebook" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>
               <p class="caption">O vídeo é carregado a partir do Facebook.</p>
             } @else {
-              <img [src]="c.thumbUrl" [alt]="c.caption || 'História do Serrado FC'" />
+              <img [src]="c.thumbUrl" [alt]="c.caption || 'História do Serrado FC'" loading="lazy" />
             }
             @if (c.caption) {
               <p>{{ c.caption }}</p>

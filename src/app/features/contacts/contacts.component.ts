@@ -5,6 +5,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { ContentService, tel } from '../../core/services/content.service';
 import { SeoService } from '../../core/services/seo.service';
 import { COMPLAINTS_URL } from '../legal/legal-info';
+import { ApiClient } from '../../core/api/api-client';
 import { PageHeroComponent } from '../../shared/page-hero.component';
 import { IconComponent } from '../../shared/icon.component';
 
@@ -101,7 +102,12 @@ const SUBJECTS = ['Informações gerais', 'Inscrição numa modalidade', 'Ser s�
             @if (invalid('consent')) {
               <span class="field"><span class="error">Consentimento obrigatório.</span></span>
             }
-            <button class="btn btn--primary" type="submit">Enviar mensagem</button>
+            <!-- Armadilha para robôs: invisível para pessoas -->
+            <input type="text" formControlName="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
+            @if (error(); as e) {
+              <p class="alert alert--warning" role="alert">{{ e }}</p>
+            }
+            <button class="btn btn--primary" type="submit" [disabled]="busy()">{{ busy() ? 'A enviar…' : 'Enviar mensagem' }}</button>
           </form>
         }
       </div>
@@ -115,6 +121,7 @@ const SUBJECTS = ['Informações gerais', 'Inscrição numa modalidade', 'Ser s�
     .hours { max-width: 440px; th { background: none; text-transform: none; letter-spacing: 0; font-size: 0.94rem; color: var(--color-text); padding-left: 0; } td { white-space: normal; } }
     .social { display: flex; flex-wrap: wrap; gap: 1rem; a { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600; } }
     .stack > * + * { margin-top: 2.2rem; }
+    .hp { position: absolute; left: -10000px; width: 1px; height: 1px; opacity: 0; }
     .map { line-height: 0; iframe { width: 100%; height: 420px; border: 0; } }
   `,
 })
@@ -126,6 +133,9 @@ export class ContactsComponent {
   protected readonly complaintsUrl = COMPLAINTS_URL;
   protected readonly subjects = SUBJECTS;
   protected readonly sent = signal(false);
+  protected readonly busy = signal(false);
+  protected readonly error = signal<string | null>(null);
+  private readonly api = inject(ApiClient);
   // Mapa do OpenStreetMap à volta das coordenadas do clube (só números; sem dados do utilizador).
   protected readonly mapUrl = inject(DomSanitizer).bypassSecurityTrustResourceUrl(mapEmbed(this.club.map.lat, this.club.map.lng));
 
@@ -135,6 +145,7 @@ export class ContactsComponent {
     subject: [SUBJECTS[0]],
     message: ['', Validators.required],
     consent: [false, Validators.requiredTrue],
+    website: [''],
   });
 
   constructor() {
@@ -155,13 +166,26 @@ export class ContactsComponent {
     return c.invalid && c.touched;
   }
 
-  submit() {
+  async submit() {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-    // POST /api/contact
-    this.sent.set(true);
+    if (!this.api.enabled) {
+      // Modo demonstração (sem servidor): não há para onde enviar
+      this.sent.set(true);
+      return;
+    }
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      await this.api.post('/contact', this.form.getRawValue());
+      this.sent.set(true);
+    } catch (e) {
+      this.error.set(`Não foi possível enviar a mensagem (${(e as Error).message}). Tenta de novo ou escreve para ${this.club.email}.`);
+    } finally {
+      this.busy.set(false);
+    }
   }
 }
 

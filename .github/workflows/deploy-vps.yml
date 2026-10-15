@@ -39,7 +39,7 @@ jobs:
         run: |
           node scripts/set-api-url.mjs /api/v1
           npx ng build
-          SITE_URL="https://${{ vars.SITE_DOMAIN }}" node scripts/postbuild.mjs
+          SITE_URL="https://${{ vars.SITE_DOMAIN }}" SITEMAP_DYNAMIC=1 node scripts/postbuild.mjs
       - uses: actions/setup-python@v6
         with:
           # A mesma versão do Python da VPS (Ubuntu 26.04: 3.14; Ubuntu 24.04: 3.12, com a variável VPS_PYTHON):

@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
+import { SeoService } from '../core/services/seo.service';
 
 export interface Crumb {
   label: string;
@@ -78,6 +79,15 @@ export interface Crumb {
   `,
 })
 export class PageHeroComponent {
+  private readonly seo = inject(SeoService);
+  private readonly router = inject(Router);
+
+  constructor() {
+    // As mesmas migalhas, em JSON-LD (BreadcrumbList), para os motores de busca
+    effect(() => this.seo.breadcrumbs(this.crumbs(), this.router.url.split(/[?#]/)[0], this));
+    inject(DestroyRef).onDestroy(() => this.seo.clearBreadcrumbs(this));
+  }
+
   readonly title = input.required<string>();
   readonly eyebrow = input<string>();
   readonly subtitle = input<string>();

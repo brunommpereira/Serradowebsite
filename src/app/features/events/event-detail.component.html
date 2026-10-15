@@ -33,7 +33,7 @@
 
         <h2 class="desc-title">Sobre o evento</h2>
         @if (e.coverUrl) {
-          <img class="cover" [src]="e.coverUrl" alt="" />
+          <img class="cover" [src]="e.coverUrl" [alt]="e.title" fetchpriority="high" />
         }
         <div class="prose rich" [innerHTML]="e.bodyHtml"></div>
       </div>
