@@ -62,7 +62,7 @@ export class LegalComponent {
         },
         { h: '2. Dados tratados', p: ['Identificação (nome, data de nascimento, NIF, documento de identificação), contactos, morada, dados de sócio e de pagamento de quotas, inscrições em modalidades e eventos e, quando autorizado, imagem.'] },
         { h: '3. Finalidades e fundamentos', p: ['Gestão da relação associativa e de quotas (execução de contrato), inscrições desportivas e em eventos, cumprimento de obrigações legais e fiscais, e envio de comunicações quando consentido.'] },
-        { h: '4. Conservação', p: ['Os dados são conservados durante a relação com o clube e pelos prazos legais aplicáveis (por exemplo, obrigações fiscais), sendo depois eliminados ou anonimizados.'] },
+        { h: '4. Conservação', p: ['Os dados são conservados durante a relação com o clube e pelos prazos legais aplicáveis (por exemplo, obrigações fiscais), sendo depois eliminados ou anonimizados. As mensagens enviadas pelo formulário de contacto são apagadas ao fim de um ano.'] },
         { h: '5. Os seus direitos', p: ['Acesso, retificação, apagamento (quando aplicável), limitação, portabilidade (exportação de dados), oposição e retirada do consentimento a qualquer momento. Pode exercê-los através do email do clube ou na Área de Sócio, sem custos, e respondemos no prazo de um mês. Tem ainda o direito de apresentar reclamação à Comissão Nacional de Proteção de Dados (CNPD, www.cnpd.pt).'] },
         { h: '6. Segurança', p: ['Ligações cifradas (HTTPS), controlo de acessos por perfis, autenticação forte para administradores, registos de auditoria e cópias de segurança.'] },
         {

@@ -27,7 +27,7 @@ import { NotFoundComponent } from '../not-found/not-found.component';
         </header>
         <div class="container">
           @if (a.coverUrl) {
-            <img class="art__cover art__cover--img" [src]="a.coverUrl" alt="" />
+            <img class="art__cover art__cover--img" [src]="a.coverUrl" [alt]="a.title" fetchpriority="high" />
           } @else {
             <div class="art__cover media-ph"><img src="brand/logo-white.svg" alt="" /></div>
           }
@@ -106,7 +106,7 @@ export class NewsDetailComponent {
   constructor() {
     effect(() => {
       const a = this.article();
-      if (a) this.seo.set({ title: a.title, description: a.summary, path: `/noticias/${a.slug}`, type: 'article' });
+      if (a) this.seo.set({ title: a.title, description: a.summary, path: `/noticias/${a.slug}`, type: 'article', image: a.coverUrl });
     });
   }
 

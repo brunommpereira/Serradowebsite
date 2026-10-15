@@ -43,14 +43,28 @@ for (const file of htmlFiles(browser)) {
 
 const { routes } = JSON.parse(readFileSync(join(dist, 'prerendered-routes.json'), 'utf8'));
 const today = new Date().toISOString().slice(0, 10);
-const urls = Object.keys(routes)
-  .map((r) => `  <url><loc>${SITE_URL}${r === '/' ? '/' : r}</loc><lastmod>${today}</lastmod></url>`)
-  .join('\n');
-writeFileSync(
-  join(browser, 'sitemap.xml'),
-  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`,
-);
-console.log(`postbuild: 404.html + sitemap.xml (${Object.keys(routes).length} URLs) + CSP em ${cspPages} páginas`);
+// Fora do sitemap: áreas privadas, páginas de serviço (nova password, confirmações) e endereços que só redirecionam
+const PRIVATE = /^\/(admin|area-socio|area-atletas|entrar|propostas|pesquisa)(\/|$)/;
+const pages = Object.keys(routes).filter((r) => {
+  if (PRIVATE.test(r)) return false;
+  const file = join(browser, r === '/' ? 'index.html' : join(r, 'index.html'));
+  return !(existsSync(file) && /http-equiv="refresh"/i.test(readFileSync(file, 'utf8')));
+});
+const urls = pages.map((r) => `  <url><loc>${SITE_URL}${r === '/' ? '/' : r}</loc><lastmod>${today}</lastmod></url>`).join('\n');
+const urlset = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+if (process.env.SITEMAP_DYNAMIC === '1') {
+  // Com servidor: índice com as páginas fixas + as notícias, eventos e páginas do CMS (geradas pela API)
+  writeFileSync(join(browser, 'sitemap-pages.xml'), urlset);
+  writeFileSync(
+    join(browser, 'sitemap.xml'),
+    `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+      `  <sitemap><loc>${SITE_URL}/sitemap-pages.xml</loc><lastmod>${today}</lastmod></sitemap>\n` +
+      `  <sitemap><loc>${SITE_URL}/api/v1/content/sitemap.xml</loc></sitemap>\n</sitemapindex>\n`,
+  );
+} else {
+  writeFileSync(join(browser, 'sitemap.xml'), urlset);
+}
+console.log(`postbuild: 404.html + sitemap.xml (${pages.length} URLs) + CSP em ${cspPages} páginas`);
 
 function htmlFiles(dir) {
   return readdirSync(dir).flatMap((f) => {

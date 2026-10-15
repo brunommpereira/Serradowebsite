@@ -21,6 +21,11 @@ def register(r: APIRouter) -> None:
         client = {"ip": str(req.state.ip), "userAgent": req.headers.get("user-agent", "")[:400]}
         return await backend(req).call("POST", "/interest", body={"form": body, "client": client})
 
+    @r.post("/contact", tags=["Contactos"], summary="Formulário de contacto do site", status_code=201)
+    async def contact(req: Request, body: JsonObject) -> Any:
+        client = {"ip": str(req.state.ip), "userAgent": req.headers.get("user-agent", "")[:400]}
+        return await backend(req).call("POST", "/contact", body={"form": body, "client": client})
+
     tags: list[str | Any] = ["Backoffice · Pré-inscrições"]
 
     @r.get("/admin/interest", tags=tags, summary="Pré-inscrições (filtros: status, sport)")

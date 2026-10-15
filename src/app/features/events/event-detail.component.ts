@@ -64,7 +64,7 @@ export class EventDetailComponent {
   constructor() {
     effect(() => {
       const e = this.event();
-      if (e) this.seo.set({ title: e.title, description: e.summary, path: `/eventos/${e.slug}` });
+      if (e) this.seo.set({ title: e.title, description: e.summary, path: `/eventos/${e.slug}`, image: e.coverUrl });
     });
     this.form.controls.isMember.valueChanges.subscribe((v) => this.isMember.set(v));
   }

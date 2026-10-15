@@ -190,11 +190,36 @@ $TLS
 		}
 	}
 
+	# Endereços antigos: redirecionamento permanente (301)
+	redir /termos /termos-e-condicoes 301
+	redir /modalidades/escola-de-desporto /modalidades/futsal#escola-de-desporto 301
+	redir /area-socio/entrar /entrar?perfil=socio 301
+
 	handle {
 		root * $ROOT/current/web
 		@assets path_regexp -[0-9A-Za-z]{8}\.(js|css)$
 		header @assets Cache-Control "public, max-age=31536000, immutable"
-		try_files {path} {path}/index.html /index.csr.html
+		# Páginas pré-renderizadas e ficheiros
+		@static file {path} {path}/index.html
+		handle @static {
+			try_files {path} {path}/index.html
+			file_server
+		}
+		# Páginas feitas no browser: áreas reservadas e notícias, eventos e páginas do CMS
+		@client path /area-socio /area-socio/* /area-atletas /area-atletas/* /admin /admin/* /entrar /entrar/* /paginas/* /propostas/* /noticias/* /eventos/*
+		handle @client {
+			rewrite * /index.csr.html
+			file_server
+		}
+		# O resto não existe: página 404 com o código 404 (e não 200)
+		handle {
+			error 404
+		}
+	}
+
+	handle_errors 404 {
+		root * $ROOT/current/web
+		rewrite * /404.html
 		file_server
 	}
 

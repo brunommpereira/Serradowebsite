@@ -32,6 +32,7 @@ ROUTE_LIMITS: list[tuple[str, re.Pattern[str], str, int]] = [
     ("POST", re.compile(r"^/api/v1/me/payments$"), "payments", 10),
     ("POST", re.compile(r"^/api/v1/registrations/[a-z]+$"), "signup", 5),
     ("POST", re.compile(r"^/api/v1/interest$"), "interest", 5),
+    ("POST", re.compile(r"^/api/v1/contact$"), "contact", 5),
     ("POST", re.compile(r"^/api/v1/payments/stripe/webhook$"), "stripe-webhook", 600),
 ]
 # Sem cookie de sessão nem X-Requested-With: autenticados pela assinatura do Stripe
