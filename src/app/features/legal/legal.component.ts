@@ -99,7 +99,13 @@ export class LegalComponent {
           ],
         },
         {
-          h: '13. Redes sociais',
+          h: '13. Estatísticas de visitas',
+          p: [
+            'Contamos as visitas às páginas públicas com o Umami, alojado no servidor do clube, sem cookies e sem guardar o endereço IP: só ficam dados agregados (página, origem da visita, tipo de dispositivo, país). As áreas reservadas não são contadas.',
+          ],
+        },
+        {
+          h: '14. Redes sociais',
           p: [
             'O site mostra publicações, eventos, reels e histórias da página pública de Facebook do clube. O vídeo do Facebook só é carregado quando carrega em reproduzir; a partir desse momento aplica-se a política de privacidade da Meta.',
           ],
@@ -118,6 +124,7 @@ export class LegalComponent {
           h: '2. Cookies que utilizamos',
           p: [
             'Apenas cookies essenciais: o cookie de sessão, criado quando entra na Área de Sócio, na Área de Atletas ou no backoffice, que expira ao fim de algumas horas ou quando sai. Não usamos cookies de publicidade nem de medição de audiências, por isso não pedimos consentimento.',
+            'Para saber quantas pessoas visitam o site, usamos o Umami, instalado no servidor do próprio clube: não usa cookies, não guarda o endereço IP nem dados que identifiquem o visitante, não conta as áreas reservadas e respeita a opção «Não rastrear» do navegador. Nada é enviado a terceiros.',
             'O leitor de vídeo do Facebook só é carregado quando carrega em reproduzir um reel; a partir daí a Meta pode usar os seus próprios cookies, de acordo com a política dela.',
           ],
         },

@@ -20,6 +20,8 @@
 #   serrado xistarca off              desliga
 #   serrado xistarca-run              envia agora os pedidos de inscrição em fila
 #   serrado xistarca-discover [url]   mostra os campos do formulário da Xistarca (sem dados pessoais)
+#   serrado umami <sha256>            instala as estatísticas (pacote no stdin; feito pelo GitHub Actions)
+#   serrado umami off                 desliga as estatísticas
 #   serrado payments                  liga os pagamentos online (Stripe) e as faturas-recibo (Moloni ON)
 #   serrado payments off              desliga
 #   serrado moloni-info               empresas, séries, artigos e métodos de pagamento do Moloni (para configurar)
@@ -305,6 +307,71 @@ cmd_xistarca() {
   echo '✔ Conta Xistarca configurada. No backoffice → Inscrições no Troféu cria a edição (modo de teste primeiro).'
 }
 
+UMAMI=/opt/umami
+cmd_umami() {
+  if [ "${1:-}" = off ]; then
+    $SYSTEMCTL disable --now serrado-umami 2>/dev/null || true
+    rm -f /etc/caddy/umami.caddy && $SYSTEMCTL reload caddy
+    echo '✔ Estatísticas desligadas (os dados ficam na base de dados «umami»)'
+    return
+  fi
+  local sum=${1:-}
+  [[ $sum =~ ^[0-9a-f]{64}$ ]] || die 'Uso: serrado umami <sha256> (pacote no stdin) | serrado umami off'
+  [ "$(dpkg --print-architecture)" = amd64 ] || die 'O pacote do Umami é compilado para amd64.'
+  local stamp; stamp=$(date +%Y%m%d%H%M%S)
+  local tmp="$UMAMI/.incoming.tgz" dir="$UMAMI/releases/$stamp"
+  mkdir -p "$UMAMI/releases"
+  id umami >/dev/null 2>&1 || useradd --system --home-dir "$UMAMI" --shell /usr/sbin/nologin umami
+  info 'A receber o Umami'
+  cat > "$tmp"
+  echo "$sum  $tmp" | sha256sum -c --quiet - || { rm -f "$tmp"; die 'O pacote chegou corrompido (sha256 diferente).'; }
+  mkdir -p "$dir" && tar -xzf "$tmp" -C "$dir" --no-same-owner --no-same-permissions && rm -f "$tmp"
+  [ -x "$dir/node" ] && [ -f "$dir/app/server.js" ] || { rm -rf "$dir"; die 'Pacote incompleto.'; }
+  mkdir -p "$dir/app/.next/cache"
+  chown -R root:umami "$dir" && chmod -R u=rwX,g=rX,o= "$dir" && chown -R umami:umami "$dir/app/.next/cache"
+
+  info 'Base de dados «umami» (só local, sem password: autenticação pelo utilizador do sistema)'
+  as_postgres psql -tAc "select 1 from pg_roles where rolname='umami'" | grep -q 1 || as_postgres createuser umami
+  as_postgres psql -tAc "select 1 from pg_database where datname='umami'" | grep -q 1 || as_postgres createdb -O umami umami
+  if [ ! -f "$ETC/umami.env" ]; then
+    umask 027
+    printf '%s\n' 'DATABASE_URL=postgresql://umami@localhost/umami?host=/var/run/postgresql' "APP_SECRET=$(openssl rand -hex 32)" > "$ETC/umami.env"
+    chown root:umami "$ETC/umami.env" && chmod 640 "$ETC/umami.env"
+  fi
+  info 'Migrações do Umami'
+  (cd "$dir/app" && runuser -u umami -- bash -c 'set -a; . "$0"; set +a; PATH="$1/node_modules/.bin:$1:$PATH" exec "$1/node" scripts/check-db.js' "$ETC/umami.env" "$dir") \
+    || { rm -rf "$dir"; die 'As migrações do Umami falharam.'; }
+
+  ln -sfn "$dir" "$UMAMI/current.new" && mv -T "$UMAMI/current.new" "$UMAMI/current"
+  $SYSTEMCTL daemon-reload
+  $SYSTEMCTL enable serrado-umami >/dev/null 2>&1 || true
+  $SYSTEMCTL restart serrado-umami
+  printf 'handle /estatisticas* {\n\treverse_proxy 127.0.0.1:3001\n}\n' > /etc/caddy/umami.caddy
+  $SYSTEMCTL reload caddy
+  local ok=''
+  for _ in $(seq 30); do curl -fsS -o /dev/null http://127.0.0.1:3001/estatisticas/script.js && ok=1 && break; sleep 2; done
+  [ -n "$ok" ] || die 'O Umami não arrancou (sudo journalctl -u serrado-umami -n 50).'
+
+  # Primeira instalação: a conta por omissão (admin/umami) passa a ter uma password aleatória
+  local login token
+  login=$(curl -fsS -X POST http://127.0.0.1:3001/estatisticas/api/auth/login -H 'content-type: application/json' \
+    -d '{"username":"admin","password":"umami"}' 2>/dev/null || true)
+  token=$(jq -r '.token // empty' <<<"$login" 2>/dev/null || true)
+  if [ -n "$token" ]; then
+    local uid pass
+    uid=$(jq -r '.user.id' <<<"$login")
+    pass=$(openssl rand -base64 18 | tr -d '/+=')
+    curl -fsS -o /dev/null -X POST "http://127.0.0.1:3001/estatisticas/api/users/$uid" -H "authorization: Bearer $token" \
+      -H 'content-type: application/json' -d "{\"password\":\"$pass\"}" || die 'Não consegui trocar a password do Umami.'
+    # Corre pelo GitHub Actions: a password nunca vai para a saída (ficaria nos registos do Actions)
+    ( umask 077; printf 'Umami (https://.../estatisticas)\nutilizador: admin\npassword: %s\n' "$pass" > "$ETC/umami-admin.txt" )
+    echo "✔ Conta do painel criada. Password em: sudo cat $ETC/umami-admin.txt (guarda-a e apaga o ficheiro)"
+  fi
+  # Versões antigas: ficam as 2 mais recentes
+  ls -1d "$UMAMI"/releases/* | sort | head -n -2 | xargs -r rm -rf
+  echo "✔ Estatísticas ativas em https://$(grep '^SITE_DOMAIN=' "$ETC/serrado.env" | cut -d= -f2)/estatisticas ($(cat "$dir/VERSION" 2>/dev/null))"
+}
+
 pay_py() { (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.payments "$@"); }
 
 cmd_payments() {
@@ -433,12 +500,13 @@ case "${1:-}" in
   status) cmd_status ;;
   admin) shift; [ $# -eq 2 ] || die 'Uso: serrado admin <email> "<nome>"'; (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.db.create_admin "$1" "$2") ;;
   content) (cd "$ROOT/current/services" && as_app .venv/bin/python -m serrado.db.content) ;;
-  logs) journalctl -u serrado-middleware -u serrado-backend -u serrado-facebook -u serrado-xistarca -u serrado-receipts -u serrado-fees -u serrado-mail -u caddy -n "${2:-100}" --no-pager ;;
+  logs) journalctl -u serrado-middleware -u serrado-backend -u serrado-facebook -u serrado-xistarca -u serrado-umami -u serrado-receipts -u serrado-fees -u serrado-mail -u caddy -n "${2:-100}" --no-pager ;;
   cf-ips) cmd_cf_ips ;;
   oauth) shift; cmd_oauth "$@" ;;
   facebook) shift; cmd_facebook "$@" ;;
   facebook-sync) cmd_facebook_sync ;;
   xistarca) shift; cmd_xistarca "$@" ;;
+  umami) shift; cmd_umami "$@" ;;
   xistarca-run) xis_py run ;;
   xistarca-discover) shift; [[ -z ${1:-} || $1 =~ ^https://checkout\.xistarca\.pt/evento/[A-Za-z0-9._~%-]+$ ]] || die 'Endereço inválido'; xis_py discover "$@" ;;
   payments) shift; cmd_payments "$@" ;;
@@ -446,5 +514,5 @@ case "${1:-}" in
   receipts) pay_py receipts ;;
   fees) shift; [[ -z ${1:-} || $1 =~ ^[0-9]{4}-(0[1-9]|1[0-2])$ ]] || die 'Uso: serrado fees [AAAA-MM]'; pay_py generate-fees "$@" ;;
   email) shift; cmd_email "$@" ;;
-  *) sed -n '2,32p' "$0"; exit 1 ;;
+  *) sed -n '2,34p' "$0"; exit 1 ;;
 esac

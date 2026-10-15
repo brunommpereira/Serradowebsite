@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { HeaderComponent } from './layout/header/header.component';
+import { AnalyticsService } from './core/services/analytics.service';
 import { FooterComponent } from './layout/footer/footer.component';
 
 @Component({
@@ -42,4 +43,8 @@ export class App {
     ),
     { initialValue: false },
   );
+
+  constructor() {
+    inject(AnalyticsService).start();
+  }
 }

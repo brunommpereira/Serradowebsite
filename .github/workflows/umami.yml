@@ -1,0 +1,98 @@
+# Estatísticas de visitas (Umami, sem cookies) no próprio servidor, em https://<domínio>/estatisticas.
+# Corre-se à mão uma vez (e para atualizar a versão): Actions → Estatísticas (Umami) → Run workflow.
+# Compila o Umami aqui (a VPS não precisa de Node nem de memória para compilar) e envia-o pelo serrado-ssh-gate.
+name: Estatísticas (Umami)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: umami
+  cancel-in-progress: false
+
+env:
+  UMAMI_VERSION: v3.3.1
+  NODE_VERSION: 22.22.0
+  PNPM_VERSION: 11.21.0
+  # Igual ao Dockerfile do Umami desta versão
+  PRISMA_VERSION: 7.9.1
+
+jobs:
+  build:
+    name: Compilar o Umami
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Código do Umami (versão fixa)
+        run: git clone --depth 1 --branch "$UMAMI_VERSION" https://github.com/umami-software/umami umami
+      - name: Compilar (em /estatisticas)
+        working-directory: umami
+        env:
+          BASE_PATH: /estatisticas
+          NEXT_TELEMETRY_DISABLED: '1'
+          DATABASE_URL: postgresql://user:pass@localhost:5432/dummy
+        run: |
+          printf 'strictDepBuilds: false\n' > pnpm-workspace.yaml
+          cp docker/proxy.ts src/
+          npx -y "pnpm@$PNPM_VERSION" install --frozen-lockfile
+          npx -y "pnpm@$PNPM_VERSION" run build-docker
+      - name: Pacote (como a imagem Docker oficial, com o Node incluído)
+        run: |
+          mkdir -p bundle/app
+          cd bundle/app
+          echo '{}' > package.json
+          npm install --no-audit --no-fund npm-run-all dotenv chalk semver \
+            "prisma@$PRISMA_VERSION" "@prisma/client@$PRISMA_VERSION" "@prisma/adapter-pg@$PRISMA_VERSION"
+          ls node_modules/@prisma/engines/ | grep -q engine || { echo 'Faltam os motores do Prisma'; exit 1; }
+          cp -r ../../umami/public ../../umami/prisma ../../umami/prisma.config.ts ../../umami/scripts ../../umami/generated .
+          cp -r ../../umami/.next/standalone/. .
+          mkdir -p .next && cp -r ../../umami/.next/static .next/static
+          cd ..
+          install -m 755 "$(command -v node)" node
+          echo "$UMAMI_VERSION" > VERSION
+          tar -czf ../umami.tgz .
+          ls -lh ../umami.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: umami
+          path: umami.tgz
+          retention-days: 7
+
+  install:
+    name: Instalar na VPS
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://${{ vars.SITE_DOMAIN }}/estatisticas
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: umami
+      - name: Chave SSH (utilizador deploy, limitado ao serrado-ssh-gate)
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Enviar e ativar
+        env:
+          HOST: ${{ vars.VPS_HOST }}
+        run: |
+          SUM=$(sha256sum umami.tgz | cut -d' ' -f1)
+          ssh -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 "deploy@$HOST" "umami $SUM" < umami.tgz
+      - name: Verificar
+        if: vars.SITE_DOMAIN != ''
+        run: |
+          for _ in $(seq 20); do
+            curl -fsS -o /dev/null "https://${{ vars.SITE_DOMAIN }}/estatisticas/script.js" && exit 0
+            sleep 6
+          done
+          exit 1

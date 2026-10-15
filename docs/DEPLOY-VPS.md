@@ -351,6 +351,21 @@ Quem já tem conta Xistarca (pelo email da ficha) é importado com os dados dess
 preenchidos com os dados da ficha (nome, data de nascimento, género, CC, telefone, localidade e contacto
 de emergência), equipa «Serrado FC» e o clube «Serrado FC / Outdoor Training Camp» na lista de Almada.
 
+## 5g. Estatísticas de visitas (Umami, sem cookies)
+
+O Umami corre no próprio servidor, em `https://<domínio>/estatisticas`: não usa cookies, não guarda o IP
+e não envia nada a terceiros (dispensa o banner de consentimento). Só conta as páginas públicas.
+
+1. Depois de voltar a correr o `bootstrap.sh` (acrescenta a permissão `umami` ao utilizador `deploy` e o
+   encaminhamento `/estatisticas` no Caddy), no GitHub: **Actions → Estatísticas (Umami) → Run workflow**.
+   O Umami é compilado no GitHub e instalado na VPS (Node incluído; base de dados `umami` no PostgreSQL local).
+2. Na VPS: `sudo cat /etc/serrado/umami-admin.txt` mostra a password do painel (utilizador `admin`).
+   Guarda-a no gestor de passwords e apaga o ficheiro (`sudo rm /etc/serrado/umami-admin.txt`).
+3. Em `https://<domínio>/estatisticas` → **Definições → Sites → Adicionar site** (domínio `www.serradofc.pt`).
+   Copia o **ID do site** e cola-o em Backoffice → Conteúdos do site → Contactos → «Estatísticas: ID do site no Umami».
+4. Para atualizar a versão: mudar `UMAMI_VERSION` em `.github/workflows/umami.yml` e voltar a correr o workflow.
+   Para desligar: `sudo serrado umami off` e apagar o ID no backoffice.
+
 ## 6. Cópias de segurança
 
 | | Onde | Quando | Quanto tempo |
@@ -393,6 +408,7 @@ sudo serrado offsite-latest /root/recuperar                  # descarrega a últ
 | `sudo serrado email [smtp\|brevo]` / `email test <endereço>` / `email log` / `email off` | Emails do site (caixa do domínio ou Brevo): passwords, convites, fichas assinadas |
 | `sudo serrado facebook` / `facebook-sync` / `facebook off` | Ligar, sincronizar agora ou desligar a página de Facebook |
 | `sudo serrado xistarca` / `xistarca-run` / `xistarca-discover [url]` / `xistarca off` | Inscrições no Troféu de Almada pela Xistarca |
+| `sudo serrado umami off` | Desligar as estatísticas (a instalação é pelo GitHub Actions) |
 | `sudo serrado oauth google` / `microsoft` | Ativar a entrada com Google ou Microsoft (`… off` para desativar) |
 
 Para mudar o domínio ou passar a usar a Cloudflare, volta a correr o `bootstrap.sh` com as novas opções. Os dados e os segredos mantêm-se.

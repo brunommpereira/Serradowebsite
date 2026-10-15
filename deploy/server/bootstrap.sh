@@ -190,6 +190,9 @@ $TLS
 		}
 	}
 
+	# Estatísticas (Umami no próprio servidor, só depois de «Actions → Estatísticas (Umami)»)
+	import /etc/caddy/umami*.caddy
+
 	# Endereços antigos: redirecionamento permanente (301)
 	redir /termos /termos-e-condicoes 301
 	redir /modalidades/escola-de-desporto /modalidades/futsal#escola-de-desporto 301
@@ -264,7 +267,7 @@ if [ -n "$DEPLOY_KEY" ]; then
   echo "restrict,command=\"/usr/local/sbin/serrado-ssh-gate\" $DEPLOY_KEY" > /home/deploy/.ssh/authorized_keys
   chown deploy:deploy /home/deploy/.ssh/authorized_keys && chmod 600 /home/deploy/.ssh/authorized_keys
   cat > /etc/sudoers.d/serrado-deploy <<'EOF'
-deploy ALL=(root) NOPASSWD: /usr/local/sbin/serrado status, /usr/local/sbin/serrado backup, /usr/local/sbin/serrado rollback, /usr/local/sbin/serrado deploy *
+deploy ALL=(root) NOPASSWD: /usr/local/sbin/serrado status, /usr/local/sbin/serrado backup, /usr/local/sbin/serrado rollback, /usr/local/sbin/serrado deploy *, /usr/local/sbin/serrado umami *
 EOF
   chmod 440 /etc/sudoers.d/serrado-deploy && visudo -cf /etc/sudoers.d/serrado-deploy
 fi
