@@ -283,3 +283,41 @@ async def test_encarregado_com_o_email_na_ficha_do_menor_entra_e_ve_o_educando(m
         "select x.role from athlete_access x join athletes a on a.id = x.athlete_id where a.code = 'SFC-0903'",
     )
     assert a == {"role": "encarregado"}
+
+
+async def test_email_da_ficha_com_espacos_ou_pontos_do_gmail_liga_na_mesma(mw):
+    # Importado do Excel com espaço no fim e maiúsculas; no Gmail os pontos não contam
+    await execute(
+        mw.pool,
+        """insert into athletes (code, name, birth_date, gender, sport_slug, email)
+           values ('SFC-0911', 'Rui Corredor', '1988-03-03', 'Masculino', 'atletismo', ' Rui.Corredor@GMAIL.com ')""",
+    )
+    r = await finish(mw, await start(mw), {"sub": "g-rui", "email": "ruicorredor@gmail.com", "email_verified": True})
+    assert r["session"]
+    a = await fetch_one(
+        mw.pool,
+        "select x.role from athlete_access x join athletes a on a.id = x.athlete_id where a.code = 'SFC-0911'",
+    )
+    assert a == {"role": "atleta"}
+    # Outro domínio: os pontos contam (não é o mesmo endereço)
+    await execute(
+        mw.pool,
+        "insert into athletes (code, name, birth_date, sport_slug, email) values ('SFC-0912', 'Ana Pontos', '1990-01-01', 'atletismo', 'ana.pontos@sapo.pt')",
+    )
+    b = await finish(mw, await start(mw), {"sub": "g-ana", "email": "anapontos@sapo.pt", "email_verified": True})
+    assert b["session"] is None
+
+
+async def test_conta_ja_criada_sem_ligacao_fica_ligada_na_entrada_seguinte(mw):
+    # Situação de antes da correção: a conta existe, a ficha tem o email com espaço e ficou por ligar
+    await execute(
+        mw.pool,
+        """insert into athletes (code, name, birth_date, gender, sport_slug, email)
+           values ('SFC-0913', 'Sara Atleta', '1992-02-02', 'Feminino', 'atletismo', 'sara.atleta@gmail.com ')""",
+    )
+    await execute(mw.pool, "insert into users (email, name, password_hash) values ('sara.atleta@gmail.com', 'Sara Atleta', '!')")
+    r = await finish(mw, await start(mw), {"sub": "g-sara", "email": "sara.atleta@gmail.com", "email_verified": True})
+    assert r["session"]
+    assert (await me(mw, r["session"])).status_code == 200
+    a = await fetch_one(mw.pool, "select x.role from athlete_access x join athletes a on a.id = x.athlete_id where a.code = 'SFC-0913'")
+    assert a == {"role": "atleta"}

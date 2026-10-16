@@ -136,10 +136,10 @@ async def _account_from_records(c: Conn, email: str, provider: str) -> dict[str,
     row = await (
         await c.execute(
             """select coalesce(
-                        (select name from members where lower(trim(email)) = %s order by member_number limit 1),
-                        (select name from athletes where lower(trim(email)) = %s
+                        (select name from members where norm_email(email) = norm_email(%s) order by member_number limit 1),
+                        (select name from athletes where norm_email(email) = norm_email(%s)
                             and (birth_date is null or birth_date <= current_date - interval '18 years') order by created_at limit 1),
-                        (select %s from athletes where lower(trim(email)) = %s limit 1)
+                        (select %s from athletes where norm_email(email) = norm_email(%s) limit 1)
                       ) as name""",
             [email, email, email.split("@")[0], email],
         )
@@ -243,7 +243,11 @@ def register(r: APIRouter) -> None:
             elif body.emailVerified and body.email:
                 # Primeira entrada com esta conta: só com email verificado pelo fornecedor e igual ao da conta do clube
                 email = body.email.strip().lower()
-                cur = await c.execute("select id, disabled from users where lower(email) = %s", [email])
+                cur = await c.execute(
+                    # O mesmo email (no Gmail, também sem pontos nem «+etiqueta»); o igual exato primeiro
+                    "select id, disabled from users where norm_email(email) = norm_email(%s) order by (lower(email) = %s) desc, created_at limit 1",
+                    [email, email],
+                )
                 found = await cur.fetchone()
                 if found and found["disabled"]:
                     found = None
