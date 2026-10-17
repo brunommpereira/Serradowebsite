@@ -20,7 +20,7 @@ const SPORTS: Record<string, string> = { atletismo: 'Atletismo', futsal: 'Futsal
     <div class="adm-head">
       <div>
         <h1>Atletas</h1>
-        <p>{{ list().length }} atleta(s){{ auth.can('athletes.sensitive') ? '' : ' · vista de treinador (sem dados sensíveis)' }}</p>
+        <p>{{ list().length }} atleta(s){{ pending() === 'email' ? ' sem email na ficha' : pending() === 'account' ? ' sem conta ligada' : '' }}{{ auth.can('athletes.sensitive') ? '' : ' · vista de treinador (sem dados sensíveis)' }}</p>
       </div>
       @if (manage) {
         <div class="quick">
@@ -45,6 +45,8 @@ const SPORTS: Record<string, string> = { atletismo: 'Atletismo', futsal: 'Futsal
         <button type="button" class="chip" [attr.aria-pressed]="pending() === 'confirm'" (click)="pending.set('confirm')">Ficha por confirmar</button>
         <button type="button" class="chip" [attr.aria-pressed]="pending() === 'docs'" (click)="pending.set('docs')">Documentos em falta</button>
         <button type="button" class="chip" [attr.aria-pressed]="pending() === 'requests'" (click)="pending.set('requests')">Com pedidos</button>
+        <button type="button" class="chip" [attr.aria-pressed]="pending() === 'email'" (click)="pending.set('email')" title="Sem email na ficha não fica ligado sozinho quando entra no site">Sem email</button>
+        <button type="button" class="chip" [attr.aria-pressed]="pending() === 'account'" (click)="pending.set('account')" title="Ninguém com acesso à ficha no site (nem o atleta nem um encarregado)">Sem conta ligada</button>
       </div>
     </div>
 

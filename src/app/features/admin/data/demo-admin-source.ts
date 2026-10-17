@@ -153,7 +153,17 @@ export class DemoAdminSource extends AdminSource {
       .filter((a) => !q || a.name.toLowerCase().includes(q) || a.code.toLowerCase().includes(q))
       .filter((a) => !filter.sport || a.sportSlug === filter.sport)
       .filter((a) =>
-        filter.pending === 'docs' ? a.docsApproved < a.docsTotal : filter.pending === 'confirm' ? !a.confirmed : filter.pending === 'requests' ? a.pendingRequests > 0 : true,
+        filter.pending === 'docs'
+          ? a.docsApproved < a.docsTotal
+          : filter.pending === 'confirm'
+            ? !a.confirmed
+            : filter.pending === 'requests'
+              ? a.pendingRequests > 0
+              : filter.pending === 'email'
+                ? !a.hasEmail
+                : filter.pending === 'account'
+                  ? !a.accounts
+                  : true,
       )
       .sort((a, b) => a.name.localeCompare(b.name));
   }
@@ -447,6 +457,8 @@ export class DemoAdminSource extends AdminSource {
       docsTotal: a.documents.length,
       docsToReview: a.documents.filter((d) => d.status === 'Em análise').length,
       pendingRequests: a.pendingReview ? 1 : 0,
+      hasEmail: !!a.details.email?.trim(),
+      accounts: 1,
     };
   }
 

@@ -94,3 +94,18 @@ async def test_id_publico_do_contador(mw: Middleware, umami: FakeUmami) -> None:
     r = await mw.client().get("/api/v1/content/analytics")
     assert r.json() == {"websiteId": SITE}
     assert "segredo" not in r.text
+
+
+async def test_filtros_de_atletas_sem_email_e_sem_conta(mw: Middleware) -> None:
+    from serrado.db.pool import execute
+
+    await execute(mw.pool, "insert into athletes (code, name, sport_slug, email) values ('SFC-0950', 'Sem Email', 'atletismo', '  ')")
+    await execute(mw.pool, "insert into athletes (code, name, sport_slug, email) values ('SFC-0951', 'Sem Conta', 'futsal', 'sem.conta@exemplo.pt')")
+    c = await mw.login("secretaria@serradofc.pt", "secretaria2026")
+    sem_email = (await c.get("/api/v1/admin/athletes?pending=email")).json()
+    assert [a["name"] for a in sem_email] == ["Sem Email"]
+    assert sem_email[0]["hasEmail"] is False
+    sem_conta = {a["name"] for a in (await c.get("/api/v1/admin/athletes?pending=account")).json()}
+    assert sem_conta == {"Sem Email", "Sem Conta"}
+    todos = {a["name"]: a for a in (await c.get("/api/v1/admin/athletes")).json()}
+    assert todos["Rita Exemplo"]["hasEmail"] is True and todos["Rita Exemplo"]["accounts"] == 1
