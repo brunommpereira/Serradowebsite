@@ -84,11 +84,18 @@ describe('AthleteAreaService', () => {
   });
 
   it('regista e anula a resposta Vou / Não vou', () => {
-    const s = service.upcoming('atl-1')[0];
-    service.setRsvp(s.id, 'vou');
-    expect(service.upcoming('atl-1')[0].rsvp).toBe('vou');
-    service.setRsvp(s.id, null);
-    expect(service.upcoming('atl-1')[0].rsvp).toBeNull();
+    // Os treinos de demonstração têm datas fixas: fixa o relógio antes deles
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-01T12:00'));
+    try {
+      const s = service.upcoming('atl-1')[0];
+      service.setRsvp(s.id, 'vou');
+      expect(service.upcoming('atl-1')[0].rsvp).toBe('vou');
+      service.setRsvp(s.id, null);
+      expect(service.upcoming('atl-1')[0].rsvp).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('calcula presenças, faltas e minutos só com sessões terminadas', () => {
