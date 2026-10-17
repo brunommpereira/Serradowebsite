@@ -431,7 +431,7 @@ async def claim_athletes(c: Conn, user_id: str) -> int:
         return 0
     email = u["email"]
     actor = Actor(id=user_id)
-    await c.execute("update members set user_id = %s where user_id is null and lower(email) = lower(%s)", [user_id, email])
+    await c.execute("update members set user_id = %s where user_id is null and norm_email(email) = norm_email(%s)", [user_id, email])
     n = await _claim_pass(c, actor, email)
     own = await (
         await c.execute(
@@ -457,9 +457,9 @@ async def _claim_pass(c: Conn, actor: Actor, email: str) -> int:
         await c.execute(
             """select a.id, a.name, (a.birth_date is null or a.birth_date <= current_date - interval '18 years') as adult,
                       exists(select 1 from athlete_access x where x.athlete_id = a.id) as has_access,
-                      lower(coalesce(a.email, '')) = lower(%s) as by_email, m.name as member_name
+                      norm_email(a.email) = norm_email(%s) as by_email, m.name as member_name
                  from athletes a left join members m on m.member_number = a.member_number and m.user_id = %s
-                where (lower(a.email) = lower(%s) or m.member_number is not null)
+                where (norm_email(a.email) = norm_email(%s) or m.member_number is not null)
                   and not exists(select 1 from athlete_access x where x.athlete_id = a.id and x.user_id = %s)""",
             [email, user_id, email, user_id],
         )
