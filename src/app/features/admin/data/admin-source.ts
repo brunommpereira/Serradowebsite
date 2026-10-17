@@ -74,6 +74,10 @@ export interface AdminAthlete {
   docsTotal: number;
   docsToReview: number;
   pendingRequests: number;
+  /** Tem email na ficha (sem ele não fica ligado sozinho a uma conta) */
+  hasEmail?: boolean;
+  /** Contas com acesso à ficha (atleta ou encarregados) */
+  accounts?: number;
 }
 
 export interface AdminAthleteDetail extends Record<string, unknown> {
