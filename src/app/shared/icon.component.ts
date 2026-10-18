@@ -57,6 +57,7 @@ const ICONS: Record<string, string> = {
   // Redes sociais (preenchidos)
   facebook: '<path fill="currentColor" stroke="none" d="M13.5 21v-7.5H16l.4-3h-2.9V8.6c0-.9.3-1.5 1.5-1.5h1.5V4.4c-.3 0-1.2-.1-2.2-.1-2.2 0-3.7 1.3-3.7 3.8v2.4H8.1v3h2.5V21z"/>',
   instagram: '<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1" fill="currentColor"/>',
+  whatsapp: '<path d="M3.5 20.5 4.9 16A8.6 8.6 0 1 1 8 19.2z"/><path d="M9 8.3c.3-.4.8-.4 1 0l.8 1.7c.1.3 0 .6-.2.8l-.5.5c.6 1.3 1.6 2.3 2.9 2.9l.5-.5c.2-.2.5-.3.8-.2l1.7.8c.4.2.4.7 0 1-.7.8-1.7 1.1-2.7.7A8 8 0 0 1 8.3 11c-.4-1-.1-2 .7-2.7z" fill="currentColor" stroke="none"/>',
   youtube: '<rect x="2.5" y="5.5" width="19" height="13" rx="4"/><path d="m10 9 5 3-5 3z" fill="currentColor"/>',
 };
 

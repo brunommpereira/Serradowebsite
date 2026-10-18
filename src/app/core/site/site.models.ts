@@ -65,6 +65,10 @@ export interface ContactsBlock {
   locality: string;
   phone: string;
   phone2: string;
+  /** Número de WhatsApp para o botão «Falar connosco» (vazio = sem botão) */
+  whatsapp: string;
+  /** Mensagem já escrita quando se abre a conversa */
+  whatsappMessage: string;
   email: string;
   nipc: string;
   /** Código de Atividade Económica (Finanças), ex.: 93120 */

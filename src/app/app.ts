@@ -5,10 +5,11 @@ import { filter, map } from 'rxjs';
 import { HeaderComponent } from './layout/header/header.component';
 import { AnalyticsService } from './core/services/analytics.service';
 import { FooterComponent } from './layout/footer/footer.component';
+import { WhatsappButtonComponent } from './shared/whatsapp-button.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, HeaderComponent, FooterComponent],
+  imports: [RouterOutlet, HeaderComponent, FooterComponent, WhatsappButtonComponent],
   template: `
     @if (backoffice()) {
       <!-- O backoffice tem o seu próprio layout (barra lateral) -->
@@ -20,6 +21,7 @@ import { FooterComponent } from './layout/footer/footer.component';
         <router-outlet />
       </main>
       <sfc-footer />
+      <sfc-whatsapp-button />
     }
   `,
   styles: `

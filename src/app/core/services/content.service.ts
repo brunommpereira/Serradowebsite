@@ -36,6 +36,8 @@ export interface ClubInfo {
   locality: string;
   phone: string;
   phone2: string;
+  whatsapp: string;
+  whatsappMessage: string;
   email: string;
   nipc: string;
   cae: string;
@@ -74,6 +76,8 @@ export class ContentService {
       locality: c.locality,
       phone: c.phone,
       phone2: c.phone2,
+      whatsapp: c.whatsapp ?? '',
+      whatsappMessage: c.whatsappMessage ?? '',
       email: c.email,
       nipc: c.nipc,
       cae: c.cae,
@@ -380,6 +384,15 @@ export class ContentService {
 /** Número para ligações tel: (sem espaços nem pontuação, mantém o +). */
 export function tel(phone: string) {
   return phone.replace(/[^\d+]/g, '');
+}
+
+/** Ligação para abrir uma conversa de WhatsApp (números de 9 dígitos são portugueses). */
+export function whatsappUrl(phone: string, text = '') {
+  let n = phone.replace(/\D/g, '');
+  if (n.startsWith('00')) n = n.slice(2);
+  if (n.length === 9) n = '351' + n;
+  if (n.length < 9) return null;
+  return `https://wa.me/${n}` + (text.trim() ? `?text=${encodeURIComponent(text.trim())}` : '');
 }
 
 function slug(s: string) {
