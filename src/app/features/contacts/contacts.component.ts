@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, effect, inject, input, signal } fro
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { DomSanitizer } from '@angular/platform-browser';
-import { ContentService, tel } from '../../core/services/content.service';
+import { ContentService, tel, whatsappUrl } from '../../core/services/content.service';
 import { SeoService } from '../../core/services/seo.service';
 import { COMPLAINTS_URL } from '../legal/legal-info';
 import { ApiClient } from '../../core/api/api-client';
@@ -30,6 +30,11 @@ const SUBJECTS = ['Informações gerais', 'Inscrição numa modalidade', 'Ser s�
                     <br /><a [href]="'tel:' + tel(club.phone2)">{{ club.phone2 }}</a>
                   }
                 </span>
+              </li>
+            }
+            @if (wa) {
+              <li>
+                <sfc-icon name="whatsapp" /><span><strong>WhatsApp</strong><a [href]="wa" target="_blank" rel="noopener">{{ club.whatsapp }}</a></span>
               </li>
             }
             <li><sfc-icon name="mail" /><span><strong>Email</strong><a [href]="'mailto:' + club.email">{{ club.email }}</a></span></li>
@@ -130,6 +135,7 @@ export class ContactsComponent {
   readonly assunto = input<string>();
   protected readonly club = inject(ContentService).club;
   protected readonly tel = tel;
+  protected readonly wa = whatsappUrl(this.club.whatsapp, this.club.whatsappMessage);
   protected readonly complaintsUrl = COMPLAINTS_URL;
   protected readonly subjects = SUBJECTS;
   protected readonly sent = signal(false);

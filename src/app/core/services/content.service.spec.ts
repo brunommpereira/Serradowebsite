@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { ContentService } from './content.service';
+import { ContentService, whatsappUrl } from './content.service';
 
 describe('ContentService', () => {
   let service: ContentService;
@@ -22,5 +22,13 @@ describe('ContentService', () => {
   it('pesquisa ignora acentos', () => {
     const r = service.search('socio');
     expect(r.some((x) => x.link === '/socios')).toBe(true);
+  });
+
+  it('monta a ligação do WhatsApp com indicativo e mensagem', () => {
+    expect(whatsappUrl('935 519 828', 'Olá!')).toBe('https://wa.me/351935519828?text=Ol%C3%A1!');
+    expect(whatsappUrl('+351 935 519 828')).toBe('https://wa.me/351935519828');
+    expect(whatsappUrl('00351935519828')).toBe('https://wa.me/351935519828');
+    expect(whatsappUrl('')).toBeNull();
+    expect(service.club.whatsapp).toBeTruthy();
   });
 });

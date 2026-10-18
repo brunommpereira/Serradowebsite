@@ -45,6 +45,8 @@ export const SITE_DEFAULTS: SiteData = {
     locality: DATA.CLUB.locality,
     phone: DATA.CLUB.phone,
     phone2: '',
+    whatsapp: '935 519 828',
+    whatsappMessage: 'Olá! Venho do site do Serrado FC e gostava de saber…',
     email: DATA.CLUB.email,
     nipc: DATA.CLUB.nipc,
     cae: '93120 – Atividades dos clubes desportivos',

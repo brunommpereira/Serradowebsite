@@ -179,6 +179,14 @@ export const BLOCKS: BlockDef[] = [
     fields: [
       { key: 'phone', label: 'Telefone (opcional)', kind: 'text', max: 40 },
       { key: 'phone2', label: 'Outro telefone (opcional)', kind: 'text', max: 40 },
+      {
+        key: 'whatsapp',
+        label: 'WhatsApp (opcional)',
+        kind: 'text',
+        max: 40,
+        hint: 'Número com WhatsApp para o botão «Falar connosco» no canto do site. Vazio = sem botão.',
+      },
+      { key: 'whatsappMessage', label: 'WhatsApp: mensagem inicial', kind: 'text', max: 200, wide: true },
       { key: 'email', label: 'Email', kind: 'email', required: true, max: 120 },
       { key: 'address', label: 'Morada', kind: 'text', required: true, max: 160 },
       { key: 'postalCode', label: 'Código postal', kind: 'text', max: 20 },

@@ -108,6 +108,7 @@ export class LegalComponent {
           h: '14. Redes sociais',
           p: [
             'O site mostra publicações, eventos, reels e histórias da página pública de Facebook do clube. O vídeo do Facebook só é carregado quando carrega em reproduzir; a partir desse momento aplica-se a política de privacidade da Meta.',
+            'O botão «Falar connosco» abre uma conversa no WhatsApp (serviço da Meta). O site não carrega nenhum código do WhatsApp nem lhe envia dados: só abre a ligação quando carrega no botão. A partir daí, a conversa e os dados que nela partilhar ficam sujeitos também à política de privacidade do WhatsApp, e o clube usa-os apenas para responder ao seu pedido.',
           ],
         },
       ],
