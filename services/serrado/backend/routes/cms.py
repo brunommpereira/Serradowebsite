@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, create_mod
 
 from ...db.pool import Conn, Jsonb, fetch, fetch_one, tx
 from ...html import sanitize_body
+from ...notify import published
 from ..core import HttpError, actor, audit, camel, can, not_found, pool, require, snake
 
 
@@ -297,6 +298,7 @@ def _register_status(r: APIRouter, base: str, tags: list[Any], type_: str, d: Cm
         require(req, "cms.edit")
         who = actor(req)
         async with tx(pool(req)) as c:
+            before = await fetch_one(c, f"select published_at from {d.table} where id = %s", [id])
             cur = await c.execute(
                 f"""update {d.table} set status = %s, published_at = case when %s = 'published' then coalesce(published_at, now()) else published_at end,
                       updated_at = now(), updated_by = %s where id = %s returning *""",
@@ -306,6 +308,9 @@ def _register_status(r: APIRouter, base: str, tags: list[Any], type_: str, d: Cm
             if not row:
                 raise not_found("Conteúdo")
             await audit(c, who, f"cms.{type_}.{action}", d.table, id, {"slug": row["slug"]})
+            # Notificação só na primeira publicação (voltar a publicar não repete)
+            if status == "published" and before and before["published_at"] is None:
+                await published(c, type_, row)
         return camel(row)
 
 

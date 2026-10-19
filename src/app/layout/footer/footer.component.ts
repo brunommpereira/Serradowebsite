@@ -78,6 +78,7 @@ import { COMPLAINTS_URL, RAL } from '../../features/legal/legal-info';
           <a routerLink="/socios/registo">Registo</a>
           <a routerLink="/area-socio">Área de Sócio</a>
           <a routerLink="/area-atletas">Área de Atletas</a>
+          <a routerLink="/app">App e notificações</a>
           <a routerLink="/eventos">Eventos</a>
           <a routerLink="/loja">Loja</a>
         </nav>

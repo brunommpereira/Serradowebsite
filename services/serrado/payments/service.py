@@ -16,6 +16,7 @@ from typing import Any
 from ..backend.core import Actor, audit
 from ..config import PaymentsConfig
 from ..db.pool import Conn, Pool, Row, fetch, fetch_one
+from ..notify import fees_created, payment_received, quotas_created
 from ..validation import is_valid_nif
 from ..web import HttpError
 from .moloni import Line, MoloniClient, MoloniError
@@ -77,6 +78,7 @@ async def generate_fees(db: Pool | Conn, month: date) -> int:
            returning id""",
         [month.isoformat(), period_label(month), month.isoformat()],
     )
+    await fees_created(db, [r["id"] for r in rows])
     return len(rows)
 
 
@@ -103,6 +105,7 @@ async def generate_quotas(db: Pool | Conn, month: date) -> int:
            on conflict (member_number, period) do nothing returning id""",
         [f"Quota {month.year}", month.year, month.isoformat()],
     )
+    await quotas_created(db, [r["id"] for r in monthly + yearly])
     return len(monthly) + len(yearly)
 
 
@@ -355,6 +358,7 @@ async def _mark_paid(c: Conn, cfg: PaymentsConfig, payment: Row, payment_intent:
         [label, payment["id"]],
     )
     await audit(c, SYSTEM, "payments.paid", "payments", str(payment["id"]), {"amount": payment["amount"], "method": method})
+    await payment_received(c, payment)
 
 
 async def handle_event(pool: Pool, stripe: StripeClient | None, cfg: PaymentsConfig, event: dict[str, Any]) -> str:

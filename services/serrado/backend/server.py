@@ -7,6 +7,7 @@ import uvicorn
 
 from ..config import config
 from ..db.pool import create_pool
+from ..push import worker
 from .app import build_backend
 
 
@@ -14,6 +15,8 @@ async def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     pool = create_pool()
     await pool.open()
+    # Envio das notificações push em segundo plano (fila push_outbox)
+    sender = asyncio.create_task(worker(pool))
     try:
         app = build_backend(pool)
         server = uvicorn.Server(
@@ -21,6 +24,7 @@ async def main() -> None:
         )
         await server.serve()
     finally:
+        sender.cancel()
         await pool.close()
 
 

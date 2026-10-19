@@ -28,6 +28,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
       { label: 'Parceiros', link: '/admin/conteudos/partners', icon: 'heart', permissions: ['cms.edit'] },
       { label: 'Imagens', link: '/admin/imagens', icon: 'image', permissions: ['cms.edit'] },
       { label: 'Reels e histórias', link: '/admin/redes-sociais', icon: 'facebook', permissions: ['cms.edit'] },
+      { label: 'Notificações da app', link: '/admin/notificacoes', icon: 'bell', permissions: ['cms.edit'] },
     ],
   },
   {
