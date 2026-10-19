@@ -12,6 +12,10 @@ PERMISSIONS: dict[str, str] = {
     "results.import": "Importar resultados de provas",
     "registrations.manage": "Documentos legais (condições, RGPD, imagem) e registos online",
     "stats.view": "Ver as estatísticas de visitas ao site",
+    "expenses.request": "Pedidos de gasto: fazer pedidos (elemento da direção)",
+    "expenses.approve": "Pedidos de gasto: aprovar os do seu núcleo (tesoureiro de núcleo)",
+    "expenses.pay": "Pedidos de gasto: aprovação final, pagamento, registo contabilístico e núcleos (tesoureiro da direção)",
+    "expenses.view": "Pedidos de gasto: ver todos e receber a confirmação dos pagamentos",
     "users.manage": "Utilizadores, papéis e permissões",
     "audit.all": "Ver toda a auditoria (os outros veem só as suas ações)",
 }
@@ -30,9 +34,12 @@ DEFAULT_ROLES: dict[str, list[str]] = {
         "results.import",
         "registrations.manage",
     ],
-    "tesouraria": ["members.view", "payments.view", "payments.manage"],
+    "tesouraria": ["members.view", "payments.view", "payments.manage", "expenses.request", "expenses.view", "expenses.pay"],
     "editor": ["cms.edit"],
     "treinador": ["athletes.view"],
+    "direcao": ["expenses.request"],
+    "tesoureiro-nucleo": ["expenses.request", "expenses.approve"],
+    "presidente": ["expenses.request", "expenses.view"],
 }
 
 

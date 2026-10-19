@@ -18,8 +18,11 @@ from .backend_client import BackendClient, BackendError
 from .cache import TtlCache
 from .net import RateLimiter, client_ip, compile_trust
 from .oauth import OAuthProvider, configured_providers
-from .routes import admin, auth, content, interest, me, payments, races, registry, signup, site, social
+from .routes import admin, auth, content, expenses, interest, me, payments, races, registry, signup, site, social
 from .session import SESSION_COOKIE, session, sign_session, staff
+
+# Pedidos de gasto com anexos (até 3 × 10 MB em base64)
+EXPENSE_UPLOAD = re.compile(r"^/api/v1/admin/expenses(/\d+/(files|pay))?$")
 
 # Limites por rota (por minuto e por IP); as restantes partilham o limite global (RATE_LIMIT_MAX)
 ROUTE_LIMITS: list[tuple[str, re.Pattern[str], str, int]] = [
@@ -27,6 +30,7 @@ ROUTE_LIMITS: list[tuple[str, re.Pattern[str], str, int]] = [
     ("POST", re.compile(r"^/api/v1/auth/password/forgot$"), "password-forgot", 5),
     ("POST", re.compile(r"^/api/v1/auth/password/reset$"), "password-reset", 10),
     ("POST", re.compile(r"^/api/v1/admin/media$"), "media-upload", 30),
+    ("POST", EXPENSE_UPLOAD, "expense-upload", 30),
     ("GET", re.compile(r"^/api/v1/auth/oauth/[^/]+$"), "oauth-start", 20),
     ("GET", re.compile(r"^/api/v1/auth/oauth/[^/]+/callback$"), "oauth-callback", 20),
     ("POST", re.compile(r"^/api/v1/me/payments$"), "payments", 10),
@@ -42,6 +46,8 @@ CSRF_EXEMPT = ("/api/v1/payments/stripe/webhook",)
 def _body_limit(method: str, path: str) -> int:
     if path == "/api/v1/admin/media":
         return 15 * MiB
+    if method == "POST" and EXPENSE_UPLOAD.match(path):
+        return 42 * MiB
     if path in ("/api/v1/admin/results/import", "/api/v1/admin/registry/import"):
         return 5 * MiB
     return MiB
@@ -101,7 +107,7 @@ def build_middleware(*, backend_client: BackendClient | None = None, oauth: dict
         return {"ok": True, "version": config.version}
 
     v1 = APIRouter(prefix="/api/v1")
-    for module in (auth, content, me, payments, races, registry, signup, site, interest, social):
+    for module in (auth, content, me, payments, races, registry, signup, site, interest, social, expenses):
         module.register(v1)
     admin_router = APIRouter(prefix="/admin")
     admin.register(admin_router)

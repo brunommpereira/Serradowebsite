@@ -124,6 +124,13 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./pages/trophy.page').then((m) => m.TrophyPage),
       },
       {
+        path: 'pedidos-de-gasto',
+        title: 'Pedidos de gasto',
+        canActivate: [staffGuard],
+        data: { permissions: ['expenses.request', 'expenses.approve', 'expenses.pay', 'expenses.view'] },
+        loadComponent: () => import('./pages/expenses.page').then((m) => m.ExpensesPage),
+      },
+      {
         path: 'pagamentos',
         canActivate: [staffGuard],
         data: { permissions: ['payments.view'] },
