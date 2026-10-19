@@ -28,6 +28,9 @@ DEMO_USERS: list[dict[str, Any]] = [
     {"email": "secretaria@serradofc.pt", "name": "Secretaria", "password": "secretaria2026", "member": None, "roles": ["secretaria"]},
     {"email": "tesouraria@serradofc.pt", "name": "Tesouraria", "password": "tesouraria2026", "member": None, "roles": ["tesouraria"]},
     {"email": "treinador@serradofc.pt", "name": "Treinador Exemplo", "password": "treinador2026", "member": None, "roles": ["treinador"]},
+    {"email": "diretor@serradofc.pt", "name": "Diretor Exemplo", "password": "diretor2026", "member": None, "roles": ["direcao"]},
+    {"email": "nucleo@serradofc.pt", "name": "Tesoureiro do Rugby", "password": "nucleo2026", "member": None, "roles": ["tesoureiro-nucleo"]},
+    {"email": "presidente@serradofc.pt", "name": "Presidente Exemplo", "password": "presidente2026", "member": None, "roles": ["presidente"]},
 ]
 
 
@@ -68,6 +71,9 @@ async def seed(pool: Pool, log: Callable[[str], None] = print) -> None:
                     "insert into members (member_number, user_id, name, email, category, joined_on) values (%s, %s, %s, %s, %s, %s)",
                     [u["member"][0], row["id"], u["name"], u["email"], u["member"][1], "2019-03-01"],
                 )
+        # Pedidos de gasto: o tesoureiro de demonstração aprova os do Rugby e do Atletismo
+        for nucleo in ("rugby", "atletismo"):
+            await c.execute("insert into expense_approvers (nucleo, user_id) values (%s, %s)", [nucleo, ids["nucleo@serradofc.pt"]])
         await c.execute("select setval('member_number_seq', 1000, false)")  # n.os novos a partir de 01000
         await c.execute("truncate quota_plans")
         # Documentos legais de demonstração (no servidor, a direção publica os seus no backoffice)

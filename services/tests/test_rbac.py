@@ -20,7 +20,14 @@ async def first_athlete(mw) -> str:
 async def test_tesouraria_gere_pagamentos_e_a_secretaria_so_os_ve(mw):
     tes = await mw.login("tesouraria@serradofc.pt", "tesouraria2026")
     me = (await tes.get("/api/v1/me")).json()
-    assert me["roles"] == ["tesouraria"] and me["permissions"] == ["members.view", "payments.manage", "payments.view"]
+    assert me["roles"] == ["tesouraria"] and me["permissions"] == [
+        "expenses.pay",
+        "expenses.request",
+        "expenses.view",
+        "members.view",
+        "payments.manage",
+        "payments.view",
+    ]
     assert (await tes.put("/api/v1/admin/fee-plans/rugby", json={"amount": 30, "active": True})).status_code == 200
     assert (await tes.get("/api/v1/admin/payments")).status_code == 200
     assert (await tes.get("/api/v1/admin/athletes")).status_code == 403, "a tesouraria não vê os atletas"

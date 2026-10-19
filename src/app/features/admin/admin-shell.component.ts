@@ -42,6 +42,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
       { label: 'Resultados', link: '/admin/resultados', icon: 'trophy', permissions: ['results.import'] },
       { label: 'Inscrições no Troféu', link: '/admin/inscricoes-trofeu', icon: 'run', permissions: ['athletes.manage'] },
       { label: 'Pagamentos', link: '/admin/pagamentos', icon: 'euro', permissions: ['payments.view'] },
+      { label: 'Pedidos de gasto', link: '/admin/pedidos-de-gasto', icon: 'card', permissions: ['expenses.request', 'expenses.approve', 'expenses.pay', 'expenses.view'] },
     ],
   },
   {

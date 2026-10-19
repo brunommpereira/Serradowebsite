@@ -8,7 +8,7 @@ describe('permissões', () => {
   it('somam as dos papéis; admin tem sempre todas', () => {
     expect(permissionsFor(['admin'])).toEqual(ALL_PERMISSIONS);
     expect(permissionsFor(['editor', 'treinador'])).toEqual(['cms.edit', 'athletes.view']);
-    expect(permissionsFor(['tesouraria'])).toEqual(['members.view', 'payments.view', 'payments.manage']);
+    expect(permissionsFor(['tesouraria'])).toEqual(['members.view', 'payments.view', 'payments.manage', 'expenses.request', 'expenses.pay', 'expenses.view']);
     expect(permissionsFor([])).toEqual([]);
     expect(roleName('tesouraria')).toBe('Tesouraria');
   });

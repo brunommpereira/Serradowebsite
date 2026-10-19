@@ -16,9 +16,28 @@ from ..db.pool import Pool, fetch_one
 from ..permissions import effective
 from ..web import BodyLimit, HttpError, MiB, error, install_error_handlers, log
 from .core import Actor
-from .routes import admin, athletes, auth, cms, contact, interest, media, members, payments, races, registry, results, signup, site, social, stats
+from .routes import (
+    admin,
+    athletes,
+    auth,
+    cms,
+    contact,
+    expenses,
+    interest,
+    media,
+    members,
+    payments,
+    races,
+    registry,
+    results,
+    signup,
+    site,
+    social,
+    stats,
+)
 
 UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)
+EXPENSE_UPLOAD = re.compile(r"^/internal/v1/expenses(/\d+/(files|pay))?$")
 PUBLIC = ("/internal/health", "/internal/docs", "/internal/openapi.json")
 
 
@@ -29,6 +48,9 @@ def _token_ok(header: str | None) -> bool:
 def _body_limit(method: str, path: str) -> int:
     if path == "/internal/v1/cms/media":
         return 15 * MiB
+    if EXPENSE_UPLOAD.match(path):
+        # Pedido com até 3 anexos de 10 MB (em base64)
+        return 42 * MiB
     if path == "/internal/v1/results/import":
         return 5 * MiB
     return MiB
@@ -102,7 +124,25 @@ def build_backend(pool: Pool) -> FastAPI:
         return {"ok": True}
 
     v1 = APIRouter(prefix="/internal/v1")
-    for module in (auth, media, cms, site, athletes, members, registry, results, admin, payments, signup, interest, social, races, contact, stats):
+    for module in (
+        auth,
+        media,
+        cms,
+        site,
+        athletes,
+        members,
+        registry,
+        results,
+        admin,
+        payments,
+        signup,
+        interest,
+        social,
+        races,
+        contact,
+        stats,
+        expenses,
+    ):
         module.register(v1)
     app.include_router(v1)
     app.add_middleware(BodyLimit, limit_for=_body_limit)  # type: ignore[arg-type]
