@@ -16,7 +16,9 @@ import { IconComponent } from '../../shared/icon.component';
 interface TrophyRace {
   round: number;
   name: string;
-  raceDate: string;
+  /** Vazio enquanto a data não está definida (ver dateLabel) */
+  raceDate: string | null;
+  dateLabel: string;
   location: string | null;
   infoUrl: string | null;
 }
@@ -82,7 +84,7 @@ const STATUS: Record<string, { label: string; tone: 'ok' | 'warn' | 'info' | 'mu
                 <sfc-icon name="run" size="18" />Inscrever no Troféu
               </button>
             } @else if (!e.open) {
-              <span class="pill pill--muted">Inscrições fechadas</span>
+              <span class="pill pill--muted">Inscrição pelo site indisponível de momento</span>
             }
           </div>
 
@@ -119,8 +121,10 @@ const STATUS: Record<string, { label: string; tone: 'ok' | 'warn' | 'info' | 'mu
           @if (t.races.length) {
             <ol class="races">
               @for (r of t.races; track r.round) {
-                <li [class.past]="r.raceDate < today">
-                  <span class="races__date">{{ r.raceDate | date: 'd MMM' }}</span>
+                <li [class.past]="!!r.raceDate && r.raceDate < today">
+                  <span class="races__date" [class.tbd]="!r.raceDate">{{
+                    r.raceDate ? (r.raceDate | date: 'd MMM') : r.dateLabel || 'a definir'
+                  }}</span>
                   <span class="races__name">
                     {{ r.round }}.ª · {{ r.name }}
                     @if (r.location) {
@@ -280,9 +284,15 @@ const STATUS: Record<string, { label: string; tone: 'ok' | 'warn' | 'info' | 'mu
     }
     .races__date {
       flex: none;
-      width: 4.2rem;
+      width: 5.2rem;
       font-weight: 700;
       font-variant-numeric: tabular-nums;
+    }
+    .races__date.tbd {
+      font-size: 0.8rem;
+      font-weight: 600;
+      line-height: 1.25;
+      color: var(--color-muted);
     }
     .races__name {
       flex: 1;

@@ -15,7 +15,9 @@ import { OfflineNoticeComponent } from '../../../shared/offline-notice.component
 interface Race {
   round: number;
   name: string;
-  raceDate: string;
+  raceDate: string | null;
+  /** Quando ainda não há data: «janeiro de 2027», «a definir» */
+  dateLabel: string;
   location: string | null;
   infoUrl: string | null;
 }
@@ -159,7 +161,14 @@ const blank = (): Partial<Edition> => {
             <div>
               <h2 class="h-s">{{ e.name }}</h2>
               <p class="caption">
-                <a [href]="e.eventUrl" target="_blank" rel="noopener">{{ e.eventUrl }}</a>
+                @if (e.eventUrl) {
+                  <a [href]="e.eventUrl" target="_blank" rel="noopener">{{ e.eventUrl }}</a>
+                } @else {
+                  <strong
+                    >Sem endereço do evento na Xistarca: o site mostra as provas, mas ainda não
+                    aceita pedidos</strong
+                  >
+                }
                 · {{ e.mode === 'live' ? 'Modo real' : 'Modo de teste' }} ·
                 {{
                   e.active ? (e.open ? 'inscrições abertas no site' : 'fora do prazo') : 'inativa'
@@ -328,8 +337,7 @@ const blank = (): Partial<Edition> => {
               id="te-url"
               name="eventUrl"
               [(ngModel)]="form.eventUrl"
-              placeholder="https://checkout.xistarca.pt/evento/..."
-              required
+              placeholder="https://checkout.xistarca.pt/evento/... (vazio até a Xistarca abrir o evento)"
             />
           </div>
           <div class="form-row">
@@ -395,6 +403,15 @@ const blank = (): Partial<Edition> => {
                 class="num"
               />
               <input [name]="'d' + i" type="date" [(ngModel)]="r.raceDate" aria-label="Data" />
+              @if (!r.raceDate) {
+                <input
+                  [name]="'dl' + i"
+                  [(ngModel)]="r.dateLabel"
+                  placeholder="Data prevista (ex.: janeiro de 2027)"
+                  aria-label="Data prevista"
+                  maxlength="40"
+                />
+              }
               <input
                 [name]="'n' + i"
                 [(ngModel)]="r.name"
@@ -708,18 +725,26 @@ export class TrophyPage {
 
   protected addRace() {
     const next = Math.max(0, ...this.races.map((r) => r.round)) + 1;
-    this.races.push({ round: next, name: '', raceDate: '', location: null, infoUrl: null });
+    this.races.push({
+      round: next,
+      name: '',
+      raceDate: '',
+      dateLabel: '',
+      location: null,
+      infoUrl: null,
+    });
   }
 
   protected saveRaces() {
     const e = this.current();
     if (!e) return;
     const races = this.races
-      .filter((r) => r.name.trim() && r.raceDate)
+      .filter((r) => r.name.trim())
       .map((r) => ({
         round: Number(r.round),
         name: r.name.trim(),
-        raceDate: r.raceDate,
+        raceDate: r.raceDate || null,
+        dateLabel: r.raceDate ? '' : r.dateLabel?.trim() || 'a definir',
         location: r.location?.trim() || null,
         infoUrl: r.infoUrl?.trim() || null,
       }));
