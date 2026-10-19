@@ -7,10 +7,11 @@ import { AnalyticsService } from './core/services/analytics.service';
 import { AppPushService } from './core/services/app-push.service';
 import { FooterComponent } from './layout/footer/footer.component';
 import { WhatsappButtonComponent } from './shared/whatsapp-button.component';
+import { InstallBannerComponent } from './shared/install-banner.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, HeaderComponent, FooterComponent, WhatsappButtonComponent],
+  imports: [RouterOutlet, HeaderComponent, FooterComponent, WhatsappButtonComponent, InstallBannerComponent],
   template: `
     @if (backoffice()) {
       <!-- O backoffice tem o seu próprio layout (barra lateral) -->
@@ -23,6 +24,7 @@ import { WhatsappButtonComponent } from './shared/whatsapp-button.component';
       </main>
       <sfc-footer />
       <sfc-whatsapp-button />
+      <sfc-install-banner />
     }
   `,
   styles: `

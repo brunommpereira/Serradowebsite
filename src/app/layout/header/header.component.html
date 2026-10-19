@@ -110,6 +110,9 @@
       <button class="icon-btn" type="button" (click)="toggleSearch()" [attr.aria-expanded]="searchOpen()" aria-controls="site-search" aria-label="Pesquisar">
         <sfc-icon [name]="searchOpen() ? 'close' : 'search'" size="22" />
       </button>
+      <a class="icon-btn" routerLink="/app" aria-label="App e notificações" title="App e notificações">
+        <sfc-icon name="bell" size="22" />
+      </a>
       <a class="btn btn--primary btn--sm header__account" routerLink="/entrar">
         <sfc-icon name="user" size="18" />
         <span>{{ auth.isLoggedIn() ? 'Minha Área' : 'Entrar' }}</span>
