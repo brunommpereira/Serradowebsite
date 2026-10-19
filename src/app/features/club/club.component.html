@@ -53,6 +53,20 @@
         </li>
       }
     </ol>
+
+    @if (archive.length) {
+      <h3 class="archive__title">Do nosso arquivo</h3>
+      <ul class="archive">
+        @for (a of archive; track $index) {
+          <li>
+            <figure>
+              <a [href]="a.imageUrl" target="_blank" rel="noopener"><img [src]="a.imageUrl" [alt]="a.caption" loading="lazy" /></a>
+              <figcaption>{{ a.caption }}</figcaption>
+            </figure>
+          </li>
+        }
+      </ul>
+    }
   </div>
 </section>
 

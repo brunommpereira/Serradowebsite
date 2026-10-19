@@ -321,6 +321,18 @@ export const BLOCKS: BlockDef[] = [
       },
       { key: 'emblem', label: 'O emblema', kind: 'textarea', max: 1000, wide: true },
       {
+        key: 'archive',
+        label: 'Do nosso arquivo (fotografias antigas)',
+        kind: 'list',
+        singular: 'fotografia',
+        wide: true,
+        summary: (i) => s(i['caption']),
+        fields: [
+          { key: 'imageUrl', label: 'Fotografia', kind: 'image', wide: true },
+          { key: 'caption', label: 'Legenda', kind: 'textarea', required: true, max: 300, wide: true },
+        ],
+      },
+      {
         key: 'facilities',
         label: 'Instalações',
         kind: 'list',

@@ -63,38 +63,60 @@ export const SITE_DEFAULTS: SiteData = {
       'Um clube de bairro que se tornou casa de várias modalidades. Esta é a nossa história, a nossa missão e a nossa gente.',
     introTitle: 'Uma história. Uma família. Várias modalidades.',
     intro:
-      'O Serrado Futebol Clube foi fundado a 29 de abril de 1978 no Bairro do Serrado, na Caparica (Almada), pela vontade de um grupo de moradores que queria dar aos jovens um lugar para jogar, aprender e pertencer.\n\n' +
-      'Hoje somos um clube multidesportivo, com atletismo, futsal, rugby, formação e Escola de Desporto, sem nunca perder aquilo que nos define: a comunidade.',
+      'O Serrado Futebol Clube nasceu a 29 de abril de 1978, com o novo bairro da Quinta do Serrado, na Caparica: cerca de 400 fogos que trouxeram ao local muitos jovens à procura de desporto e de ocupação dos tempos livres. À frente do movimento esteve Samuel Gomes de Andrade, com largas provas dadas nos Bombeiros Voluntários de Almada, acompanhado por um grande grupo de jovens com uma idade média de 15 anos.\n\n' +
+      'Entre os fundadores, além de Samuel Gomes de Andrade, contam-se Vital Correia dos Santos, Vitor Manuel Rodrigues, Domingos Garcia, Fernando Bento e José António Pinto. Dos mais jovens, recordam-se Manuel Baltazar Neto, José António e Jorge Lima Tavares, Carlos Teixeira, Artur Lopes e Miguel Garcia.\n\n' +
+      'Sem sede e sem campos, foi preciso «inventá-los». As primeiras reuniões faziam-se no Talho do Samuel, como ficou conhecido, onde os assuntos eram debatidos e as decisões tomadas de forma informal. Em 1979, a sede passou para uma antiga adega, onde ainda hoje funciona: um espaço pequeno que os sócios tornaram acolhedor.\n\n' +
+      'Desde o início, o clube animou o bairro e a freguesia: festejos de aniversário, Santos Populares, verões cheios de iniciativas. O objetivo foi sempre ocupar os tempos livres dos jovens com desporto, recreio e convívio. Hoje somos um clube multidesportivo, com atletismo, futsal, rugby, formação e Escola de Desporto, sem perder aquilo que nos define: a comunidade.',
     timeline: [
       {
         year: '1978',
         title: 'Fundação do clube',
-        text: 'A 29 de abril de 1978 nasce o Serrado Futebol Clube, no Bairro do Serrado, Caparica.',
+        text: 'A 29 de abril nasce o Serrado Futebol Clube, com a chegada de cerca de 400 famílias ao novo bairro da Quinta do Serrado. A primeira «sede» é o Talho do Samuel.',
+      },
+      {
+        year: '1979',
+        title: 'Sede no bairro',
+        text: 'A sede muda-se para uma antiga adega, onde ainda hoje funciona. Um espaço pequeno, arranjado pelos próprios sócios.',
+      },
+      {
+        year: '1980',
+        title: 'Estatutos aprovados',
+        text: 'Os Estatutos e o Regulamento Interno são aprovados em Assembleia Geral, a 13 de dezembro de 1980.',
+      },
+      {
+        year: '1982',
+        title: 'Do pelado ao «Campo da Fossa»',
+        text: 'O primeiro campo de terra batida, onde se jogava futebol de salão e se fazia ginástica, dá lugar a uma vivenda. Os jovens correm na rua (o início do atletismo) e o clube passa a jogar no célebre «Campo da Fossa».',
+      },
+      {
+        year: '1985',
+        title: 'No Diário da República',
+        text: 'Os Estatutos são publicados no Diário da República n.º 126, de 1 de junho de 1985. O clube filia-se na Federação Portuguesa das Colectividades de Cultura e Recreio, na Federação Portuguesa de Futebol de Salão, na Federação Portuguesa de Cicloturismo e no INATEL.',
+      },
+      {
+        year: '1999/2000',
+        title: 'Campeão Distrital de Futebol de Salão',
+        text: 'O primeiro grande título do clube.',
+      },
+      {
+        year: '2001/2002',
+        title: 'Vice-Campeão Nacional de Futebol de Salão',
+        text: 'O Serrado FC entre os melhores do país.',
+      },
+      {
+        year: '2002/2003',
+        title: 'Campeão Distrital de Futsal',
+        text: 'Os seniores masculinos sagram-se campeões da Associação de Futebol de Setúbal.',
       },
       {
         year: '',
-        title: 'Primeiras atividades',
-        text: 'Os primeiros jogos, torneios e convívios juntam o bairro à volta do clube.',
+        title: 'Formação e comunidade',
+        text: 'A aposta na formação traz centenas de crianças e jovens ao desporto, a par de caminhadas solidárias, voluntariado e do projeto Descobrir Património.',
       },
       {
-        year: '',
-        title: 'Crescimento',
-        text: 'Mais sócios, mais atletas e uma sede que se torna ponto de encontro da comunidade.',
-      },
-      {
-        year: '',
-        title: 'Novas modalidades',
-        text: 'O clube abre-se a novas modalidades, como o atletismo e o futsal.',
-      },
-      {
-        year: '',
-        title: 'Formação',
-        text: 'A aposta na formação traz centenas de crianças e jovens ao desporto.',
-      },
-      {
-        year: '',
-        title: 'Projetos comunitários',
-        text: 'Caminhadas solidárias, voluntariado e o projeto Descobrir Património.',
+        year: '2025/2026',
+        title: 'Vice-campeão no Troféu de Atletismo de Almada',
+        text: 'O atletismo do Serrado FC no pódio do Troféu «Mário Pinto Claro».',
       },
       {
         year: '2026',
@@ -127,7 +149,22 @@ export const SITE_DEFAULTS: SiteData = {
       },
     ],
     emblem:
-      'A bola ao centro, rodeada pelas cores do clube, os louros da vitória e a fita com o nome e a data de fundação: EST. 29.04.1978.',
+      'O emblema mantém o desenho da fundação: a bola ao centro, num círculo metade azul e metade amarelo, entre os louros da vitória, e a fita com o nome do clube. No original pintado à mão, que está na sede, lê-se «Fundado em 29 abril 78».',
+    archive: [
+      {
+        imageUrl: 'media/historia/emblema-original.webp',
+        caption: 'O emblema original, pintado à mão, que está na sede: «Fundado em 29 abril 78».',
+      },
+      {
+        imageUrl: 'media/historia/primeiras-equipas.webp',
+        caption:
+          'Uma das primeiras equipas do Serrado F.C., numa fotografia da sede gasta pelo tempo.',
+      },
+      {
+        imageUrl: 'media/historia/campeoes-futsal-2002-2003.webp',
+        caption: 'Campeões de Futsal Sénior Masculino 2002/2003 da A.F. Setúbal.',
+      },
+    ],
     facilities: [
       {
         name: 'Centro de Treinos do Serrado',

@@ -24,6 +24,7 @@ export class ClubComponent {
   /** Textos, história, valores e instalações: Backoffice → Conteúdos do site → Página do Clube */
   protected readonly page = this.content.clubPage();
   protected readonly intro = paragraphs(this.page.intro);
+  protected readonly archive = (this.page.archive ?? []).filter((a) => a.imageUrl);
   protected readonly boardsNote = this.content.boardsNote();
 
   constructor() {
