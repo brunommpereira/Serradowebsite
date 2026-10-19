@@ -92,6 +92,8 @@ export interface ClubBlock {
   vision: string;
   values: { icon: string; title: string; text: string }[];
   emblem: string;
+  /** Fotografias e documentos antigos (secção «Do nosso arquivo») */
+  archive: { imageUrl: string | null; caption: string }[];
   facilities: { name: string; text: string; imageUrl: string | null }[];
 }
 
