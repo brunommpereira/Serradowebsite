@@ -24,6 +24,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from ...config import config
 from ...db.pool import Conn, fetch, fetch_one, tx
 from ...mail import enqueue, layout
+from ...notify import expense as notify_expense
 from ..core import HttpError, actor, audit, can, forbidden, not_found, pool, require, require_user
 from .media import sniff_image
 
@@ -302,6 +303,8 @@ def link(row: dict[str, Any]) -> tuple[str, str]:
 async def mail(
     c: Conn, people: list[dict[str, Any]], subject: str, title: str, lines: list[str], row: dict[str, Any], files: list[dict[str, Any]] | None = None
 ) -> None:
+    # Também por notificação na app, a quem a tiver ativado
+    await notify_expense(c, [p["id"] for p in people], title, subject, row["id"])
     if not config.mail.enabled:
         return
     attach = [{"name": f["name"], "content": f["content"]} for f in files or []]

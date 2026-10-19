@@ -124,6 +124,13 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./pages/trophy.page').then((m) => m.TrophyPage),
       },
       {
+        path: 'notificacoes',
+        title: 'Notificações da app',
+        canActivate: [staffGuard],
+        data: { permissions: ['cms.edit'] },
+        loadComponent: () => import('./pages/push.page').then((m) => m.PushPage),
+      },
+      {
         path: 'pedidos-de-gasto',
         title: 'Pedidos de gasto',
         canActivate: [staffGuard],

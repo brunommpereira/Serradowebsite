@@ -1,7 +1,9 @@
 // Pós-build para alojamento estático (GitHub Pages, Azure Static Web Apps, Netlify…):
 //  - 404.html: fallback SPA para rotas renderizadas no browser (Área de Sócio) e página 404;
 //  - sitemap.xml gerado a partir das rotas pré-renderizadas (secção 38 — SEO);
-//  - Content-Security-Policy em cada página (meta), com os hashes dos scripts embutidos.
+//  - Content-Security-Policy em cada página (meta), com os hashes dos scripts embutidos;
+//  - ngsw.json (app instalável) refeito no fim, porque a CSP muda o index.csr.html que o service worker confere.
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -63,6 +65,11 @@ if (process.env.SITEMAP_DYNAMIC === '1') {
   );
 } else {
   writeFileSync(join(browser, 'sitemap.xml'), urlset);
+}
+// Service worker: os hashes de ngsw.json têm de corresponder aos ficheiros finais (senão a app instalada não atualiza)
+if (existsSync(join(browser, 'ngsw.json'))) {
+  const base = /<base href="([^"]+)"/.exec(readFileSync(csr, 'utf8'))?.[1] ?? '/';
+  execFileSync(process.execPath, ['node_modules/@angular/service-worker/ngsw-config.js', browser, 'ngsw-config.json', base], { stdio: 'inherit' });
 }
 console.log(`postbuild: 404.html + sitemap.xml (${pages.length} URLs) + CSP em ${cspPages} páginas`);
 

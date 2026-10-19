@@ -21,6 +21,7 @@ from pydantic import BaseModel, ConfigDict
 from ...config import config
 from ...db.pool import Jsonb, fetch, fetch_one, tx
 from ...mail import enqueue, layout
+from ...notify import matches_saved
 from ..core import HttpError, actor, audit, camel, not_found, pool, require
 
 SPORTS = ("atletismo", "futsal", "rugby", "formacao", "escola-de-desporto")
@@ -118,6 +119,7 @@ def register(r: APIRouter) -> None:
             raise HttpError(413, "too_large", "O conteúdo é demasiado grande. Divide-o ou apaga elementos antigos.")
         who = actor(req)
         async with tx(pool(req)) as c:
+            previous = await fetch_one(c, "select data from site_blocks where key = %s", [key])
             await c.execute(
                 """insert into site_blocks (key, data, updated_by) values (%s, %s, %s)
                    on conflict (key) do update set data = excluded.data, updated_at = now(), updated_by = excluded.updated_by""",
@@ -125,6 +127,9 @@ def register(r: APIRouter) -> None:
             )
             await c.execute("insert into site_block_revisions (key, data, author_id) values (%s, %s, %s)", [key, Jsonb(body.data), who.id])
             await audit(c, who, "site.block.save", "site_blocks", None, {"key": key})
+            if key == "matches" and isinstance(body.data, dict):
+                old = previous["data"].get("items", []) if previous and isinstance(previous["data"], dict) else []
+                await matches_saved(c, old, body.data.get("items") or [])
         return await one(req, key)
 
     @r.delete("/site/blocks/{key}", tags=tags, summary="Volta ao conteúdo original (a versão atual fica no histórico)", status_code=204)

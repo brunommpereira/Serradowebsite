@@ -1,4 +1,4 @@
-import { ApplicationConfig, inject, LOCALE_ID, provideAppInitializer, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ApplicationConfig, inject, isDevMode, LOCALE_ID, provideAppInitializer, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideHttpClient, withFetch } from '@angular/common/http';
 import { CmsStore } from './core/cms/cms-store';
 import { SiteStore } from './core/site/site-store';
@@ -7,6 +7,7 @@ import { registerLocaleData } from '@angular/common';
 import localePt from '@angular/common/locales/pt-PT';
 import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+import { provideServiceWorker } from '@angular/service-worker';
 
 import { routes } from './app.routes';
 
@@ -31,5 +32,7 @@ export const appConfig: ApplicationConfig = {
       await Promise.all([cms.loadFromApi(auth.can('cms.edit')), site.loadFromApi()]);
     }),
     { provide: LOCALE_ID, useValue: 'pt-PT' },
+    // App instalável (PWA) e notificações push; regista-se depois de o site estar pronto, sem atrasar a primeira visita
+    provideServiceWorker('ngsw-worker.js', { enabled: !isDevMode(), registrationStrategy: 'registerWhenStable:30000' }),
   ],
 };

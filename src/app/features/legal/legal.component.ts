@@ -108,6 +108,7 @@ export class LegalComponent {
           h: '14. Redes sociais',
           p: [
             'O site mostra publicações, eventos, reels e histórias da página pública de Facebook do clube. O vídeo do Facebook só é carregado quando carrega em reproduzir; a partir desse momento aplica-se a política de privacidade da Meta.',
+            'Notificações da app: se as ativar, guardamos o endereço de entrega do seu browser (dado pelo Google, Apple, Mozilla ou Microsoft), as chaves para cifrar as mensagens, os temas escolhidos, o tipo de browser e, se tiver sessão iniciada, a ligação à sua conta (para os avisos de pagamentos e de pedidos de gasto). O conteúdo segue cifrado. Pode desligá-las a qualquer momento em «App e notificações» ou nas definições do browser; ao terminar sessão, deixam de chegar os avisos pessoais.',
             'O botão «Falar connosco» abre uma conversa no WhatsApp (serviço da Meta). O site não carrega nenhum código do WhatsApp nem lhe envia dados: só abre a ligação quando carrega no botão. A partir daí, a conversa e os dados que nela partilhar ficam sujeitos também à política de privacidade do WhatsApp, e o clube usa-os apenas para responder ao seu pedido.',
           ],
         },

@@ -22,6 +22,7 @@ export const routes: Routes = [
   { path: 'pre-inscricao', loadComponent: () => import('./features/signup/interest.page').then((m) => m.InterestPage) },
   { path: 'socios/registo', loadComponent: () => import('./features/membership/register.component').then((m) => m.RegisterComponent) },
   { path: 'entrar/nova-password', loadComponent: () => import('./features/account/new-password.component').then((m) => m.NewPasswordComponent) },
+  { path: 'app', loadComponent: () => import('./features/app/app-page.component').then((m) => m.AppPageComponent) },
   { path: 'entrar', loadComponent: () => import('./features/account/login.component').then((m) => m.LoginComponent) },
   // Endereço antigo da entrada de sócio → ponto de acesso único
   {

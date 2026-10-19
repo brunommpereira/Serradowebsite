@@ -4,6 +4,7 @@ import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { HeaderComponent } from './layout/header/header.component';
 import { AnalyticsService } from './core/services/analytics.service';
+import { AppPushService } from './core/services/app-push.service';
 import { FooterComponent } from './layout/footer/footer.component';
 import { WhatsappButtonComponent } from './shared/whatsapp-button.component';
 
@@ -48,5 +49,6 @@ export class App {
 
   constructor() {
     inject(AnalyticsService).start();
+    inject(AppPushService).start();
   }
 }

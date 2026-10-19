@@ -18,7 +18,7 @@ from .backend_client import BackendClient, BackendError
 from .cache import TtlCache
 from .net import RateLimiter, client_ip, compile_trust
 from .oauth import OAuthProvider, configured_providers
-from .routes import admin, auth, content, expenses, interest, me, payments, races, registry, signup, site, social
+from .routes import admin, auth, content, expenses, interest, me, payments, push, races, registry, signup, site, social
 from .session import SESSION_COOKIE, session, sign_session, staff
 
 # Pedidos de gasto com anexos (até 3 × 10 MB em base64)
@@ -31,6 +31,8 @@ ROUTE_LIMITS: list[tuple[str, re.Pattern[str], str, int]] = [
     ("POST", re.compile(r"^/api/v1/auth/password/reset$"), "password-reset", 10),
     ("POST", re.compile(r"^/api/v1/admin/media$"), "media-upload", 30),
     ("POST", EXPENSE_UPLOAD, "expense-upload", 30),
+    ("POST", re.compile(r"^/api/v1/push/(subscribe|status|unsubscribe)$"), "push", 30),
+    ("POST", re.compile(r"^/api/v1/admin/push/broadcast$"), "push-broadcast", 10),
     ("GET", re.compile(r"^/api/v1/auth/oauth/[^/]+$"), "oauth-start", 20),
     ("GET", re.compile(r"^/api/v1/auth/oauth/[^/]+/callback$"), "oauth-callback", 20),
     ("POST", re.compile(r"^/api/v1/me/payments$"), "payments", 10),
@@ -107,7 +109,7 @@ def build_middleware(*, backend_client: BackendClient | None = None, oauth: dict
         return {"ok": True, "version": config.version}
 
     v1 = APIRouter(prefix="/api/v1")
-    for module in (auth, content, me, payments, races, registry, signup, site, interest, social, expenses):
+    for module in (auth, content, me, payments, races, registry, signup, site, interest, social, expenses, push):
         module.register(v1)
     admin_router = APIRouter(prefix="/admin")
     admin.register(admin_router)
