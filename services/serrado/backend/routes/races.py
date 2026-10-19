@@ -20,7 +20,8 @@ from .athletes import DATE, AthleteId, _valid_date, require_access
 
 log = logging.getLogger("serrado.races")
 Id = Annotated[int, Path(ge=1)]
-EVENT_URL = r"^https://checkout\.xistarca\.pt/evento/[A-Za-z0-9._~%-]{3,200}$"
+# Vazio enquanto a Xistarca não abre o evento (o site mostra as provas, mas ainda não aceita pedidos)
+EVENT_URL = r"^(https://checkout\.xistarca\.pt/evento/[A-Za-z0-9._~%-]{3,200})?$"
 STATES = ("pedido", "validado", "inscrito", "erro", "cancelado")
 
 
@@ -44,7 +45,9 @@ class Race(BaseModel):
     model_config = ConfigDict(extra="forbid")
     round: Annotated[int, Field(ge=1, le=40)]
     name: Annotated[str, StringConstraints(min_length=3, max_length=160)]
-    raceDate: Annotated[str, StringConstraints(pattern=DATE)]
+    raceDate: Annotated[str, StringConstraints(pattern=DATE)] | None = None
+    # Quando a data ainda não está definida: «janeiro de 2027», «a definir»
+    dateLabel: Annotated[str, StringConstraints(max_length=40)] = ""
     location: Annotated[str, StringConstraints(max_length=120)] | None = None
     infoUrl: Annotated[str, StringConstraints(pattern=r"^https://[^\s]{3,300}$")] | None = None
 
@@ -92,7 +95,12 @@ def missing_for_trophy(a: dict[str, Any]) -> list[str]:
 
 def is_open(e: dict[str, Any], today: date | None = None) -> bool:
     today = today or date.today()
-    return bool(e["active"]) and (not e["opens_on"] or e["opens_on"] <= today) and (not e["closes_on"] or today <= e["closes_on"])
+    return (
+        bool(e["active"])
+        and bool(e["event_url"])
+        and (not e["opens_on"] or e["opens_on"] <= today)
+        and (not e["closes_on"] or today <= e["closes_on"])
+    )
 
 
 def kick(req: Request) -> bool:
@@ -146,7 +154,9 @@ def register(r: APIRouter) -> None:
         if not a:
             raise not_found()
         races = await fetch(
-            pool(req), "select round, name, race_date, location, info_url from race_calendar where edition_id = %s order by round", [e["id"]]
+            pool(req),
+            "select round, name, race_date, date_label, location, info_url from race_calendar where edition_id = %s order by round",
+            [e["id"]],
         )
         s = await fetch_one(
             pool(req), "select id, status, message, requested_at, sent_at from race_signups where edition_id = %s and athlete_id = %s", [e["id"], id]
@@ -231,7 +241,9 @@ def register(r: APIRouter) -> None:
                                        where s.edition_id = e.id group by status) x), '{}') as counts
                  from race_editions e order by season desc""",
         )
-        cal = await fetch(pool(req), "select edition_id, round, name, race_date, location, info_url from race_calendar order by edition_id, round")
+        cal = await fetch(
+            pool(req), "select edition_id, round, name, race_date, date_label, location, info_url from race_calendar order by edition_id, round"
+        )
         out = []
         for e in rows:
             item = _edition_out(e)
@@ -310,8 +322,8 @@ def register(r: APIRouter) -> None:
             await c.execute("delete from race_calendar where edition_id = %s", [edition_id])
             for x in body.races:
                 await c.execute(
-                    "insert into race_calendar (edition_id, round, name, race_date, location, info_url) values (%s, %s, %s, %s, %s, %s)",
-                    [edition_id, x.round, x.name, x.raceDate, x.location, x.infoUrl],
+                    "insert into race_calendar (edition_id, round, name, race_date, date_label, location, info_url) values (%s, %s, %s, %s, %s, %s, %s)",
+                    [edition_id, x.round, x.name, x.raceDate, "" if x.raceDate else (x.dateLabel.strip() or "a definir"), x.location, x.infoUrl],
                 )
             await audit(c, actor(req), "races.calendar", "race_editions", edition_id, {"races": len(body.races)})
         return {"races": len(body.races)}
@@ -389,6 +401,8 @@ def register(r: APIRouter) -> None:
         if not configured():
             raise HttpError(409, "not_configured", "A conta Xistarca do clube ainda não está configurada no servidor (sudo serrado xistarca)")
         e = await _edition(pool(req), edition_id)
+        if not e["event_url"]:
+            return {"ok": False, "message": "Falta o endereço do evento na Xistarca (Alterar edição)."}
         try:
             msg = await asyncio.wait_for(xistarca.check(config.xistarca, e["event_url"]), timeout=8)
         except xistarca.XistarcaError as ex:

@@ -256,9 +256,18 @@ async def _ids(mw: Middleware) -> dict[str, str]:
     return {r["name"]: str(r["id"]) for r in rows}
 
 
-async def test_area_do_atleta_sem_edicao(mw: Middleware) -> None:
+async def test_calendario_2026_2027_da_migracao_e_area_sem_edicao(mw: Middleware) -> None:
     c = await mw.login("atleta@exemplo.pt", "atleta2026")
     rita = (await _ids(mw))["Rita Exemplo"]
+    # A migração 024 carrega as 10 provas de 2026/2027, algumas ainda sem data; sem o endereço da
+    # Xistarca o site mostra as provas mas não aceita pedidos
+    t = (await c.get(f"/api/v1/athletes/{rita}/trophy")).json()
+    assert t["edition"]["season"] == "2026/2027" and not t["edition"]["open"] and not t["canSignup"]
+    races = {x["round"]: x for x in t["races"]}
+    assert len(races) == 10 and races[1]["raceDate"] == "2026-11-15" and races[3]["raceDate"] is None
+    assert races[3]["dateLabel"] == "janeiro de 2027" and races[10]["dateLabel"] == "a definir"
+    # Sem edições (o resto do módulo cria a sua)
+    await fetch(mw.pool, "delete from race_editions returning id")
     r = await c.get(f"/api/v1/athletes/{rita}/trophy")
     assert r.status_code == 200 and r.json()["edition"] is None
 
@@ -366,3 +375,21 @@ async def test_erro_da_xistarca_fica_no_pedido_e_pode_repetir(mw: Middleware, fa
     # Enviar já: sem conta configurada, explica
     r = await adm.post("/api/v1/admin/races/run")
     assert r.status_code == 409 and "serrado xistarca" in r.json()["message"]
+
+
+async def test_backoffice_guarda_provas_sem_data(mw: Middleware) -> None:
+    adm = await mw.login("secretaria@serradofc.pt", "secretaria2026")
+    eid = (await fetch_one(mw.pool, "select id from race_editions where season = '2026/2027'"))["id"]  # type: ignore[index]
+    races = [
+        {"round": 1, "name": "Troféu da Caparica", "raceDate": "2026-11-15"},
+        {"round": 2, "name": "Corrida Noturna Reis", "raceDate": None, "dateLabel": "janeiro de 2027"},
+        {"round": 3, "name": "Prova a incluir", "raceDate": None},
+    ]
+    r = await adm.put(f"/api/v1/admin/races/editions/{eid}/calendar", json={"races": races})
+    assert r.status_code == 200, r.text
+    rows = await fetch(mw.pool, "select round, race_date, date_label from race_calendar where edition_id = %s order by round", [eid])
+    assert [(x["round"], x["race_date"] is None, x["date_label"]) for x in rows] == [
+        (1, False, ""),
+        (2, True, "janeiro de 2027"),
+        (3, True, "a definir"),
+    ]

@@ -541,6 +541,9 @@ async def run(pool: Pool, cfg: XistarcaConfig | None = None, client: XistarcaCli
             if not edition:
                 summary["note"] = "sem edição ativa"
                 return summary
+            if not edition.event_url:
+                summary["note"] = "a edição ainda não tem o endereço do evento na Xistarca"
+                return summary
             states = ["pedido", "validado"] if edition.mode == "live" else ["pedido"]
             rows = await fetch(
                 pool,
