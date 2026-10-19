@@ -118,11 +118,34 @@ export const MAIN_NAV: NavItem[] = [
           { label: 'Entrar', link: '/entrar' },
           { label: 'Pagar Quota', link: '/area-socio' },
           { label: 'Cartão Digital', link: '/area-socio' },
-          { label: 'Área de Atletas', link: '/area-atletas' },
         ],
       },
     ],
     promo: { title: 'Faz parte da família', text: 'Ser sócio é apoiar a formação de centenas de jovens.', link: '/socios/registo', cta: 'Torna-te sócio' },
+  },
+  {
+    label: 'Atletas',
+    link: '/area-atletas',
+    groups: [
+      {
+        title: 'Área de Atletas',
+        links: [
+          { label: 'Entrar como atleta ou encarregado', link: '/entrar', queryParams: { perfil: 'atleta' } },
+          { label: 'Treinos e presenças', link: '/area-atletas' },
+          { label: 'Ficha e documentos', link: '/area-atletas' },
+          { label: 'Mensalidades', link: '/area-socio' },
+        ],
+      },
+      {
+        title: 'Inscrições',
+        links: [
+          { label: 'Inscrever atleta', link: '/inscricao' },
+          { label: 'Pré-inscrição (experimentar)', link: '/pre-inscricao' },
+          { label: 'Resultados', link: '/resultados' },
+        ],
+      },
+    ],
+    promo: { title: 'Atletas e famílias', text: 'Treinos, presenças, documentos e provas num só sítio.', link: '/area-atletas', cta: 'Abrir a Área de Atletas' },
   },
   {
     label: 'Eventos',
