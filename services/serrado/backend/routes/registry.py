@@ -140,7 +140,8 @@ def register(r: APIRouter) -> None:
             """select m.member_number as "memberNumber", m.name, m.email, m.phone, m.category, m.status, m.joined_on as "joinedOn",
                       (m.user_id is not null) as "hasAccount",
                       (select count(*)::int from athletes a where a.member_number = m.member_number) as athletes,
-                      (select count(*)::int from quotas qq where qq.member_number = m.member_number and qq.paid_at is null and qq.due_date < current_date) as overdue
+                      (select count(*)::int from quotas qq where qq.member_number = m.member_number and qq.paid_at is null and qq.due_date < current_date) as overdue,
+                      (select count(*)::int from quotas qq where qq.member_number = m.member_number) as quotas
                  from members m
                 where (%s::text is null or m.name ilike %s or m.email ilike %s or m.member_number = lpad(%s, 5, '0'))
                   and (%s::text is null or m.status = %s) and (%s::text is null or m.category = %s)

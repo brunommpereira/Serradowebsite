@@ -38,7 +38,8 @@ export class DashboardComponent {
 
   protected readonly current = computed(() => this.payments().find((p) => p.status !== 'Pago') ?? this.payments()[0]);
   protected readonly lastPaid = computed(() => this.payments().find((p) => p.status === 'Pago'));
-  protected readonly upToDate = computed(() => !this.payments().some((p) => p.status === 'Em atraso'));
+  /** null enquanto não houver quotas registadas: não se pode dizer que está «em dia» */
+  protected readonly upToDate = computed(() => (this.payments().length ? !this.payments().some((p) => p.status === 'Em atraso') : null));
   protected readonly receipts = computed(() => this.payments().filter((p) => p.receiptNumber));
   protected readonly events = this.content.upcomingEvents().slice(0, 3);
   protected readonly documents = this.content.documents().slice(0, 4);
@@ -59,7 +60,8 @@ export class DashboardComponent {
   // Modo API: os recibos estão em «Quotas e pagamentos» (faturas-recibo do Moloni)
   protected readonly menu = this.allMenu.filter((i) => !this.apiMode || !['agregado', 'notificacoes', 'recibos'].includes(i.id));
 
-  protected readonly notifications = [
+  /** Exemplos só no modo demonstração; no site real os avisos chegam pela app (notificações push) */
+  protected readonly notifications = this.apiMode ? [] : [
     { icon: 'check', text: 'Pagamento da quota de outubro recebido. Recibo R2026/0412 emitido.', date: '2026-10-02' },
     { icon: 'calendar', text: 'Inscrições abertas: Caminhada Solidária — Descobrir Património.', date: '2026-09-20' },
     { icon: 'info', text: 'Convocatória para a Assembleia Geral Ordinária publicada.', date: '2026-09-10' },

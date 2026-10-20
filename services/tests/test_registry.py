@@ -53,6 +53,8 @@ async def test_secretaria_cria_socio_com_numero_seguinte_e_conta_ligada(mw):
     assert (upd.json()["name"], upd.json()["status"], upd.json()["category"]) == ("Ana Exemplo Silva", "Suspenso", "Jovem")
     found = (await sec.get("/api/v1/admin/members?q=silva")).json()
     assert [x["memberNumber"] for x in found] == [expected]
+    # Sem quotas registadas não aparece como «em dia»: a lista diz quantas tem
+    assert found[0]["quotas"] == 0 and found[0]["overdue"] == 0
     assert {x["memberNumber"] for x in (await sec.get("/api/v1/admin/members?q=482")).json()} == {"00482"}
     # A tesouraria vê, mas não cria; o editor nem vê
     tes = await mw.login(*TES)

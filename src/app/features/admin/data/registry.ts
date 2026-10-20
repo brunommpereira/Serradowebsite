@@ -28,6 +28,8 @@ export interface MemberRow {
   hasAccount: boolean;
   athletes: number;
   overdue: number;
+  /** Quotas registadas (sem nenhuma, não se pode dizer que está «em dia») */
+  quotas?: number;
 }
 
 export interface MemberDetail {

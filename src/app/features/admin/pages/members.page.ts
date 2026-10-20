@@ -76,6 +76,8 @@ const EMPTY: Draft = { name: '', email: '', phone: '', taxNumber: '', birthDate:
                 <td class="hide-sm">
                   @if (m.overdue) {
                     <span class="st st--bad">{{ m.overdue }} em atraso</span>
+                  } @else if (m.quotas === 0) {
+                    <span class="caption">sem quotas registadas</span>
                   } @else {
                     <span class="caption">em dia</span>
                   }
