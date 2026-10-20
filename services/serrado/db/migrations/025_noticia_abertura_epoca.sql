@@ -18,6 +18,8 @@ with nova as (
 <h2>Quem pode vir</h2>
 <p>Atletas, treinadores, sócios, famílias e amigos do clube. Não é preciso ser corredor: o treino é aberto a todos os níveis e quem preferir pode juntar-se só para o almoço.</p>
 <p>Traz roupa e calçado confortáveis para o treino e muita vontade de começar bem a época. Vemo-nos no Fresh!</p>
+<img src="https://www.serradofc.pt/media/eventos/cartaz-abertura-epoca.webp" alt="Cartaz da abertura da época do Serrado FC: sábado, 7 de novembro, no Fresh Bar. 10h30 treino e corridas, 12h00 churrasco com bebidas incluídas">
+<p><a href="https://www.serradofc.pt/media/eventos/cartaz-abertura-epoca-a4.pdf" rel="noopener noreferrer">Descarrega o cartaz em A4 para imprimir (PDF)</a></p>
 <blockquote>Mais informações junto dos treinadores e da direção, ou através da página de contactos.</blockquote>$body$,
     'https://www.serradofc.pt/media/eventos/fresh-abertura-epoca.webp',
     'Comunicação Serrado FC',
