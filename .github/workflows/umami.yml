@@ -44,14 +44,18 @@ jobs:
       - name: Pacote (como a imagem Docker oficial, com o Node incluído)
         run: |
           mkdir -p bundle/app
-          cd bundle/app
+          # Ferramentas das migrações (prisma, dotenv…) na pasta de cima: o Node encontra-as a partir de app/
+          # e não colidem com os node_modules do Umami compilado (ligações do pnpm). O servidor usa node_modules/.bin daqui.
+          cd bundle
           echo '{}' > package.json
           npm install --no-audit --no-fund npm-run-all dotenv chalk semver \
             "prisma@$PRISMA_VERSION" "@prisma/client@$PRISMA_VERSION" "@prisma/adapter-pg@$PRISMA_VERSION"
           ls node_modules/@prisma/engines/ | grep -q engine || { echo 'Faltam os motores do Prisma'; exit 1; }
+          cd app
           cp -r ../../umami/public ../../umami/prisma ../../umami/prisma.config.ts ../../umami/scripts ../../umami/generated .
           cp -r ../../umami/.next/standalone/. .
           mkdir -p .next && cp -r ../../umami/.next/static .next/static
+          test -f server.js || { echo 'Falta o server.js do Umami'; exit 1; }
           cd ..
           install -m 755 "$(command -v node)" node
           echo "$UMAMI_VERSION" > VERSION
