@@ -36,7 +36,7 @@ log = logging.getLogger("serrado.push")
 PUBLIC_TOPICS = ("noticias", "eventos", "jogos")
 PERSONAL_TOPICS = ("pagamentos", "gastos")
 TOPICS = PUBLIC_TOPICS + PERSONAL_TOPICS
-SPORTS = ("atletismo", "futsal", "rugby", "formacao", "escola-de-desporto")
+SPORTS = ("atletismo", "futsal", "rugby")
 # Só se envia para os serviços de push dos browsers (o endereço vem do browser: evita pedidos a outros sítios)
 PUSH_HOSTS = ("fcm.googleapis.com", "android.googleapis.com", "push.services.mozilla.com", "push.apple.com", "notify.windows.com")
 MAX_ATTEMPTS = 6

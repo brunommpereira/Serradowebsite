@@ -9,7 +9,7 @@
         Uma família.<br />
         <span>Várias modalidades.</span>
       </h1>
-      <p class="hero__lead">Atletismo, futsal, rugby e formação no coração da Caparica. Um clube feito por e para a comunidade.</p>
+      <p class="hero__lead">Atletismo, futsal e rugby no coração da Caparica. Um clube feito por e para a comunidade.</p>
       <div class="hero__actions">
         <a class="btn btn--accent" routerLink="/socios">Torna-te Sócio</a>
         <a class="btn btn--ghost-light" routerLink="/clube">Conhece o Clube</a>
@@ -79,16 +79,13 @@
         <p class="eyebrow">Desporto</p>
         <h2 id="h-sports">As nossas modalidades</h2>
       </div>
-      <p class="sports__intro">Da Escola de Desporto à competição sénior, há lugar para todos no Serrado FC.</p>
+      <p class="sports__intro">Dos mais novos à competição sénior, há lugar para todos no Serrado FC.</p>
     </div>
     <div class="grid grid-3">
       @for (s of sports; track s.id) {
         <sfc-sport-card [sport]="s" />
       }
     </div>
-    <p class="sports__more">
-      Também temos <a routerLink="/modalidades/formacao">Formação</a> e <a routerLink="/modalidades/futsal" fragment="escola-de-desporto">Escola de Desporto</a> para os mais novos.
-    </p>
   </div>
 </section>
 

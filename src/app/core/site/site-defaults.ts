@@ -66,7 +66,7 @@ export const SITE_DEFAULTS: SiteData = {
       'O Serrado Futebol Clube nasceu a 29 de abril de 1978, com o novo bairro da Quinta do Serrado, na Caparica: cerca de 400 fogos que trouxeram ao local muitos jovens à procura de desporto e de ocupação dos tempos livres. À frente do movimento esteve Samuel Gomes de Andrade, com largas provas dadas nos Bombeiros Voluntários de Almada, acompanhado por um grande grupo de jovens com uma idade média de 15 anos.\n\n' +
       'Entre os fundadores, além de Samuel Gomes de Andrade, contam-se Vital Correia dos Santos, Vitor Manuel Rodrigues, Domingos Garcia, Fernando Bento e José António Pinto. Dos mais jovens, recordam-se Manuel Baltazar Neto, José António e Jorge Lima Tavares, Carlos Teixeira, Artur Lopes e Miguel Garcia.\n\n' +
       'Sem sede e sem campos, foi preciso «inventá-los». As primeiras reuniões faziam-se no Talho do Samuel, como ficou conhecido, onde os assuntos eram debatidos e as decisões tomadas de forma informal. Em 1979, a sede passou para uma antiga adega, onde ainda hoje funciona: um espaço pequeno que os sócios tornaram acolhedor.\n\n' +
-      'Desde o início, o clube animou o bairro e a freguesia: festejos de aniversário, Santos Populares, verões cheios de iniciativas. O objetivo foi sempre ocupar os tempos livres dos jovens com desporto, recreio e convívio. Hoje somos um clube multidesportivo, com atletismo, futsal, rugby, formação e Escola de Desporto, sem perder aquilo que nos define: a comunidade.',
+      'Desde o início, o clube animou o bairro e a freguesia: festejos de aniversário, Santos Populares, verões cheios de iniciativas. O objetivo foi sempre ocupar os tempos livres dos jovens com desporto, recreio e convívio. Hoje somos um clube multidesportivo, com atletismo, futsal e rugby, sem perder aquilo que nos define: a comunidade.',
     timeline: [
       {
         year: '1978',
@@ -171,7 +171,7 @@ export const SITE_DEFAULTS: SiteData = {
         text: 'Campo para treinos e jogos de rugby e atletismo, com balneários e bancada.',
         imageUrl: null,
       },
-      { name: 'Pavilhão', text: 'Casa do futsal e da Escola de Desporto.', imageUrl: null },
+      { name: 'Pavilhão', text: 'Casa do futsal.', imageUrl: null },
       {
         name: 'Sede social',
         text: 'Secretaria, sala de reuniões, bar e espaço de convívio dos sócios.',
@@ -293,6 +293,4 @@ export const SITE_DEFAULTS: SiteData = {
   'sport-atletismo': sport('atletismo'),
   'sport-futsal': sport('futsal'),
   'sport-rugby': sport('rugby'),
-  'sport-formacao': sport('formacao'),
-  'sport-escola-de-desporto': sport('escola-de-desporto'),
 };

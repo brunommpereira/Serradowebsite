@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ...db.pool import fetch, fetch_one, tx
 from ...legal_templates import TEMPLATES
-from ...registry import SPORTS
+from ...registry import SITE_SPORTS
 from ...signup import (
     KINDS,
     TITLES,
@@ -79,7 +79,7 @@ def register(r: APIRouter) -> None:
             "documents": {k: {"version": d["version"], "title": d["title"], "body": d["body"], "sha256": d["sha256"]} for k, d in docs.items()},
             "ready": {"member": all(k in docs for k in ("socio", "rgpd", "imagem")), "athlete": all(k in docs for k in ("atleta", "rgpd", "imagem"))},
             "categories": categories or ["Efetivo"],
-            "sports": list(SPORTS),
+            "sports": list(SITE_SPORTS),
         }
 
     @r.post(

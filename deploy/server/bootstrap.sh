@@ -195,7 +195,8 @@ $TLS
 
 	# Endereços antigos: redirecionamento permanente (301)
 	redir /termos /termos-e-condicoes 301
-	redir /modalidades/escola-de-desporto /modalidades/futsal#escola-de-desporto 301
+	redir /modalidades/escola-de-desporto /modalidades 301
+	redir /modalidades/formacao /modalidades 301
 	redir /area-socio/entrar /entrar?perfil=socio 301
 
 	handle {

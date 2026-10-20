@@ -235,8 +235,6 @@ export interface SiteData {
   'sport-atletismo': SportBlock;
   'sport-futsal': SportBlock;
   'sport-rugby': SportBlock;
-  'sport-formacao': SportBlock;
-  'sport-escola-de-desporto': SportBlock;
 }
 
 export type BlockKey = keyof SiteData;

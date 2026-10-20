@@ -1,12 +1,10 @@
 import { BlockDef, BlockField } from './site.models';
 
-const SPORT_OPTIONS = ['atletismo', 'futsal', 'rugby', 'formacao', 'escola-de-desporto'] as const;
+const SPORT_OPTIONS = ['atletismo', 'futsal', 'rugby'] as const;
 const SPORT_LABELS: Record<string, string> = {
   atletismo: 'Atletismo',
   futsal: 'Futsal',
   rugby: 'Rugby',
-  formacao: 'Formação',
-  'escola-de-desporto': 'Escola de Desporto',
 };
 const SPORT: BlockField = {
   key: 'sportSlug',
@@ -19,7 +17,7 @@ const SPORT: BlockField = {
 /** Jogos: as modalidades de equipa primeiro (a primeira é a escolhida num jogo novo) */
 const TEAM_SPORT: BlockField = {
   ...SPORT,
-  options: ['futsal', 'rugby', 'formacao', 'escola-de-desporto', 'atletismo'],
+  options: ['futsal', 'rugby', 'atletismo'],
 };
 const ICONS = [
   'users',
@@ -471,8 +469,6 @@ export const BLOCKS: BlockDef[] = [
   sportBlock('futsal', 'Futsal'),
   sportBlock('atletismo', 'Atletismo'),
   sportBlock('rugby', 'Rugby', true),
-  sportBlock('formacao', 'Formação'),
-  sportBlock('escola-de-desporto', 'Escola de Desporto'),
   {
     key: 'matches',
     label: 'Jogos e resultados',

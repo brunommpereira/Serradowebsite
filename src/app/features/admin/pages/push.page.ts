@@ -78,8 +78,6 @@ const TOPICS = [
               <option value="atletismo">Atletismo</option>
               <option value="futsal">Futsal</option>
               <option value="rugby">Rugby</option>
-              <option value="formacao">Formação</option>
-              <option value="escola-de-desporto">Escola de Desporto</option>
             </select>
           </div>
           <div class="field wide">

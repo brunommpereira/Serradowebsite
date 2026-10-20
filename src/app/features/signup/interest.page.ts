@@ -9,10 +9,8 @@ import { PageHeroComponent } from '../../shared/page-hero.component';
 
 const SPORTS: { slug: string; label: string }[] = [
   { slug: 'futsal', label: 'Escola de Futsal' },
-  { slug: 'escola-de-desporto', label: 'Escola de Desporto (4 aos 8 anos)' },
   { slug: 'rugby', label: 'Escola de Rugby' },
   { slug: 'atletismo', label: 'Atletismo' },
-  { slug: 'formacao', label: 'Formação' },
 ];
 
 /**

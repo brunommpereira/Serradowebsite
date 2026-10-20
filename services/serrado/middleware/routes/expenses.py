@@ -16,7 +16,7 @@ from ..session import staff
 Id = Annotated[int, Path(ge=1)]
 FileId = Annotated[str, Path(pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")]
 JsonObject = Annotated[dict[str, Any], Body()]
-Nucleo = Literal["direcao", "atletismo", "futsal", "rugby", "formacao", "escola-de-desporto"]
+Nucleo = Literal["direcao", "atletismo", "futsal", "rugby"]
 
 
 def register(r: APIRouter) -> None:

@@ -1,5 +1,5 @@
 import { RenderMode, ServerRoute } from '@angular/ssr';
-import { SPORTS } from './core/data/mock-data';
+import { SPORT_SLUGS } from './core/services/content.service';
 
 /**
  * Todas as páginas públicas são pré-geradas em HTML estático (SEO + performance).
@@ -17,7 +17,7 @@ export const serverRoutes: ServerRoute[] = [
   {
     path: 'modalidades/:slug',
     renderMode: RenderMode.Prerender,
-    getPrerenderParams: async () => SPORTS.map((s) => ({ slug: s.slug })),
+    getPrerenderParams: async () => SPORT_SLUGS.map((slug) => ({ slug })),
   },
   // Notícias e eventos vêm do CMS (podem ser criados a qualquer momento): renderizados no browser;
   // os endereços entram no sitemap dinâmico (/api/v1/content/sitemap.xml)
@@ -26,5 +26,6 @@ export const serverRoutes: ServerRoute[] = [
   // Endereços antigos: o servidor (Caddy) responde com 301
   { path: 'termos', renderMode: RenderMode.Client },
   { path: 'modalidades/escola-de-desporto', renderMode: RenderMode.Client },
+  { path: 'modalidades/formacao', renderMode: RenderMode.Client },
   { path: '**', renderMode: RenderMode.Prerender },
 ];

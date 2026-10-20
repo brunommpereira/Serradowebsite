@@ -18,8 +18,6 @@ const SPORTS = [
   { key: 'atletismo', label: 'Atletismo' },
   { key: 'futsal', label: 'Futsal' },
   { key: 'rugby', label: 'Rugby' },
-  { key: 'formacao', label: 'Formação' },
-  { key: 'escola-de-desporto', label: 'Escola de Desporto' },
 ];
 
 /** Instalar a app (PWA) e escolher as notificações deste dispositivo. */

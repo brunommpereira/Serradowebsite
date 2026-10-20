@@ -24,7 +24,7 @@ from ...mail import enqueue, layout
 from ...notify import matches_saved
 from ..core import HttpError, actor, audit, camel, not_found, pool, require
 
-SPORTS = ("atletismo", "futsal", "rugby", "formacao", "escola-de-desporto")
+SPORTS = ("atletismo", "futsal", "rugby")
 BLOCKS = (
     "contacts",
     "club",

@@ -7,8 +7,9 @@ export const routes: Routes = [
   { path: 'clube', loadComponent: () => import('./features/club/club.component').then((m) => m.ClubComponent) },
   { path: 'clube/estatutos', loadComponent: () => import('./features/club/statutes.page').then((m) => m.StatutesPage) },
   { path: 'modalidades', loadComponent: () => import('./features/sports/sports-list.component').then((m) => m.SportsListComponent) },
-  // A Escola de Desporto passou para dentro da página do Futsal
-  { path: 'modalidades/escola-de-desporto', redirectTo: () => inject(Router).createUrlTree(['/modalidades/futsal'], { fragment: 'escola-de-desporto' }) },
+  // Formação e Escola de Desporto deixaram de ter página: endereços antigos vão para as modalidades
+  { path: 'modalidades/escola-de-desporto', redirectTo: '/modalidades' },
+  { path: 'modalidades/formacao', redirectTo: '/modalidades' },
   { path: 'modalidades/:slug', loadComponent: () => import('./features/sports/sport-detail.component').then((m) => m.SportDetailComponent) },
   { path: 'noticias', loadComponent: () => import('./features/news/news-list.component').then((m) => m.NewsListComponent) },
   { path: 'noticias/:slug', loadComponent: () => import('./features/news/news-detail.component').then((m) => m.NewsDetailComponent) },
