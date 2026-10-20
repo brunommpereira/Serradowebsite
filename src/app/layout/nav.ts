@@ -96,7 +96,6 @@ export const MAIN_NAV: NavItem[] = [
       },
     ],
   },
-  { label: 'Agenda', link: '/agenda' },
   {
     label: 'Sócios',
     link: '/socios',
