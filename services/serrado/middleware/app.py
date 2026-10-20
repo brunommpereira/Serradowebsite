@@ -18,7 +18,7 @@ from .backend_client import BackendClient, BackendError
 from .cache import TtlCache
 from .net import RateLimiter, client_ip, compile_trust
 from .oauth import OAuthProvider, configured_providers
-from .routes import admin, auth, content, expenses, interest, me, payments, push, races, registry, signup, site, social
+from .routes import admin, auth, content, event_registrations, expenses, interest, me, payments, push, races, registry, signup, site, social
 from .session import SESSION_COOKIE, session, sign_session, staff
 
 # Pedidos de gasto com anexos (até 3 × 10 MB em base64)
@@ -39,6 +39,7 @@ ROUTE_LIMITS: list[tuple[str, re.Pattern[str], str, int]] = [
     ("POST", re.compile(r"^/api/v1/registrations/[a-z]+$"), "signup", 5),
     ("POST", re.compile(r"^/api/v1/interest$"), "interest", 5),
     ("POST", re.compile(r"^/api/v1/contact$"), "contact", 5),
+    ("POST", re.compile(r"^/api/v1/events/[a-z0-9-]+/registrations$"), "event-registration", 5),
     ("POST", re.compile(r"^/api/v1/payments/stripe/webhook$"), "stripe-webhook", 600),
 ]
 # Sem cookie de sessão nem X-Requested-With: autenticados pela assinatura do Stripe
@@ -109,7 +110,7 @@ def build_middleware(*, backend_client: BackendClient | None = None, oauth: dict
         return {"ok": True, "version": config.version}
 
     v1 = APIRouter(prefix="/api/v1")
-    for module in (auth, content, me, payments, races, registry, signup, site, interest, social, expenses, push):
+    for module in (auth, content, me, payments, races, registry, signup, site, interest, social, expenses, push, event_registrations):
         module.register(v1)
     admin_router = APIRouter(prefix="/admin")
     admin.register(admin_router)

@@ -39,6 +39,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
       { label: 'Importar', link: '/admin/importar', icon: 'upload', permissions: ['members.manage', 'athletes.manage'] },
       { label: 'Propostas', link: '/admin/registos', icon: 'file', permissions: ['registrations.manage'] },
       { label: 'Pré-inscrições', link: '/admin/pre-inscricoes', icon: 'bell', permissions: ['registrations.manage'] },
+      { label: 'Inscrições em eventos', link: '/admin/inscricoes-eventos', icon: 'calendar', permissions: ['registrations.manage', 'payments.manage'] },
       { label: 'Validações', link: '/admin/validacoes', icon: 'check', permissions: ['athletes.manage'] },
       { label: 'Resultados', link: '/admin/resultados', icon: 'trophy', permissions: ['results.import'] },
       { label: 'Inscrições no Troféu', link: '/admin/inscricoes-trofeu', icon: 'run', permissions: ['athletes.manage'] },

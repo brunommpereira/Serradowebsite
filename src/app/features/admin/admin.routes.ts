@@ -91,6 +91,13 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./pages/interest.page').then((m) => m.InterestPage),
       },
       {
+        path: 'inscricoes-eventos',
+        title: 'Inscrições em eventos',
+        canActivate: [staffGuard],
+        data: { permissions: ['registrations.manage', 'payments.manage'] },
+        loadComponent: () => import('./pages/event-registrations.page').then((m) => m.EventRegistrationsPage),
+      },
+      {
         path: 'registos',
         title: 'Propostas',
         canActivate: [staffGuard],
