@@ -22,7 +22,9 @@ import { CmsStore } from '../cms/cms-store';
 import { SiteStore } from '../site/site-store';
 import { ShopProduct, SportBlock } from '../site/site.models';
 
-const SPORT_SLUGS: SportSlug[] = ['atletismo', 'futsal', 'rugby', 'formacao', 'escola-de-desporto'];
+/** Modalidades com página no site (Formação e Escola de Desporto foram retiradas) */
+export const SPORT_SLUGS = ['atletismo', 'futsal', 'rugby'] as const satisfies readonly SportSlug[];
+type SiteSport = (typeof SPORT_SLUGS)[number];
 const SPORT_ICON: Record<SportSlug, Sport['icon']> = { atletismo: 'run', futsal: 'ball', rugby: 'rugby', formacao: 'star', 'escola-de-desporto': 'school' };
 
 /** Contactos e dados do clube (bloco «Contactos e redes sociais»), no formato que as páginas usam. */
@@ -93,7 +95,7 @@ export class ContentService {
     return this.site.data('club');
   }
 
-  private sportBlock(slug: SportSlug): SportBlock {
+  private sportBlock(slug: SiteSport): SportBlock {
     return this.site.data(`sport-${slug}`);
   }
 
@@ -134,7 +136,8 @@ export class ContentService {
   }
 
   coaches(sport: SportSlug): Coach[] {
-    return this.sportBlock(sport).coaches.map((c) => ({ ...c, sportSlug: sport }));
+    if (!(SPORT_SLUGS as readonly string[]).includes(sport)) return [];
+    return this.sportBlock(sport as SiteSport).coaches.map((c) => ({ ...c, sportSlug: sport }));
   }
 
   matches(): Match[] {

@@ -152,7 +152,7 @@ async def test_health(mw):
 # ---------------------------------------------------------------- conteúdo público (BFF)
 async def test_noticias_no_formato_do_front_sem_rascunhos(mw):
     news = (await mw.client().get("/api/v1/content/news")).json()
-    assert len(news) >= 7
+    assert len(news) >= 6
     assert news[0]["bodyHtml"].startswith("<p>")
     assert len(news[0]["publicationDate"]) == 10
     assert not any(n["slug"] == "rascunho-gala-anual" for n in news)

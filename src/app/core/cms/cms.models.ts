@@ -52,7 +52,7 @@ export interface CmsTypeDef {
 export const NEWS_CATEGORIES = ['Clube', 'Atletismo', 'Futsal', 'Rugby', 'Formação', 'Comunidade', 'Eventos', 'Parceiros', 'Comunicados'] as const;
 export const EVENT_KINDS = ['Torneio', 'Caminhada', 'Corrida', 'Solidário', 'Convívio', 'Crianças'] as const;
 export const PARTNER_CATEGORIES = ['Patrocinador Principal', 'Patrocinador', 'Parceiro', 'Parceiro Institucional'] as const;
-export const SPORT_SLUGS = ['atletismo', 'futsal', 'rugby', 'formacao', 'escola-de-desporto'] as const;
+export const SPORT_SLUGS = ['atletismo', 'futsal', 'rugby'] as const;
 
 const SLUG: CmsField = { key: 'slug', label: 'Endereço (slug)', kind: 'text', required: true, max: 120, hint: 'Letras minúsculas, números e hífenes. Gerado a partir do título.' };
 const BODY: CmsField = { key: 'body', label: 'Texto', kind: 'richtext', wide: true };

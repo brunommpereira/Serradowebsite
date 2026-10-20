@@ -24,6 +24,9 @@ from .web import HttpError
 
 NO_PASSWORD = "!"  # noqa: S105 — não é uma password: um valor que nunca coincide (ver password.verify_password)
 SPORTS = ("atletismo", "futsal", "rugby", "formacao", "escola-de-desporto")
+# Modalidades com página e inscrição no site (Formação e Escola de Desporto foram retiradas;
+# as fichas antigas e as importações continuam a aceitá-las)
+SITE_SPORTS = ("atletismo", "futsal", "rugby")
 MAX_ROWS = 2000
 
 

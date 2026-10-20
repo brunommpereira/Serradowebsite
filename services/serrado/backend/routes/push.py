@@ -14,7 +14,7 @@ from ...push import PUBLIC_TOPICS, SPORTS, allowed_endpoint, keys, message, to_t
 from ..core import HttpError, actor, audit, can, pool, require
 
 Topic = Literal["noticias", "eventos", "jogos", "pagamentos", "gastos"]
-Sport = Literal["atletismo", "futsal", "rugby", "formacao", "escola-de-desporto"]
+Sport = Literal["atletismo", "futsal", "rugby"]
 B64 = Annotated[str, Field(pattern=r"^[A-Za-z0-9_-]+=*$")]
 
 

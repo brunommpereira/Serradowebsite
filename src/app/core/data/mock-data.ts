@@ -287,19 +287,6 @@ export const NEWS: NewsSeed[] = [
     publicationDate: '2026-09-20',
   },
   {
-    id: 6,
-    slug: 'escola-de-desporto-arranque',
-    title: 'Escola de Desporto recebe os mais pequenos',
-    category: 'Formação',
-    summary: 'Sábados de manhã dedicados à descoberta de várias modalidades, para crianças dos 4 aos 8 anos.',
-    content: [
-      'A Escola de Desporto voltou com sessões aos sábados de manhã, no pavilhão.',
-      'As crianças experimentam futsal, rugby e atletismo num ambiente divertido e seguro.',
-    ],
-    author: 'Coordenação de Formação',
-    publicationDate: '2026-09-15',
-  },
-  {
     id: 7,
     slug: 'convocatoria-assembleia-geral',
     title: 'Convocatória: Assembleia Geral Ordinária',
@@ -371,23 +358,6 @@ export const EVENTS: EventSeed[] = [
     memberPrice: 7,
     registrationRequired: true,
     askShirtSize: true,
-  },
-  {
-    id: 4,
-    slug: 'dia-aberto-escola-de-desporto',
-    title: 'Dia Aberto da Escola de Desporto',
-    kind: 'Crianças',
-    sportSlug: 'escola-de-desporto',
-    summary: 'Traz os teus filhos para experimentar várias modalidades. Gratuito.',
-    description: ['Sessão aberta para crianças dos 4 aos 8 anos experimentarem futsal, rugby e atletismo.'],
-    date: '2026-10-24T10:00',
-    endTime: '12:00',
-    location: 'Pavilhão do Serrado',
-    capacity: 40,
-    registered: 22,
-    price: 0,
-    registrationRequired: true,
-    askShirtSize: false,
   },
 ];
 

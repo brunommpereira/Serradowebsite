@@ -6,8 +6,6 @@ export const SPORT_OPTIONS: [string, string][] = [
   ['atletismo', 'Atletismo'],
   ['futsal', 'Escola de Futsal'],
   ['rugby', 'Escola de Rugby'],
-  ['formacao', 'Formação'],
-  ['escola-de-desporto', 'Escola de Desporto'],
 ];
 export const MEMBER_STATUS = ['Ativo', 'Pendente', 'Suspenso'] as const;
 export const PAY_METHODS: [string, string][] = [

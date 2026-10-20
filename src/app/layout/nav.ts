@@ -65,7 +65,6 @@ export const MAIN_NAV: NavItem[] = [
           { label: 'Atletismo', link: '/modalidades/atletismo' },
           { label: 'Futsal', link: '/modalidades/futsal' },
           { label: 'Rugby', link: '/modalidades/rugby', href: 'https://almadarugby.pt/' },
-          { label: 'Formação', link: '/modalidades/formacao' },
         ],
       },
     ],

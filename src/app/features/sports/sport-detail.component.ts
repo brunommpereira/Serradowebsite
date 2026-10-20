@@ -34,13 +34,7 @@ export class SportDetailComponent {
   private readonly seo = inject(SeoService);
 
   protected readonly sport = computed(() => this.content.sport(this.slug()));
-  /** Formação e Escola agregam as equipas de formação de todas as modalidades */
-  protected readonly isUmbrella = computed(() => this.slug() === 'formacao' || this.slug() === 'escola-de-desporto');
-  protected readonly teams = computed(() =>
-    this.isUmbrella()
-      ? this.content.teams().filter((t) => t.category !== 'Sénior' && t.category !== 'Masters')
-      : this.content.teams(this.slug() as SportSlug),
-  );
+  protected readonly teams = computed(() => this.content.teams(this.slug() as SportSlug));
   protected readonly coaches = computed(() => this.content.coaches(this.slug() as SportSlug));
   protected readonly upcoming = computed(() => this.content.upcomingMatches(this.slug() as SportSlug, 3));
   protected readonly lastResult = computed(() => this.content.results(this.slug() as SportSlug)[0]);
@@ -51,19 +45,13 @@ export class SportDetailComponent {
   protected readonly news = computed(() => this.content.news(NEWS_CATEGORY[this.slug() as SportSlug]).slice(0, 3));
   protected readonly trainings = computed(() => {
     const s = this.sport();
-    if (!s) return [];
-    if (this.school()) return [...s.trainings, ...this.school()!.trainings];
-    if (!this.isUmbrella() || s.trainings.length) return s.trainings;
-    return this.content.sports().flatMap((x) => x.trainings.filter((t) => /sub|forma|escola/i.test(t.team)));
+    return s ? s.trainings : [];
   });
   protected readonly teamName = (sportSlug: string) => this.content.sport(sportSlug)?.name;
-  /** A Escola de Desporto (4–8 anos) aparece dentro da página do Futsal */
-  protected readonly school = computed(() => (this.slug() === 'futsal' ? this.content.sport('escola-de-desporto') : undefined));
 
   protected readonly tabs = computed(() => {
     const t = [
       { id: 'inicio', label: 'Início' },
-      ...(this.school() ? [{ id: 'escola-de-desporto', label: 'Escola de Desporto' }] : []),
       { id: 'equipas', label: 'Equipas' },
       { id: 'treinadores', label: 'Treinadores' },
       { id: 'calendario', label: 'Calendário' },

@@ -33,10 +33,8 @@ NUCLEOS = {
     "atletismo": "Atletismo",
     "futsal": "Futsal",
     "rugby": "Rugby",
-    "formacao": "Formação",
-    "escola-de-desporto": "Escola de Desporto",
 }
-Nucleo = Literal["direcao", "atletismo", "futsal", "rugby", "formacao", "escola-de-desporto"]
+Nucleo = Literal["direcao", "atletismo", "futsal", "rugby"]
 CATEGORIES = [
     "Material e equipamentos",
     "Deslocações e transportes",
