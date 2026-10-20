@@ -108,3 +108,17 @@
   border-radius: var(--radius-l);
   margin-bottom: 1.2rem;
 }
+
+.hp {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.reg__total small {
+  margin-left: 0.4rem;
+}
+.reg .alert {
+  margin: 0.8rem 0 0;
+}
