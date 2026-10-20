@@ -75,7 +75,7 @@ jobs:
       name: production
       url: https://${{ vars.SITE_DOMAIN }}/admin/estatisticas
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: umami
       - name: Chave SSH (utilizador deploy, limitado ao serrado-ssh-gate)
