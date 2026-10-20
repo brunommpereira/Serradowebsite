@@ -248,7 +248,13 @@ cmd_oauth() {
 
 set_env() {  # set_env CHAVE valor — substitui ou acrescenta em serrado.env
   sed -i "/^$1=/d" "$ETC/serrado.env"
-  printf '%s=%s\n' "$1" "$2" >> "$ETC/serrado.env"
+  # Com espaços (ex.: «Serrado FC») vai entre aspas: o ficheiro também é lido pelo bash (as_app)
+  if [[ $2 == *[[:space:]]* ]]; then
+    [[ $2 != *[\"\\\$\`]* ]] || die "Valor de $1 com caracteres não permitidos (\" \\ \$ \`)"
+    printf '%s="%s"\n' "$1" "$2" >> "$ETC/serrado.env"
+  else
+    printf '%s=%s\n' "$1" "$2" >> "$ETC/serrado.env"
+  fi
 }
 
 cmd_facebook() {
