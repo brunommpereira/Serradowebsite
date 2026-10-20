@@ -31,7 +31,11 @@
               <sfc-member-card [number]="m.memberNumber" [name]="m.name" [category]="m.category" [since]="m.registrationDate.slice(0, 4)" [upToDate]="upToDate()" />
               <ul class="status">
                 <li [class.ok]="m.status === 'Ativo'"><sfc-icon name="check" size="18" />Sócio {{ m.status.toLowerCase() }}</li>
-                <li [class.ok]="upToDate()"><sfc-icon [name]="upToDate() ? 'check' : 'warning'" size="18" />{{ upToDate() ? 'Quota em dia' : 'Quotas em atraso' }}</li>
+                @if (upToDate() === null) {
+                  <li><sfc-icon name="info" size="18" />Sem quotas registadas</li>
+                } @else {
+                  <li [class.ok]="upToDate()"><sfc-icon [name]="upToDate() ? 'check' : 'warning'" size="18" />{{ upToDate() ? 'Quota em dia' : 'Quotas em atraso' }}</li>
+                }
               </ul>
             </div>
             <div class="quota card">
@@ -52,6 +56,9 @@
               @if (lastPaid(); as lp) {
                 <p class="caption">Último pagamento: {{ lp.period }} · {{ lp.paymentMethod }}</p>
               }
+              @if (!payments().length && !paymentsError()) {
+                <p class="caption">Ainda não há quotas registadas no site. Quando a tesouraria as lançar, aparecem aqui e podem ser pagas online.</p>
+              }
               <button class="btn btn--outline btn--block" type="button" (click)="go('quotas')">Ver pagamentos</button>
             </div>
           </div>
@@ -67,11 +74,16 @@
             </div>
             <div class="card">
               <h2 class="h-s">Notificações</h2>
-              <ul class="mini">
-                @for (n of notifications.slice(0, 3); track n.text) {
-                  <li><span>{{ n.text }}</span><span class="caption">{{ n.date | date: 'd MMM' }}</span></li>
-                }
-              </ul>
+              @if (notifications.length) {
+                <ul class="mini">
+                  @for (n of notifications.slice(0, 3); track n.text) {
+                    <li><span>{{ n.text }}</span><span class="caption">{{ n.date | date: 'd MMM' }}</span></li>
+                  }
+                </ul>
+              } @else {
+                <p>Receba no telemóvel os avisos de quotas e pagamentos, jogos e notícias do clube.</p>
+                <a class="btn btn--outline btn--sm" routerLink="/app">Ativar notificações</a>
+              }
             </div>
           </div>
         }

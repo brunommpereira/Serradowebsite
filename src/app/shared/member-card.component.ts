@@ -20,8 +20,8 @@ import { QrCodeComponent } from './qr-code.component';
           <p class="mcard__num">N.º {{ number() }}</p>
           <p class="mcard__name">{{ name() }}</p>
           <p class="mcard__since">Sócio desde {{ since() }}</p>
-          <p class="mcard__status" [class.ok]="upToDate()">
-            {{ upToDate() ? '✓ Sócio ativo · Quota em dia' : '! Quota por regularizar' }}
+          <p class="mcard__status" [class.ok]="upToDate() !== false">
+            {{ upToDate() === null ? '✓ Sócio ativo' : upToDate() ? '✓ Sócio ativo · Quota em dia' : '! Quota por regularizar' }}
           </p>
         </div>
         <sfc-qr-code class="mcard__qr" [data]="'SFC|SOCIO|' + number()" [label]="'QR Code do sócio n.º ' + number()" />
@@ -66,5 +66,6 @@ export class MemberCardComponent {
   readonly name = input.required<string>();
   readonly category = input('Sénior');
   readonly since = input.required<string>();
-  readonly upToDate = input(true);
+  /** null: ainda sem quotas registadas (não se diz «em dia») */
+  readonly upToDate = input<boolean | null>(true);
 }
