@@ -347,7 +347,10 @@ cmd_umami() {
     chown root:umami "$ETC/umami.env" && chmod 640 "$ETC/umami.env"
   fi
   info 'Migrações do Umami'
-  (cd "$dir/app" && runuser -u umami -- bash -c 'set -a; . "$0"; set +a; PATH="$1/node_modules/.bin:$1:$PATH" exec "$1/node" scripts/check-db.js' "$ETC/umami.env" "$dir") \
+  # O utilizador umami não entra em /etc/serrado (750 root:serrado): as migrações só precisam do
+  # DATABASE_URL, que não tem password (autenticação pelo utilizador do sistema, no socket)
+  local db_url; db_url=$(grep '^DATABASE_URL=' "$ETC/umami.env" | cut -d= -f2-)
+  (cd "$dir/app" && runuser -u umami -- env DATABASE_URL="$db_url" PATH="$dir/node_modules/.bin:$dir:$PATH" "$dir/node" scripts/check-db.js) \
     || { rm -rf "$dir"; die 'As migrações do Umami falharam.'; }
 
   ln -sfn "$dir" "$UMAMI/current.new" && mv -T "$UMAMI/current.new" "$UMAMI/current"
