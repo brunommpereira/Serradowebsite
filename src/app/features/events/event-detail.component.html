@@ -22,6 +22,9 @@
                 Gratuito
               } @else {
                 {{ e.price | currency: 'EUR' }} por pessoa@if (e.memberPrice !== undefined) { · Sócios {{ e.memberPrice | currency: 'EUR' }}}
+                @if (e.paymentInfo) {
+                  <small class="pay">{{ e.paymentInfo }}</small>
+                }
               }
             </span>
           </li>
@@ -56,7 +59,7 @@
               <p class="caption">
                 Enviámos a confirmação para <strong>{{ r.email }}</strong> (vê também a pasta de spam).
                 @if (r.amount) {
-                  O clube vai indicar-te como fazer o pagamento.
+                  {{ e.paymentInfo || 'O clube vai indicar-te como fazer o pagamento.' }}
                 }
               </p>
             } @else {
@@ -159,6 +162,9 @@
               <span>Total @if (people() > 1) {<small class="caption">({{ people() }} × {{ unitPrice() | currency: 'EUR' }})</small>}</span>
               <strong>{{ total() === 0 ? 'Gratuito' : (total() | currency: 'EUR') }}</strong>
             </div>
+            @if (total() > 0 && e.paymentInfo) {
+              <p class="caption pay-note">{{ e.paymentInfo }}</p>
+            }
             @if (error(); as m) {
               <p class="alert alert--warning" role="alert">{{ m }}</p>
             }

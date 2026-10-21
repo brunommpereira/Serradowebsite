@@ -226,6 +226,7 @@ export const toEvent = (e: CmsEntry): ClubEvent => ({
   memberPrice: e['memberPrice'] === null || e['memberPrice'] === undefined ? undefined : Number(e['memberPrice']),
   registrationRequired: !!e['registrationRequired'],
   askShirtSize: !!e['askShirtSize'],
+  paymentInfo: String(e['paymentInfo'] ?? ''),
 });
 
 export const toPartner = (e: CmsEntry): Sponsor => ({

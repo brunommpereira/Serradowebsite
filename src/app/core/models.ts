@@ -145,6 +145,8 @@ export interface ClubEvent {
   memberPrice?: number;
   registrationRequired: boolean;
   askShirtSize: boolean;
+  /** Como se paga a inscrição (ex.: «no dia, no local») */
+  paymentInfo?: string;
 }
 
 export interface AgendaItem {

@@ -99,6 +99,7 @@ export const CMS_TYPES: Record<CmsType, CmsTypeDef> = {
       { key: 'memberPrice', label: 'Preço sócio (€)', kind: 'number' },
       { key: 'registrationRequired', label: 'Exige inscrição', kind: 'checkbox' },
       { key: 'askShirtSize', label: 'Pedir tamanho de t-shirt', kind: 'checkbox' },
+      { key: 'paymentInfo', label: 'Como se paga (inscrição)', kind: 'text', max: 300, wide: true },
     ],
   },
   pages: {
