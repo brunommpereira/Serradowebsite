@@ -58,6 +58,7 @@ def to_event(e: Row) -> Row:
             "memberPrice": e.get("memberPrice"),
             "registrationRequired": e.get("registrationRequired"),
             "askShirtSize": e.get("askShirtSize"),
+            "paymentInfo": e.get("paymentInfo") or "",
         },
         "sportSlug",
         "endTime",

@@ -48,6 +48,7 @@ def mail_on(monkeypatch):
 
 async def test_inscricao_publica_com_valor_e_emails(mw, mail_on):
     eid = await new_event(mw.pool, "festa-teste")
+    await execute(mw.pool, "update cms_events set payment_info = 'Paga-se no dia, no Fresh.' where id = %s", [eid])
     await execute(mw.pool, "delete from email_outbox")
     c = mw.client("10.9.0.1")
     c.headers.update({**XHR, "user-agent": "Browser/1.0"})
@@ -67,6 +68,9 @@ async def test_inscricao_publica_com_valor_e_emails(mw, mail_on):
     mails = await fetch(mw.pool, "select to_email, subject, html from email_outbox order by id")
     assert [m["to_email"] for m in mails] == ["joana@exemplo.pt", "site@serradofc.pt"]
     assert out["code"] in mails[0]["html"] and "60 €" in mails[0]["html"]
+    assert "Paga-se no dia, no Fresh." in mails[0]["html"]
+    ev = (await c.get("/api/v1/content/events/festa-teste")).json()
+    assert ev["paymentInfo"] == "Paga-se no dia, no Fresh."
     # Repetido (duplo clique): devolve a mesma inscrição, sem novo email
     again = (await c.post("/api/v1/events/festa-teste/registrations", json=form())).json()
     assert again["duplicate"] is True and again["code"] == out["code"]

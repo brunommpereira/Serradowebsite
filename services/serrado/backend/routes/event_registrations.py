@@ -117,7 +117,7 @@ def register(r: APIRouter) -> None:
         async with tx(pool(req)) as c:
             e = await (
                 await c.execute(
-                    """select id, title, location, capacity, price, member_price, registration_required, ask_shirt_size,
+                    """select id, title, location, capacity, price, member_price, registration_required, ask_shirt_size, payment_info,
                               to_char(starts_at, 'DD/MM/YYYY "às" HH24"h"MI') as starts, starts_at > (now() at time zone 'Europe/Lisbon') as future
                          from cms_events where slug = %s and status = 'published' for update""",
                     [slug],
@@ -182,7 +182,7 @@ def register(r: APIRouter) -> None:
                             f"Olá {f.name},",
                             f"A tua inscrição em «{e['title']}» ({when}, {e['location']}) está registada.",
                             f"N.º de inscrição: {code} · {who} · total {total}.",
-                            *(["O clube vai indicar-te como fazer o pagamento."] if amount else []),
+                            *([e["payment_info"] or "O clube vai indicar-te como fazer o pagamento."] if amount else []),
                             "Se precisares de alterar ou cancelar, responde a este email.",
                         ],
                         ("Ver o evento", f"{config.oauth.site_url}/eventos/{slug}"),
