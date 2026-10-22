@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, input, OnInit, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
@@ -42,6 +42,7 @@ const SPORTS: Record<string, string> = { atletismo: 'Atletismo', futsal: 'Futsal
       </select>
       <div class="chips" role="group" aria-label="Pendentes">
         <button type="button" class="chip" [attr.aria-pressed]="!pending()" (click)="pending.set('')">Todos</button>
+        <button type="button" class="chip" [attr.aria-pressed]="pending() === 'new'" (click)="pending.set('new')" title="Fichas criadas nos últimos 30 dias, as mais recentes primeiro">Novos (30 dias)</button>
         <button type="button" class="chip" [attr.aria-pressed]="pending() === 'confirm'" (click)="pending.set('confirm')">Ficha por confirmar</button>
         <button type="button" class="chip" [attr.aria-pressed]="pending() === 'docs'" (click)="pending.set('docs')">Documentos em falta</button>
         <button type="button" class="chip" [attr.aria-pressed]="pending() === 'requests'" (click)="pending.set('requests')">Com pedidos</button>
@@ -71,7 +72,7 @@ const SPORTS: Record<string, string> = { atletismo: 'Atletismo', futsal: 'Futsal
             <tr>
               <td>
                 <strong>{{ a.name }}</strong>
-                <span class="caption sub">{{ a.code }} · {{ a.birthDate | date: 'y' }}</span>
+                <span class="caption sub">{{ a.code }} · {{ a.birthDate | date: 'y' }}@if (pending() === 'new' && a.createdAt) { · entrou a {{ a.createdAt | date: 'dd/MM/y' }}}</span>
               </td>
               <td class="hide-sm">{{ sportName(a.sportSlug) }} · {{ a.category }}</td>
               <td>
@@ -195,7 +196,9 @@ const SPORTS: Record<string, string> = { atletismo: 'Atletismo', futsal: 'Futsal
     }
   `,
 })
-export class AthletesPage {
+export class AthletesPage implements OnInit {
+  /** ?q=SFC-0001 (ex.: vindo de «Novas entradas») */
+  readonly search = input<string>('', { alias: 'q' });
   protected readonly auth = inject(AuthService);
   private readonly source = inject(AdminSource);
   protected readonly sports = Object.entries(SPORTS);
@@ -220,6 +223,10 @@ export class AthletesPage {
   ];
 
   protected readonly q = signal('');
+
+  ngOnInit() {
+    if (this.search()) this.q.set(this.search());
+  }
   protected readonly sport = signal('');
   protected readonly pending = signal('');
   protected readonly list = signal<AdminAthlete[]>([]);

@@ -163,7 +163,9 @@ export class DemoAdminSource extends AdminSource {
                 ? !a.hasEmail
                 : filter.pending === 'account'
                   ? !a.accounts
-                  : true,
+                  : filter.pending === 'new'
+                    ? !!a.createdAt && Date.now() - Date.parse(a.createdAt) < 30 * 86400000
+                    : true,
       )
       .sort((a, b) => a.name.localeCompare(b.name));
   }

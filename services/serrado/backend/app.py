@@ -30,6 +30,7 @@ from .routes import (
     payments,
     push,
     races,
+    recent,
     registry,
     results,
     signup,
@@ -146,6 +147,7 @@ def build_backend(pool: Pool) -> FastAPI:
         expenses,
         push,
         event_registrations,
+        recent,
     ):
         module.register(v1)
     app.include_router(v1)

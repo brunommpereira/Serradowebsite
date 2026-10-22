@@ -78,6 +78,8 @@ export interface AdminAthlete {
   hasEmail?: boolean;
   /** Contas com acesso à ficha (atleta ou encarregados) */
   accounts?: number;
+  /** Quando a ficha foi criada */
+  createdAt?: string;
 }
 
 export interface AdminAthleteDetail extends Record<string, unknown> {

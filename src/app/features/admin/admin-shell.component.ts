@@ -34,6 +34,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
   {
     title: 'Clube',
     items: [
+      { label: 'Novas entradas', link: '/admin/novas-entradas', icon: 'bell', permissions: ['registrations.manage', 'athletes.view', 'athletes.manage', 'payments.manage', 'users.manage'] },
       { label: 'Sócios', link: '/admin/socios', icon: 'card', permissions: ['members.view'] },
       { label: 'Atletas', link: '/admin/atletas', icon: 'users', permissions: ['athletes.view', 'athletes.manage'] },
       { label: 'Importar', link: '/admin/importar', icon: 'upload', permissions: ['members.manage', 'athletes.manage'] },

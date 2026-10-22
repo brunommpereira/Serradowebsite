@@ -152,7 +152,7 @@ const STATUS: { key: Status | ''; label: string }[] = [
                   </td>
                 </tr>
               } @empty {
-                <tr><td colspan="5" class="adm-empty">{{ status() === 'pendente' ? 'Não há propostas por decidir.' : 'Sem propostas.' }}</td></tr>
+                <tr><td colspan="5" class="adm-empty">{{ status() === 'pendente' ? 'Não há propostas por decidir.' : 'Sem propostas.' }}@if (status() === 'pendente' && count('por_confirmar')) { Há {{ count('por_confirmar') }} à espera de que a pessoa confirme o email: vê em «À espera do email».}</td></tr>
               }
             </tbody>
           </table>
