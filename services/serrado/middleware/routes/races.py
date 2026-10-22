@@ -62,6 +62,11 @@ def register(r: APIRouter) -> None:
         s = await staff(req)
         return await backend(req).call("POST", f"/races/editions/{edition_id}/signups", actor=s, body=body)
 
+    @r.post("/admin/races/editions/{edition_id}/import", tags=office, summary="Lista de inscritos da Xistarca (marca inscritos e cria quem falta)")
+    async def import_list(req: Request, edition_id: Id, body: JsonObject) -> Any:
+        s = await staff(req)
+        return await backend(req).call("POST", f"/races/editions/{edition_id}/import", actor=s, body=body)
+
     @r.post("/admin/races/editions/{edition_id}/check", tags=office, summary="Testar a ligação à Xistarca")
     async def check(req: Request, edition_id: Id) -> Any:
         s = await staff(req)

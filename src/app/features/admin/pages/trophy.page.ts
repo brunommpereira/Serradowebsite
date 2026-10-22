@@ -11,6 +11,47 @@ import { FormsModule } from '@angular/forms';
 import { ApiClient } from '../../../core/api/api-client';
 import { DialogComponent } from '../../../shared/dialog.component';
 import { OfflineNoticeComponent } from '../../../shared/offline-notice.component';
+import { excelDate, headerKey, readTable } from '../../../shared/tabular';
+
+/** Linha da lista de inscritos da Xistarca */
+interface ListRow {
+  name: string;
+  gender: string | null;
+  idNumber: string | null;
+  birthDate: string | null;
+  email: string | null;
+  phone: string | null;
+}
+
+interface ImportOut {
+  dryRun: boolean;
+  rows: number;
+  matched: number;
+  created: number;
+  completed: number;
+  marked: number;
+  already: number;
+  createdNames: string[];
+  skipped: { row: number; name: string; message: string }[];
+  notes: { row: number; name: string; message: string }[];
+  notInList: { code: string; name: string; status: string }[];
+}
+
+/** Cabeçalhos do Excel da Xistarca (e variantes) → campo */
+const LIST_COLUMNS: Record<string, keyof ListRow> = {
+  nome: 'name',
+  sexo: 'gender',
+  genero: 'gender',
+  ccpassaporte: 'idNumber',
+  cc: 'idNumber',
+  ncc: 'idNumber',
+  documento: 'idNumber',
+  datadenascimento: 'birthDate',
+  nascimento: 'birthDate',
+  email: 'email',
+  telemovel: 'phone',
+  telefone: 'phone',
+};
 
 interface Race {
   round: number;
@@ -190,6 +231,9 @@ const blank = (): Partial<Edition> => {
               <button type="button" class="btn btn--outline btn--sm" (click)="editRaces(e)">
                 Provas ({{ e.races.length }})
               </button>
+              <button type="button" class="btn btn--primary btn--sm" (click)="openImport()">
+                Importar lista da Xistarca
+              </button>
             </div>
           </div>
         </section>
@@ -307,6 +351,72 @@ const blank = (): Partial<Edition> => {
           Ainda não há nenhuma edição. Cria a da época com o endereço da 1.ª prova na Xistarca.
         </p>
       }
+
+      <!-- Lista de inscritos da Xistarca -->
+      <sfc-dialog heading="Importar lista de inscritos da Xistarca" [open]="importOpen()" (closed)="importOpen.set(false)">
+        <p class="caption">
+          O Excel que a Xistarca envia (nome, sexo, CC, data de nascimento, email, telemóvel). Quem
+          está na lista fica <strong>inscrito</strong> nesta edição; quem não existe na base de dados é
+          criado (atletismo). Nas fichas que já existem, só se preenche o que está vazio. Primeiro vês
+          o resumo; só grava quando confirmares.
+        </p>
+        <div class="field">
+          <label for="xl-file">Ficheiro (.xlsx ou .csv)</label>
+          <input id="xl-file" type="file" accept=".xlsx,.csv" (change)="pickList($event)" [disabled]="busy()" />
+        </div>
+        @if (importError(); as m) {
+          <p class="alert alert--warning" role="alert">{{ m }}</p>
+        }
+        @if (importOut(); as o) {
+          <div class="imp" role="status">
+            <p>
+              <strong>{{ o.rows }}</strong> linhas · <strong>{{ o.matched }}</strong> já na base de dados ·
+              <strong>{{ o.created }}</strong> {{ o.dryRun ? 'a criar' : 'criados' }} ·
+              <strong>{{ o.marked }}</strong> {{ o.dryRun ? 'a marcar' : 'marcados' }} como inscritos
+              @if (o.already) {
+                · {{ o.already }} já estavam inscritos
+              }
+              @if (o.completed) {
+                · {{ o.completed }} fichas completadas
+              }
+            </p>
+            @if (o.createdNames.length) {
+              <details>
+                <summary>Atletas {{ o.dryRun ? 'a criar' : 'criados' }} ({{ o.createdNames.length }})</summary>
+                <p class="caption">{{ o.createdNames.join(', ') }}</p>
+              </details>
+            }
+            @if (o.skipped.length || o.notes.length) {
+              <details>
+                <summary>Avisos ({{ o.skipped.length + o.notes.length }})</summary>
+                <ul class="caption">
+                  @for (s of o.skipped.concat(o.notes); track s.row + s.message) {
+                    <li>Linha {{ s.row }} · {{ s.name }}: {{ s.message }}</li>
+                  }
+                </ul>
+              </details>
+            }
+            @if (o.notInList.length) {
+              <details open>
+                <summary>Pediram no site mas não estão na lista ({{ o.notInList.length }})</summary>
+                <ul class="caption">
+                  @for (x of o.notInList; track x.code) {
+                    <li>{{ x.name }} ({{ x.code }}) · {{ label(x.status) }}</li>
+                  }
+                </ul>
+              </details>
+            }
+          </div>
+          @if (o.dryRun) {
+            <div class="actions">
+              <button type="button" class="btn btn--primary" [disabled]="busy()" (click)="confirmImport()">
+                Confirmar e gravar
+              </button>
+              <button type="button" class="btn btn--ghost" (click)="importOpen.set(false)">Cancelar</button>
+            </div>
+          }
+        }
+      </sfc-dialog>
 
       <!-- Edição -->
       <sfc-dialog
@@ -489,6 +599,15 @@ const blank = (): Partial<Edition> => {
     }
   `,
   styles: `
+    .imp {
+      margin-top: 1rem;
+      display: grid;
+      gap: 0.5rem;
+      ul {
+        margin: 0.4rem 0 0;
+        padding-left: 1.1rem;
+      }
+    }
     .ed {
       margin-bottom: 1rem;
     }
@@ -602,6 +721,10 @@ export class TrophyPage {
   protected q = '';
   protected readonly hits = signal<AthleteHit[]>([]);
   protected readonly picked = signal<Set<string>>(new Set());
+  protected readonly importOpen = signal(false);
+  protected readonly importOut = signal<ImportOut | null>(null);
+  protected readonly importError = signal<string | null>(null);
+  private listRows: ListRow[] = [];
 
   constructor() {
     if (this.api.enabled) void this.reload();
@@ -623,6 +746,60 @@ export class TrophyPage {
   }
   protected total(e: Edition) {
     return Object.values(e.counts ?? {}).reduce((a, b) => a + b, 0);
+  }
+
+  protected openImport() {
+    this.listRows = [];
+    this.importOut.set(null);
+    this.importError.set(null);
+    this.importOpen.set(true);
+  }
+
+  /** Lê o Excel: procura a linha dos cabeçalhos (a da Xistarca tem um título por cima) */
+  protected async pickList(ev: Event) {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    const e = this.current();
+    if (!file || !e) return;
+    this.importOut.set(null);
+    this.importError.set(null);
+    try {
+      const table = await readTable(file);
+      const h = table.findIndex((r) => r.some((c) => headerKey(c) === 'nome'));
+      if (h < 0) throw new Error('Não encontrei a coluna «NOME» no ficheiro.');
+      const cols = table[h].map((c) => LIST_COLUMNS[headerKey(c)]);
+      this.listRows = table
+        .slice(h + 1)
+        .map((r) => {
+          const row: ListRow = { name: '', gender: null, idNumber: null, birthDate: null, email: null, phone: null };
+          r.forEach((v, i) => {
+            const k = cols[i];
+            const val = (v ?? '').trim();
+            if (k && val) (row as unknown as Record<string, string>)[k] = k === 'birthDate' ? excelDate(val) : val;
+          });
+          return row;
+        })
+        .filter((r) => r.name.length >= 3);
+      if (!this.listRows.length) throw new Error('O ficheiro não tem atletas.');
+      await this.run(async () => {
+        this.importOut.set(await this.api.post<ImportOut>(`/admin/races/editions/${e.id}/import`, { rows: this.listRows, dryRun: true }));
+      });
+    } catch (err) {
+      this.importError.set((err as Error).message);
+    } finally {
+      input.value = '';
+    }
+  }
+
+  protected confirmImport() {
+    const e = this.current();
+    if (!e || !this.listRows.length) return;
+    void this.run(async () => {
+      const out = await this.api.post<ImportOut>(`/admin/races/editions/${e.id}/import`, { rows: this.listRows });
+      this.importOut.set(out);
+      await this.refresh();
+      return `Lista importada: ${out.marked} marcados como inscritos, ${out.created} atletas criados.`;
+    });
   }
 
   private async reload() {
