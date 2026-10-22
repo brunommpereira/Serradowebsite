@@ -16,7 +16,9 @@ def is_valid_nif(nif: str) -> bool:
 
 
 def is_valid_id_number(v: str) -> bool:
-    return re.fullmatch(r"\d{7,8}", v) is not None
+    """CC/BI português (7 ou 8 dígitos, com ou sem os caracteres de controlo) ou documento estrangeiro
+    (passaporte, cartão de residência…): 5 a 20 letras e números, com pelo menos um algarismo."""
+    return re.fullmatch(r"(?=[A-Z]*\d)[A-Z0-9]{5,20}", re.sub(r"[\s.\-]", "", v).upper()) is not None
 
 
 def is_valid_postal_code(v: str) -> bool:

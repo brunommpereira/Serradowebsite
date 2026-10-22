@@ -137,7 +137,7 @@ export class AthleteDataComponent {
     if (v.name.trim().split(/\s+/).length < 2) e['name'] = 'Indica o nome completo (nome e apelido).';
     if (!v.birthDate || v.birthDate > this.today) e['birth'] = 'Data de nascimento inválida.';
     if (!d.gender) e['gender'] = 'Escolhe uma opção.';
-    if (!isValidIdNumber(d.idNumber)) e['cc'] = 'N.º de identificação civil com 7 ou 8 dígitos.';
+    if (!isValidIdNumber(d.idNumber)) e['cc'] = 'N.º do CC (7 ou 8 dígitos) ou do passaporte.';
     if (!d.idExpiry) e['ccexp'] = 'Indica a validade do documento.';
     if (!isValidNif(d.taxNumber)) e['nif'] = 'NIF inválido (9 dígitos com dígito de controlo).';
     if (!isValidEmail(d.email.trim())) e['email'] = 'Email inválido.';

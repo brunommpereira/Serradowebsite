@@ -562,8 +562,8 @@ export function isValidNif(nif: string): boolean {
   return Number(nif[8]) === (check >= 10 ? 0 : check);
 }
 
-/** CC/BI: 7 ou 8 dígitos do número de identificação civil. */
-export const isValidIdNumber = (v: string) => /^\d{7,8}$/.test(v);
+/** CC/BI português (7 ou 8 dígitos) ou documento estrangeiro (passaporte…): 5 a 20 letras e números, com algarismos. */
+export const isValidIdNumber = (v: string) => /^(?=[A-Z]*\d)[A-Z0-9]{5,20}$/.test(v.replace(/[\s.-]/g, '').toUpperCase());
 export const isValidPostalCode = (v: string) => /^\d{4}-\d{3}$/.test(v);
 /** Telemóvel/telefone nacional (9 dígitos) ou internacional (+…). */
 export const isValidPhone = (v: string) => /^(9\d{8}|2\d{8}|\+\d{8,15})$/.test(v.replace(/\s/g, ''));

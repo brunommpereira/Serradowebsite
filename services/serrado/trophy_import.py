@@ -2,7 +2,7 @@
 Lista de inscritos da Xistarca (o Excel «TEMPLATE PLATAFORMA XISTARCA»: nome, sexo, CC, nascimento, equipa,
 email, telemóvel) → atletas marcados como inscritos na edição do Troféu.
 
-- Cada linha procura o atleta pelo n.º do CC; senão pelo nome e data de nascimento; senão pelo nome
+- Cada linha procura o atleta pelo n.º do CC (ou do passaporte, se for estrangeiro); senão pelo nome e data de nascimento; senão pelo nome
   (só se houver um único atleta com esse nome e sem data que o contradiga).
 - Quem não existe é criado (atletismo) com os dados da lista.
 - Nos que existem, a lista só preenche o que está vazio na ficha (nunca substitui).
@@ -49,9 +49,17 @@ class ImportResult:
     not_in_list: list[dict[str, Any]] = field(default_factory=list)
 
 
-def _cc(v: Any) -> str | None:
-    d = re.sub(r"\D", "", str(v or ""))[:8]
-    return d if d and is_valid_id_number(d) else None
+def _doc(v: Any) -> str | None:
+    """CC português → só o número (7 ou 8 dígitos); outro documento (passaporte…) → como está, em maiúsculas."""
+    s = re.sub(r"[\s.\-]", "", str(v or "")).upper()
+    if not s or not is_valid_id_number(s):
+        return None
+    pt = re.match(r"^(\d{7,8})(\d[A-Z]{2}\d)?$", s)
+    return pt.group(1) if pt else s
+
+
+def _doc_key(v: Any) -> str:
+    return str(v or "").replace(" ", "").upper().lstrip("0")
 
 
 def _birth(v: Any) -> str | None:
@@ -94,17 +102,17 @@ async def import_list(c: Conn, who: Actor, edition_id: int, raw_rows: list[ListR
             await c.execute("select id::text, code, name, birth_date::text as birth, id_number, gender, email, phone from athletes")
         ).fetchall()
     ]
-    by_cc = {str(a["id_number"]).lstrip("0"): a for a in athletes if a["id_number"]}
+    by_cc = {_doc_key(a["id_number"]): a for a in athletes if a["id_number"]}
     by_name: dict[str, list[dict[str, Any]]] = {}
     for a in athletes:
         by_name.setdefault(_key(a["name"]), []).append(a)
     seen: set[str] = set()
     await c.execute("select set_config('app.identity_change', 'on', true)")
     for i, r in enumerate(raw_rows, start=1):
-        cc, birth, gender, phone, email = _cc(r.idNumber), _birth(r.birthDate), _gender(r.gender), _phone(r.phone), _email(r.email)
+        cc, birth, gender, phone, email = _doc(r.idNumber), _birth(r.birthDate), _gender(r.gender), _phone(r.phone), _email(r.email)
         if r.idNumber and not cc:
-            res.notes.append({"row": i, "name": r.name, "message": "n.º do CC/passaporte não é um CC português: não foi guardado"})
-        found = by_cc.get(cc.lstrip("0")) if cc else None
+            res.notes.append({"row": i, "name": r.name, "message": "n.º do CC/passaporte inválido: não foi guardado"})
+        found = by_cc.get(_doc_key(cc)) if cc else None
         if not found:
             same = by_name.get(_key(r.name), [])
             exact = [a for a in same if birth and a["birth"] == birth]
@@ -141,7 +149,7 @@ async def import_list(c: Conn, who: Actor, edition_id: int, raw_rows: list[ListR
             row = await (await c.execute("select code from athletes where id = %s", [athlete_id])).fetchone()
             new = {"id": athlete_id, "code": row["code"] if row else "", "name": r.name, "birth": birth, "id_number": cc}
             if cc:
-                by_cc[cc.lstrip("0")] = new
+                by_cc[_doc_key(cc)] = new
             by_name.setdefault(_key(r.name), []).append(new)
         seen.add(athlete_id)
         cur = await c.execute(

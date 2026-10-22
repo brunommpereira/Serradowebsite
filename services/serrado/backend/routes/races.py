@@ -181,7 +181,7 @@ def register(r: APIRouter) -> None:
         access = await require_access(req, id, write=True)
         who = actor(req)
         if body.idNumber and not is_valid_id_number(body.idNumber):
-            raise HttpError(422, "invalid_id_number", "N.º do CC inválido")
+            raise HttpError(422, "invalid_id_number", "N.º do CC ou passaporte inválido")
         for ph in (body.phone, body.emergencyPhone):
             if ph and not is_valid_phone(ph):
                 raise HttpError(422, "invalid_phone", "Telefone inválido")

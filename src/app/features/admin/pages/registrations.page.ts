@@ -46,7 +46,7 @@ const FIELDS: [string, string][] = [
   ['phone', 'Telemóvel'],
   ['birthDate', 'Data de nascimento'],
   ['taxNumber', 'NIF'],
-  ['idNumber', 'N.º do CC'],
+  ['idNumber', 'N.º do CC/passaporte'],
   ['idExpiry', 'Validade do CC'],
   ['gender', 'Género'],
   ['sport', 'Modalidade'],
