@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_vali
 from ... import xistarca
 from ...config import config
 from ...db.pool import Pool, fetch, fetch_one, tx
+from ...trophy_import import ListRow, import_list
 from ...validation import is_valid_id_number, is_valid_phone
 from ..core import HttpError, actor, audit, camel, not_found, pool, require
 from .athletes import DATE, AthleteId, _valid_date, require_access
@@ -73,6 +74,12 @@ class SignupRequest(BaseModel):
 
 class StaffSignup(BaseModel):
     athleteIds: list[Annotated[str, StringConstraints(pattern=r"^[0-9a-fA-F-]{36}$")]] = Field(min_length=1, max_length=200)
+
+
+class ListImport(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    rows: list[ListRow] = Field(min_length=1, max_length=2000)
+    dryRun: bool = False
 
 
 def configured() -> bool:
@@ -368,6 +375,28 @@ def register(r: APIRouter) -> None:
                 added += cur.rowcount
             await audit(c, who, "races.staff_signup", "race_editions", edition_id, {"athletes": added})
         return {"added": added, "queued": kick(req) if added else False}
+
+    @r.post("/races/editions/{edition_id}/import", tags=tags, summary="Lista de inscritos da Xistarca: marca inscritos e cria quem falta")
+    async def import_xistarca_list(req: Request, edition_id: Id, body: ListImport) -> dict[str, Any]:
+        require(req, "athletes.manage")
+        async with tx(pool(req)) as c:
+            await _edition(c, edition_id)
+            # Pré-visualização: faz tudo e desfaz no fim
+            async with c.transaction(force_rollback=body.dryRun):
+                res = await import_list(c, actor(req), edition_id, body.rows)
+        return {
+            "dryRun": body.dryRun,
+            "rows": res.rows,
+            "matched": res.matched,
+            "created": res.created,
+            "completed": res.completed,
+            "marked": res.marked,
+            "already": res.already,
+            "createdNames": res.created_names,
+            "skipped": res.skipped,
+            "notes": res.notes,
+            "notInList": res.not_in_list,
+        }
 
     @r.post("/races/signups/{signup_id}/{action}", tags=tags, summary="retry · cancel · done (marcar inscrito à mão)")
     async def act(req: Request, signup_id: Id, action: Annotated[str, Path(pattern="^(retry|cancel|done)$")]) -> dict[str, Any]:
