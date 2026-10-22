@@ -13,6 +13,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from ..config import config
 from ..legal_templates import TEMPLATES
 from ..password import hash_password
 from ..permissions import DEFAULT_ROLES
@@ -233,6 +234,8 @@ async def seed_cms(c: Conn, content: dict[str, Any], editor: str | None, *, draf
 
 
 async def _main() -> None:
+    if config.production:
+        raise SystemExit("Recusado: os dados de demonstração (com passwords conhecidas) nunca vão para a base de dados de produção.")
     pool = create_pool()
     await pool.open()
     try:

@@ -51,3 +51,11 @@ tools/trofeu-almada/out/
 tools/trofeu-almada/node_modules/
 *.xlsx
 services/node_modules/
+
+# Segredos — nunca no repositório (no servidor ficam em /etc/serrado/*.env)
+.env
+.env.*
+*.env
+!.env.example
+*.pem
+*.key

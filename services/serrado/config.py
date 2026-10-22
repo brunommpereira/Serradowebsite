@@ -48,7 +48,7 @@ def _read_version() -> str:
 @dataclass
 class OAuthCredentials:
     client_id: str
-    client_secret: str
+    client_secret: str = field(repr=False)
 
 
 @dataclass
@@ -72,7 +72,7 @@ class FacebookConfig:
 
     page_id: str
     # Token de longa duração da PÁGINA (pages_read_engagement); só existe no servidor
-    page_token: str
+    page_token: str = field(repr=False)
     graph_version: str
     # «publish»: entra logo no site; «draft»: fica em rascunho para a equipa rever
     mode: Literal["publish", "draft"]
@@ -86,7 +86,7 @@ class UmamiConfig:
 
     url: str
     username: str
-    password: str
+    password: str = field(repr=False)
     website_id: str
 
     @property
@@ -99,7 +99,7 @@ class XistarcaConfig:
     """Conta Xistarca do clube para as inscrições no Troféu de Almada (serrado.xistarca). Só no servidor."""
 
     email: str
-    password: str
+    password: str = field(repr=False)
 
 
 def _pairs(value: str) -> dict[str, int]:
@@ -116,12 +116,12 @@ def _pairs(value: str) -> dict[str, int]:
 class PaymentsConfig:
     """Pagamentos online (Stripe) e faturas-recibo (Moloni ON). Só ficam ativos com as chaves definidas."""
 
-    stripe_secret_key: str
-    stripe_webhook_secret: str
+    stripe_secret_key: str = field(repr=False)
+    stripe_webhook_secret: str = field(repr=False)
     stripe_api_version: str
     # Métodos no Stripe Checkout (cartão, MB WAY e Multibanco)
     methods: list[str]
-    moloni_api_key: str
+    moloni_api_key: str = field(repr=False)
     moloni_company_id: int
     moloni_document_set_id: int
     # Artigo do Moloni por tipo: «quota» e uma entrada por modalidade das escolas (futsal, rugby…)
@@ -145,7 +145,7 @@ class MailConfig:
     """Emails do site: por SMTP (a caixa do próprio domínio, ex.: dominios.pt) ou pela API da Brevo.
     Sem nenhum dos dois configurado, nada é enviado (ficam na fila)."""
 
-    brevo_api_key: str
+    brevo_api_key: str = field(repr=False)
     from_email: str
     from_name: str
     smtp_host: str = ""
@@ -169,11 +169,11 @@ class MailConfig:
 @dataclass
 class Config:
     production: bool
-    database_url: str
+    database_url: str = field(repr=False)
     # Segredo partilhado middleware → backend
-    service_token: str
+    service_token: str = field(repr=False)
     # Segredo de assinatura das sessões (JWT)
-    jwt_secret: str
+    jwt_secret: str = field(repr=False)
     backend_url: str
     # Endereço onde os serviços escutam: 0.0.0.0 em Docker; 127.0.0.1 no servidor (só o Caddy lhes chega)
     host: str

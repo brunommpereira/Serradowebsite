@@ -7,7 +7,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 from ...config import config
 from ...db.pool import Conn, Pool, execute, fetch, fetch_one, tx
-from ...password import DUMMY_HASH, hash_password, verify_password
+from ...password import DUMMY_HASH, hash_password, needs_rehash, verify_password
 from ...permissions import ADMIN, PERMISSIONS, effective
 from ...registry import NO_PASSWORD, _email, account_for, claim_athletes
 from ..accounts import MIN_PASSWORD, send_link, token_hash
@@ -167,6 +167,9 @@ def register(r: APIRouter) -> None:
         if not row or not ok:
             raise HttpError(401, "invalid_credentials", "Credenciais inválidas")
         await execute(pool(req), "update users set last_login_at = now() where id = %s", [row["id"]])
+        if needs_rehash(row["password_hash"]):
+            # Mesma password, parâmetros atuais (não mexe em password_changed_at: as sessões continuam válidas)
+            await execute(pool(req), "update users set password_hash = %s where id = %s", [await hash_password(body.password), row["id"]])
         profile = await load_profile(pool(req), row["id"])
         if not profile:
             raise HttpError(401, "invalid_credentials", "Credenciais inválidas")

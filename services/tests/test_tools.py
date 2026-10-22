@@ -62,12 +62,14 @@ async def test_conteudo_inicial_nao_mexe_num_cms_com_conteudo_e_preenche_um_cms_
 
 
 def test_passwords_compativeis_com_as_hashes_da_versao_node():
-    """Hash gerada pela versão Node (scrypt N=16384, r=8, p=1): as contas existentes continuam a entrar."""
-    from serrado.password import hash_password_sync, verify_password_sync
+    """Hash gerada pela versão Node (scrypt N=16384, r=8, p=1): as contas existentes continuam a entrar (e são
+    atualizadas para os parâmetros atuais no login seguinte)."""
+    from serrado.password import hash_password_sync, needs_rehash, verify_password_sync
 
     node = "scrypt$16384$8$1$DSz3mndb5ud1G0Cg7qUEeg==$iX8MmpuSMoQM1gsWIQsZAVgxdri76cMLCsspQSzn9HPwcEmZ+ZziIM0YaArqb6hSRNSQ59J3iMiHg5nlENaQ3A=="
     assert verify_password_sync("serrado1978", node)
     assert not verify_password_sync("outra", node)
     h = hash_password_sync("serrado1978")
-    assert h.startswith("scrypt$16384$8$1$") and verify_password_sync("serrado1978", h)
+    assert needs_rehash(node) and not needs_rehash(h)
+    assert h.startswith("scrypt$131072$8$1$") and verify_password_sync("serrado1978", h)
     assert not verify_password_sync("x", "md5$abc")
