@@ -41,25 +41,29 @@ async def test_lista_da_xistarca_marca_inscritos_e_cria_quem_falta(mw):
         {"name": "Nova Atleta Exemplo", "gender": "F", "idNumber": "33333333", "birthDate": "2000-10-11", "email": None, "phone": "+351 913 333 333"},
         # Repetida
         {"name": "Rita Exemplo", "gender": "F", "idNumber": "11111111", "birthDate": "1990-01-02"},
-        # Passaporte estrangeiro: cria sem CC
-        {"name": "Visitante Exemplo", "gender": "M", "idNumber": "12345", "birthDate": "1999-03-03"},
+        # Documento estrangeiro (passaporte): é guardado como está
+        {"name": "Visitante Exemplo", "gender": "M", "idNumber": "x 12345", "birthDate": "1999-03-03"},
+        # Documento que não serve (sem algarismos): cria sem documento, com aviso
+        {"name": "Sem Documento Exemplo", "gender": "F", "idNumber": "ABC", "birthDate": "1998-04-04"},
     ]
     sec = await mw.login("secretaria@serradofc.pt", "secretaria2026")
     url = f"/api/v1/admin/races/editions/{eid}/import"
 
     # Pré-visualização: não grava nada
     prev = (await sec.post(url, json={"rows": rows, "dryRun": True})).json()
-    assert (prev["matched"], prev["created"], prev["marked"]) == (2, 2, 4)
+    assert (prev["matched"], prev["created"], prev["marked"]) == (2, 3, 5)
     assert not await fetch(mw.pool, "select 1 from athletes where name = 'Nova Atleta Exemplo'")
     assert not await fetch(mw.pool, "select 1 from race_signups where status = 'inscrito' and edition_id = %s", [eid])
 
     out = (await sec.post(url, json={"rows": rows})).json()
-    assert (out["rows"], out["matched"], out["created"], out["marked"], out["already"]) == (5, 2, 2, 4, 0)
+    assert (out["rows"], out["matched"], out["created"], out["marked"], out["already"]) == (6, 2, 3, 5, 0)
     assert out["completed"] == 2  # Rita ganhou email; Tiago ganhou CC, email e telemóvel
     assert [s["row"] for s in out["skipped"]] == [4]
-    assert [n["row"] for n in out["notes"]] == [5]
+    assert [n["row"] for n in out["notes"]] == [6]
     assert [x["code"] for x in out["notInList"]] == ["SFC-8803"]
-    assert sorted(out["createdNames"]) == ["Nova Atleta Exemplo", "Visitante Exemplo"]
+    assert sorted(out["createdNames"]) == ["Nova Atleta Exemplo", "Sem Documento Exemplo", "Visitante Exemplo"]
+    vis = await fetch_one(mw.pool, "select id_number from athletes where name = 'Visitante Exemplo'")
+    assert vis and vis["id_number"] == "X12345"
 
     tiago = await fetch_one(mw.pool, "select id_number, email, phone, gender from athletes where code = 'SFC-8802'")
     assert tiago and (tiago["id_number"], tiago["email"], tiago["phone"], tiago["gender"]) == (
@@ -75,11 +79,17 @@ async def test_lista_da_xistarca_marca_inscritos_e_cria_quem_falta(mw):
         "select a.name from race_signups s join athletes a on a.id = s.athlete_id where s.edition_id = %s and s.status = 'inscrito' order by a.name",
         [eid],
     )
-    assert [x["name"] for x in st] == ["Nova Atleta Exemplo", "Rita Lista Exemplo", "Tiago de Lista Exemplo", "Visitante Exemplo"]
+    assert [x["name"] for x in st] == [
+        "Nova Atleta Exemplo",
+        "Rita Lista Exemplo",
+        "Sem Documento Exemplo",
+        "Tiago de Lista Exemplo",
+        "Visitante Exemplo",
+    ]
 
     # Repetir a mesma lista não cria nem marca de novo
     again = (await sec.post(url, json={"rows": rows})).json()
-    assert (again["created"], again["marked"], again["already"]) == (0, 0, 4)
+    assert (again["created"], again["marked"], again["already"]) == (0, 0, 5)
 
     # Treinador não pode
     tr = await mw.login("treinador@serradofc.pt", "treinador2026")
@@ -103,3 +113,23 @@ async def test_codigo_novo_salta_os_codigos_ja_usados(mw):
     assert out.status_code == 200, out.text
     row = await fetch_one(mw.pool, "select code from athletes where name = 'Codigo Novo Exemplo'")
     assert row and row["code"] == f"SFC-{start + 61:04d}"
+
+
+async def test_documento_estrangeiro_preenche_a_ficha_que_ficou_sem_ele(mw):
+    # Importações antigas deixaram a ficha sem o passaporte: importar de novo preenche-o
+    await fetch(
+        mw.pool,
+        "insert into athletes (code, name, birth_date, sport_slug) values ('SFC-7701', 'Estrangeiro Exemplo', '1990-09-09', 'atletismo') returning id",
+    )
+    ed = await fetch_one(mw.pool, "select id from race_editions where season = '2026/2027'")
+    assert ed
+    sec = await mw.login("secretaria@serradofc.pt", "secretaria2026")
+    out = (
+        await sec.post(
+            f"/api/v1/admin/races/editions/{ed['id']}/import",
+            json={"rows": [{"name": "Estrangeiro Exemplo", "gender": "M", "idNumber": "123456", "birthDate": "1990-09-09"}]},
+        )
+    ).json()
+    assert (out["matched"], out["completed"], out["notes"]) == (1, 1, [])
+    row = await fetch_one(mw.pool, "select id_number from athletes where code = 'SFC-7701'")
+    assert row and row["id_number"] == "123456"

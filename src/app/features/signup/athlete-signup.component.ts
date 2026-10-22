@@ -232,7 +232,7 @@ export class AthleteSignupComponent {
     gender: ['', Validators.required],
     sport: ['atletismo', Validators.required],
     shirtSize: [''],
-    idNumber: ['', Validators.pattern(/^\d{7,8}/)],
+    idNumber: ['', Validators.pattern(/^(?=[A-Za-z .-]*\d)[A-Za-z0-9 .-]{5,24}$/)],
     idExpiry: [''],
     taxNumber: ['', nifValidator],
     address: [''],

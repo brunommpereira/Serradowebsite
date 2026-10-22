@@ -53,7 +53,7 @@ const ROLE_LABEL: Record<string, string> = { encarregado: 'Encarregado', 'co-enc
           <input id="a-member" name="member" [(ngModel)]="draft()['memberNumber']" inputmode="numeric" placeholder="se for sócio" />
         </div>
         <div class="field">
-          <label for="a-cc">N.º do CC</label>
+          <label for="a-cc">N.º do CC ou passaporte</label>
           <input id="a-cc" name="cc" [disabled]="!sensitive" [(ngModel)]="draft()['idNumber']" inputmode="numeric" maxlength="12" />
         </div>
         <div class="field">

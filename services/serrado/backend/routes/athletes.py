@@ -255,7 +255,7 @@ def register(r: APIRouter) -> None:
         if changes.get("taxNumber") and not is_valid_nif(changes["taxNumber"]):
             raise HttpError(400, "invalid_nif", "NIF inválido")
         if changes.get("idNumber") and not is_valid_id_number(changes["idNumber"]):
-            raise HttpError(400, "invalid_id_number", "N.º de CC inválido")
+            raise HttpError(400, "invalid_id_number", "N.º do CC ou passaporte inválido")
         who = actor(req)
         async with tx(pool(req)) as c:
             cur = await c.execute(

@@ -178,9 +178,9 @@ class AthleteIn(_Person):
     @field_validator("idNumber")
     @classmethod
     def _cc(cls, v: str | None) -> str | None:
-        if v is not None and not is_valid_id_number(v[:8]):
-            raise ValueError("n.º do CC inválido")
-        return v
+        if v is not None and not is_valid_id_number(v):
+            raise ValueError("n.º do CC ou passaporte inválido")
+        return v.upper() if v is not None else v
 
 
 # ------------------------------------------------------------------ contas no site
