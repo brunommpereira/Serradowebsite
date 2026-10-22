@@ -273,13 +273,24 @@ async def _link_member_account(c: Conn, number: str, email: str, name: str) -> N
 
 
 # ------------------------------------------------------------------ atletas
+async def _bump_athlete_seq(c: Conn) -> None:
+    """O contador passa para depois do maior código SFC-n que existe (fichas importadas com código não o fazem avançar)."""
+    await c.execute(
+        """select setval('athlete_code_seq',
+                  greatest((select coalesce(max(substring(code from '\\d+$')::bigint), 0) from athletes where code ~* '^SFC-?\\d+$') + 1,
+                           (select last_value + case when is_called then 1 else 0 end from athlete_code_seq)), false)"""
+    )
+
+
 async def next_athlete_code(c: Conn) -> str:
-    for _ in range(50):
+    for attempt in range(50):
         cur = await c.execute("select 'SFC-' || lpad(nextval('athlete_code_seq')::text, 4, '0') as code")
         row = await cur.fetchone()
         assert row is not None
-        if not await (await c.execute("select 1 from athletes where code = %s", [row["code"]])).fetchone():
+        if not await (await c.execute("select 1 from athletes where upper(code) = upper(%s)", [row["code"]])).fetchone():
             return str(row["code"])
+        if attempt == 0:
+            await _bump_athlete_seq(c)
     raise HttpError(409, "conflict", "Não foi possível atribuir um código de atleta livre")
 
 
@@ -559,6 +570,7 @@ async def import_rows(c: Conn, who: Actor, kind: Literal["members", "athletes"],
     if kind == "members":
         await _bump_member_seq(c)
     else:
+        await _bump_athlete_seq(c)
         await link_results(c)
     return out
 
