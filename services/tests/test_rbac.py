@@ -304,3 +304,28 @@ async def test_envio_por_smtp_da_caixa_do_dominio(mw):
     assert "<p>Primeira linha</p>" in msg.get_body(("html",)).get_content()
     att = next(msg.iter_attachments())
     assert att.get_filename() == "registo.pdf" and att.get_content_type() == "application/pdf" and att.get_content().startswith(b"%PDF")
+
+
+async def test_hash_antigo_e_atualizado_no_login(mw):
+    import base64
+    import hashlib
+    import os
+
+    from serrado.password import N, needs_rehash
+
+    # Hash feito com os parâmetros antigos (N=16384)
+    salt = os.urandom(16)
+    digest = hashlib.scrypt(b"password-antiga-123", salt=salt, n=16384, r=8, p=1, maxmem=64 * 1024 * 1024, dklen=64)
+    old = "$".join(["scrypt", "16384", "8", "1", base64.b64encode(salt).decode(), base64.b64encode(digest).decode()])
+    assert needs_rehash(old)
+    await execute(
+        mw.pool,
+        "insert into users (email, name, password_hash) values ('rehash@exemplo.pt', 'Rehash Exemplo', %s) on conflict (email) do update set password_hash = excluded.password_hash",
+        [old],
+    )
+    c = await mw.login("rehash@exemplo.pt", "password-antiga-123")
+    assert (await c.get("/api/v1/me")).status_code == 200
+    row = await fetch_one(mw.pool, "select password_hash from users where email = 'rehash@exemplo.pt'")
+    assert row and row["password_hash"].startswith(f"scrypt${N}$8$1$") and not needs_rehash(row["password_hash"])
+    # Continua a entrar com a mesma password
+    await mw.login("rehash@exemplo.pt", "password-antiga-123")

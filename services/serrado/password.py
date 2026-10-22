@@ -6,8 +6,9 @@ import hashlib
 import hmac
 import os
 
-N, R, P, LEN = 16384, 8, 1, 64
-_MAXMEM = 64 * 1024 * 1024
+# Recomendação OWASP para o scrypt: N=2^17, r=8, p=1 (cerca de 128 MiB por cálculo)
+N, R, P, LEN = 2**17, 8, 1, 64
+_MAXMEM = 256 * 1024 * 1024
 
 
 def _scrypt(password: str, salt: bytes, n: int, r: int, p: int, length: int) -> bytes:
@@ -33,6 +34,12 @@ def verify_password_sync(password: str, stored: str) -> bool:
     return hmac.compare_digest(actual, expected)
 
 
+def needs_rehash(stored: str) -> bool:
+    """Hash feito com parâmetros antigos (mais fracos): volta a ser calculado no próximo login."""
+    parts = stored.split("$")
+    return len(parts) == 6 and parts[0] == "scrypt" and parts[1:4] != [str(N), str(R), str(P)]
+
+
 async def hash_password(password: str) -> str:
     """O scrypt é pesado de propósito: corre fora do ciclo de eventos."""
     return await asyncio.to_thread(hash_password_sync, password)
@@ -43,4 +50,4 @@ async def verify_password(password: str, stored: str) -> bool:
 
 
 # Hash fixo usado quando a conta não existe, para o login demorar o mesmo tempo.
-DUMMY_HASH = "scrypt$16384$8$1$AAAAAAAAAAAAAAAAAAAAAA==$" + base64.b64encode(bytes(64)).decode()
+DUMMY_HASH = f"scrypt${N}${R}${P}$AAAAAAAAAAAAAAAAAAAAAA==$" + base64.b64encode(bytes(64)).decode()

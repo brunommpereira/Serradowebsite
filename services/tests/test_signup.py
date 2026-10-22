@@ -261,3 +261,34 @@ async def test_secretaria_recusa_uma_proposta_com_motivo(mw, mail_on):
     assert (
         await c.post("/api/v1/registrations/member", json=member_form(v, name="Pedro Exemplo Recusado", email="pedro.r@exemplo.pt"))
     ).status_code == 201
+
+
+async def test_proposta_nao_se_junta_a_uma_ficha_que_ja_existe(mw, mail_on):
+    # A ficha aparece entre a proposta e a decisão (ex.: importada): quem propôs não ganha acesso a ela sozinho
+    v = await versions(mw)
+    c = mw.client("10.9.0.60")
+    c.headers.update(XHR)
+    form = {
+        "name": "Duarte Exemplo Coincide",
+        "birthDate": "2014-02-03",
+        "gender": "Masculino",
+        "sport": "futsal",
+        "emergencyName": "Pai Exemplo",
+        "emergencyPhone": "913000001",
+        "accept": v,
+        "imageConsent": False,
+        "declaration": True,
+        "guardian": {"name": "Outra Pessoa Exemplo", "email": "outra@exemplo.pt", "phone": "914000001", "relation": "Pai"},
+    }
+    r = await c.post("/api/v1/registrations/athlete", json=form)
+    assert r.status_code == 201, r.text
+    await confirm_link(mw, "outra@exemplo.pt", ip="10.9.0.61")
+    await execute(
+        mw.pool,
+        "insert into athletes (code, name, birth_date, sport_slug) values ('SFC-6601', 'Duarte Exemplo Coincide', '2014-02-03', 'futsal')",
+    )
+    sec = await mw.login("secretaria@serradofc.pt", "secretaria2026")
+    out = await sec.post(f"/api/v1/admin/registrations/{r.json()['id']}/approve", json={})
+    assert out.status_code == 409 and out.json()["error"] == "athlete_exists" and "SFC-6601" in out.text
+    acc = await fetch(mw.pool, "select 1 from athlete_access aa join athletes a on a.id = aa.athlete_id where a.code = 'SFC-6601'")
+    assert acc == []

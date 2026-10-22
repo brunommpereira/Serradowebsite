@@ -654,6 +654,19 @@ async def approve(
         lines = [f"Olá {first},", f"A tua proposta foi aceite: és o sócio n.º {number} do Serrado Futebol Clube. Bem-vindo à família!"]
         result: dict[str, Any] = {"memberNumber": number}
     else:
+        # Já há uma ficha com este nome e data de nascimento: a proposta não se junta a ela sozinha (quem propôs
+        # ficaria com acesso aos dados dessa ficha só por saber o nome e a data). A secretaria confirma com a
+        # família e dá o acesso à mão (Atletas → Alterar ficha e acessos); depois recusa esta proposta.
+        same = await (
+            await c.execute("select code from athletes where lower(name) = lower(%s) and birth_date = %s", [d["name"], d["birthDate"]])
+        ).fetchone()
+        if same:
+            raise HttpError(
+                409,
+                "athlete_exists",
+                f"Já existe a ficha {same['code']} com este nome e data de nascimento. Confirma com a família e, se for a mesma pessoa, "
+                "dá o acesso em Atletas → Alterar ficha e acessos; depois recusa esta proposta.",
+            )
         minor = age_on(d["birthDate"], date.today()) < 18
         g = d.get("guardian") or {}
         athlete = AthleteIn(
