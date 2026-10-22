@@ -14,7 +14,9 @@ async def _check(req: Request, number: str) -> Row:
     row = await fetch_one(pool(req), "select * from members where member_number = %s", [number])
     if not row:
         raise not_found("Sócio")
-    if row["user_id"] != actor(req).id and not can(req, "members.view"):
+    # O próprio sócio (conta ligada) ou quem vê sócios; sem sessão nunca passa (user_id vazio ≠ «ninguém»)
+    me = actor(req).id
+    if not (me and row["user_id"] and str(row["user_id"]) == str(me)) and not can(req, "members.view"):
         raise forbidden()
     return row
 
