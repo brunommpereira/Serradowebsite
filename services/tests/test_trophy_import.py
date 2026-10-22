@@ -84,3 +84,22 @@ async def test_lista_da_xistarca_marca_inscritos_e_cria_quem_falta(mw):
     # Treinador não pode
     tr = await mw.login("treinador@serradofc.pt", "treinador2026")
     assert (await tr.post(url, json={"rows": rows})).status_code == 403
+
+
+async def test_codigo_novo_salta_os_codigos_ja_usados(mw):
+    # Fichas importadas com código (SFC-0001…) não fazem avançar o contador: o próximo tem de saltar para depois do maior
+    await fetch(mw.pool, "select setval('athlete_code_seq', 1, false)")
+    top = await fetch_one(mw.pool, "select max(substring(code from '\\d+$')::int) as n from athletes where code ~ '^SFC-\\d+$'")
+    start = int((top or {}).get("n") or 0)
+    for n in range(start + 1, start + 61):
+        await fetch(mw.pool, "insert into athletes (code, name) values (%s, %s) returning id", [f"SFC-{n:04d}", f"Ocupado Exemplo {n}"])
+    ed = await fetch_one(mw.pool, "select id from race_editions where season = '2026/2027'")
+    assert ed
+    sec = await mw.login("secretaria@serradofc.pt", "secretaria2026")
+    out = await sec.post(
+        f"/api/v1/admin/races/editions/{ed['id']}/import",
+        json={"rows": [{"name": "Codigo Novo Exemplo", "gender": "M", "idNumber": "44444444", "birthDate": "1980-01-01"}]},
+    )
+    assert out.status_code == 200, out.text
+    row = await fetch_one(mw.pool, "select code from athletes where name = 'Codigo Novo Exemplo'")
+    assert row and row["code"] == f"SFC-{start + 61:04d}"
