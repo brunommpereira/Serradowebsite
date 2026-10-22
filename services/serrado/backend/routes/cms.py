@@ -278,7 +278,7 @@ def _register_type(r: APIRouter, type_: str, d: CmsType) -> None:
             found = await cur.fetchone()
             if not found:
                 raise not_found("Versão")
-            old: dict[str, Any] = found["data"]
+            old: dict[str, Any] = clean(found["data"])
             sets = ", ".join(f"{snake(k)} = %s" for k in columns)
             values = [old[k] if old.get(k) is not None else default_for(d.fields[k]) for k in columns]
             cur = await c.execute(

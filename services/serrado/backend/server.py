@@ -13,6 +13,8 @@ from .app import build_backend
 
 async def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    # O httpx regista o endereço completo de cada pedido (alguns levam tokens na query): só avisos
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     pool = create_pool()
     await pool.open()
     # Envio das notificações push em segundo plano (fila push_outbox)

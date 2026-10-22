@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, input, OnInit, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { SeoService } from '../../core/services/seo.service';
 import { IconComponent } from '../../shared/icon.component';
 import { PageHeroComponent } from '../../shared/page-hero.component';
 import { SignupService } from './signup.service';
 
-/** /propostas/confirmar?token=… — a ligação do email: confirma a proposta e envia-a à secretaria. */
+/** /propostas/confirmar#token=… (ou ?token=… nas ligações antigas) — a ligação do email: confirma a proposta e envia-a à secretaria. */
 @Component({
   selector: 'sfc-confirm-proposal',
   imports: [RouterLink, IconComponent, PageHeroComponent],
@@ -50,7 +50,9 @@ import { SignupService } from './signup.service';
   `,
 })
 export class ConfirmProposalPage implements OnInit {
+  /** ?token=… (ligações antigas); as novas trazem-no depois do «#», que não chega aos registos do servidor */
   readonly token = input<string>();
+  private readonly fragment = inject(ActivatedRoute).snapshot.fragment ?? '';
   private readonly api = inject(SignupService);
   protected readonly state = signal<'loading' | 'ok' | 'error'>('loading');
   protected readonly kind = signal<'member' | 'athlete'>('member');
@@ -63,7 +65,7 @@ export class ConfirmProposalPage implements OnInit {
   }
 
   async ngOnInit() {
-    const t = this.token();
+    const t = new URLSearchParams(this.fragment).get('token') ?? this.token();
     if (typeof window === 'undefined') return;
     if (!t) {
       this.error.set('Falta o código da ligação. Abre a ligação completa que recebeste por email.');

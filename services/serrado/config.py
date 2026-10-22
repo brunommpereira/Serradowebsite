@@ -22,7 +22,14 @@ def required(name: str, dev_default: str, min_length: int = 0) -> str:
 
 def _trust_proxy() -> str:
     """«true» em Docker/dev; no servidor, «loopback» (o Caddy, que já resolve o IP real, incluindo atrás da Cloudflare)."""
-    return env.get("TRUST_PROXY", "true")
+    return env.get("TRUST_PROXY", "loopback" if PRODUCTION else "true")
+
+
+def _cors_origins() -> list[str]:
+    """Origens que podem chamar a API com o cookie de sessão. Nunca «*»; em produção, por omissão, só o próprio site."""
+    site = env.get("SITE_URL", env.get("PUBLIC_URL", "")).rstrip("/")
+    default = site if PRODUCTION else "http://localhost:4200,https://brunommpereira.github.io"
+    return [o for o in (s.strip().rstrip("/") for s in env.get("CORS_ORIGINS", default).split(",")) if o and o != "*"]
 
 
 def _same_site() -> Literal["strict", "lax", "none"]:
@@ -197,11 +204,11 @@ config = Config(
     service_token=required("SERVICE_TOKEN", "dev-service-token-change-me", 32),
     jwt_secret=required("JWT_SECRET", "dev-jwt-secret-change-me-please-32chars", 32),
     backend_url=env.get("BACKEND_URL", "http://localhost:4100"),
-    host=env.get("HOST", "0.0.0.0"),  # noqa: S104 — em Docker escuta em todas as interfaces; no servidor é 127.0.0.1
+    host=env.get("HOST", "127.0.0.1" if PRODUCTION else "0.0.0.0"),  # noqa: S104 — em Docker escuta em todas as interfaces; no servidor é 127.0.0.1
     trust_proxy=_trust_proxy(),
     backend_port=int(env.get("BACKEND_PORT", "4100")),
     middleware_port=int(env.get("MIDDLEWARE_PORT", "4000")),
-    cors_origins=[s.strip() for s in env.get("CORS_ORIGINS", "http://localhost:4200,https://brunommpereira.github.io").split(",")],
+    cors_origins=_cors_origins(),
     session_hours=float(env.get("SESSION_HOURS", "8")),
     session_same_site=_same_site(),
     rate_limit_max=int(env.get("RATE_LIMIT_MAX", "300")),

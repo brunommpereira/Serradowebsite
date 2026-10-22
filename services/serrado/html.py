@@ -29,7 +29,7 @@ def _attribute_filter(tag: str, attr: str, value: str) -> str | None:
         return value if IMAGE_URL.match(value) else None
     if tag == "a" and attr == "href":
         # Sem endereços relativos ao protocolo («//outro-site»)
-        return None if value.startswith("//") or value.startswith("\\") else value
+        return None if re.match(r"^\s*[/\\][\s/\\]", value) or value.lstrip().startswith("\\") else value
     return value
 
 
@@ -55,6 +55,6 @@ def to_html(body: object) -> str:
     """Texto do CMS → HTML para o site (o texto simples antigo passa a parágrafos)."""
     text = "" if body is None else str(body)
     if is_html(text):
-        return text
+        return sanitize_body(text)
     paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text)]
     return "".join(f"<p>{html.escape(p, quote=False).replace('"', '&quot;').replace(chr(10), '<br>')}</p>" for p in paragraphs if p)

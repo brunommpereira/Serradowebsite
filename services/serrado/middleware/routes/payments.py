@@ -5,6 +5,7 @@ from typing import Annotated, Any, Literal
 from urllib.parse import quote
 
 from fastapi import APIRouter, Body, Path, Query, Request, Response
+from fastapi.responses import JSONResponse
 
 from ..deps import backend
 from ..session import session, staff
@@ -46,7 +47,10 @@ def register(r: APIRouter) -> None:
     @r.post("/payments/stripe/webhook", tags=tags, summary="Webhook do Stripe (assinado; sem sessão)", include_in_schema=False)
     async def stripe_webhook(req: Request) -> Any:
         # O corpo vai tal como chegou: a assinatura é feita sobre os bytes originais
-        payload = (await req.body()).decode("utf-8", errors="strict")
+        try:
+            payload = (await req.body()).decode("utf-8", errors="strict")
+        except UnicodeDecodeError:
+            return JSONResponse({"error": "invalid_payload", "message": "Corpo inválido"}, status_code=400)
         return await backend(req).call(
             "POST", "/payments/stripe-webhook", body={"payload": payload, "signature": req.headers.get("stripe-signature", "")}
         )

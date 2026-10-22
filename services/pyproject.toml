@@ -25,7 +25,9 @@ dev = [
 [tool.uv]
 package = false
 # Só versões publicadas há pelo menos uma semana (reprodutível e sem versões acabadas de sair)
-exclude-newer = "2026-10-01T00:00:00Z"
+exclude-newer = "2026-10-15T00:00:00Z"
+# Exceções por segurança (versões com correções de vulnerabilidades conhecidas)
+exclude-newer-package = { pillow = "2026-10-21T00:00:00Z", certifi = "2026-10-21T00:00:00Z" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

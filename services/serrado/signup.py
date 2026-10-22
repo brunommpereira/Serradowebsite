@@ -34,7 +34,7 @@ from .config import config
 from .db.pool import Conn, Jsonb, Pool, Row, fetch
 from .mail import enqueue, layout
 from .registry import NO_PASSWORD, SPORTS, AthleteIn, MemberIn, Phone, Text, _blank, _email, _to_date, save_athlete, save_member
-from .validation import is_valid_phone
+from .validation import is_valid_id_number, is_valid_nif, is_valid_phone
 from .web import HttpError
 
 KINDS = ("socio", "atleta", "rgpd", "imagem")
@@ -118,20 +118,27 @@ class MemberSignup(_Signup):
     name: Annotated[str, BeforeValidator(_blank), Field(min_length=5, max_length=160)]
     email: ReqEmail
     phone: Annotated[str, BeforeValidator(lambda v: re.sub(r"\s", "", str(v or "")))]
-    taxNumber: Annotated[str | None, BeforeValidator(_blank)] = None
+    taxNumber: Annotated[Annotated[str, Field(max_length=20)] | None, BeforeValidator(_blank)] = None
     birthDate: ReqDate
     address: Text = None
     postalCode: Text = None
     city: Text = None
     category: Annotated[Annotated[str, Field(max_length=40)] | None, BeforeValidator(_blank)] = None
     # Sócio proponente (Regulamento Interno, art.º 9.º): opcional no site; a secretaria confirma
-    proposerNumber: Annotated[str | None, BeforeValidator(lambda v: re.sub(r"\D", "", str(v or "")) or None)] = None
+    proposerNumber: Annotated[Annotated[str, Field(max_length=8)] | None, BeforeValidator(lambda v: re.sub(r"\D", "", str(v or "")) or None)] = None
 
     @field_validator("phone")
     @classmethod
     def _phone(cls, v: str) -> str:
         if not is_valid_phone(v):
             raise ValueError("telemóvel inválido")
+        return v
+
+    @field_validator("taxNumber")
+    @classmethod
+    def _nif(cls, v: str | None) -> str | None:
+        if v is not None and not is_valid_nif(re.sub(r"\s", "", v)):
+            raise ValueError("NIF inválido")
         return v
 
 
@@ -155,9 +162,9 @@ class AthleteSignup(_Signup):
     birthDate: ReqDate
     gender: Literal["Feminino", "Masculino"]
     sport: Literal["atletismo", "futsal", "rugby", "formacao", "escola-de-desporto"]
-    idNumber: Annotated[str | None, BeforeValidator(_blank)] = None
+    idNumber: Annotated[Annotated[str, Field(max_length=24)] | None, BeforeValidator(_blank)] = None
     idExpiry: Annotated[str | None, BeforeValidator(_to_date)] = None
-    taxNumber: Annotated[str | None, BeforeValidator(_blank)] = None
+    taxNumber: Annotated[Annotated[str, Field(max_length=20)] | None, BeforeValidator(_blank)] = None
     email: Annotated[str | None, BeforeValidator(_email)] = None
     phone: Phone = None
     address: Text = None
@@ -167,6 +174,20 @@ class AthleteSignup(_Signup):
     emergencyPhone: Annotated[str, BeforeValidator(lambda v: re.sub(r"\s", "", str(v or "")))]
     shirtSize: Annotated[Annotated[str, Field(max_length=5)] | None, BeforeValidator(_blank)] = None
     guardian: Guardian | None = None
+
+    @field_validator("idNumber")
+    @classmethod
+    def _cc(cls, v: str | None) -> str | None:
+        if v is not None and not is_valid_id_number(v):
+            raise ValueError("n.º do CC ou passaporte inválido")
+        return v
+
+    @field_validator("taxNumber")
+    @classmethod
+    def _nif(cls, v: str | None) -> str | None:
+        if v is not None and not is_valid_nif(re.sub(r"\s", "", v)):
+            raise ValueError("NIF inválido")
+        return v
 
     @field_validator("emergencyPhone")
     @classmethod
@@ -350,7 +371,7 @@ async def _finish(
                     f"Para enviarmos {what} à secretaria do clube, confirma que foste tu a preenchê-la e que aceitas as condições.",
                     f"A ligação é válida durante {CONFIRM_DAYS} dias. Depois de confirmares, recebes o documento com a proposta e a prova da aceitação.",
                 ],
-                ("Confirmar a proposta", f"{config.oauth.site_url}/propostas/confirmar?token={token}"),
+                ("Confirmar a proposta", f"{config.oauth.site_url}/propostas/confirmar#token={token}"),
                 footer="Se não foste tu, ignora este email: sem confirmação, a proposta não segue.",
             ),
         )
