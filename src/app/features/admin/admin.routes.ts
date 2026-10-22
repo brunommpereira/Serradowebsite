@@ -64,6 +64,13 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./pages/social.page').then((m) => m.SocialPage),
       },
       {
+        path: 'novas-entradas',
+        title: 'Novas entradas',
+        canActivate: [staffGuard],
+        data: { permissions: ['registrations.manage', 'athletes.view', 'athletes.manage', 'payments.manage', 'users.manage'] },
+        loadComponent: () => import('./pages/recent.page').then((m) => m.RecentPage),
+      },
+      {
         path: 'atletas',
         canActivate: [staffGuard],
         data: { permissions: ['athletes.view', 'athletes.manage'] },

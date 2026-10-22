@@ -128,7 +128,7 @@ def register(r: APIRouter) -> None:
         scope: Literal["mine", "all"] = "mine",
         q: Annotated[str | None, Query(max_length=100)] = None,
         sport: Annotated[str | None, Query(max_length=40)] = None,
-        pending: Literal["docs", "confirm", "requests", "email", "account"] | None = None,
+        pending: Literal["docs", "confirm", "requests", "email", "account", "new"] | None = None,
     ) -> list[dict[str, Any]]:
         season = current_season().start
         where: list[str] = []
@@ -162,6 +162,9 @@ def register(r: APIRouter) -> None:
             where.append("coalesce(btrim(a.email), '') = ''")
         if pending == "account":
             where.append("not exists (select 1 from athlete_access x where x.athlete_id = a.id)")
+        if pending == "new":
+            # Fichas criadas nos últimos 30 dias (no site, importadas ou pela secretaria), as mais recentes primeiro
+            where.append("a.created_at > now() - interval '30 days'")
         rows = await fetch(
             pool(req),
             f"""select a.id, a.code, a.name, a.birth_date, a.sport_slug, a.category, a.confirmed_at,
@@ -171,8 +174,9 @@ def register(r: APIRouter) -> None:
                   (select count(*)::int from athlete_documents d where d.athlete_id = a.id and d.status = 'Em análise') as docs_to_review,
                   (select count(*)::int from athlete_change_requests r where r.athlete_id = a.id and r.status = 'pendente') as pending_requests,
                   coalesce(btrim(a.email), '') <> '' as has_email,
-                  (select count(*)::int from athlete_access x where x.athlete_id = a.id) as accounts
-                from athletes a {"where " + " and ".join(where) if where else ""} order by a.name""",
+                  (select count(*)::int from athlete_access x where x.athlete_id = a.id) as accounts, a.created_at
+                from athletes a {"where " + " and ".join(where) if where else ""}
+               order by {"a.created_at desc" if pending == "new" else "a.name"}""",
             [season, *args],
         )
         return [camel(x) for x in rows]
