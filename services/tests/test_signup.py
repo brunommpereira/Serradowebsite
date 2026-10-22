@@ -31,7 +31,7 @@ async def confirm_link(mw, email: str, ip: str = "10.9.0.50"):
         mw.pool, "select html from email_outbox where to_email = %s and subject like 'Confirma a tua proposta%%' order by id desc limit 1", [email]
     )
     assert row, f"sem email de confirmação para {email}"
-    token = re.search(r"/propostas/confirmar\?token=([A-Za-z0-9_-]+)", row["html"]).group(1)
+    token = re.search(r"/propostas/confirmar#token=([A-Za-z0-9_-]+)", row["html"]).group(1)
     c = mw.client(ip)
     c.headers.update(XHR)
     return await c.post("/api/v1/registrations/confirm", json={"token": token})

@@ -26,7 +26,8 @@ async def send_link(c: Conn, *, user_id: str, email: str, name: str, purpose: Pu
         "insert into password_tokens (token_hash, user_id, purpose, expires_at) values (%s, %s, %s, now() + %s)",
         [token_hash(token), user_id, purpose, LIFETIME[purpose]],
     )
-    url = f"{config.oauth.site_url}/entrar/nova-password?token={token}"
+    # O token vai depois do «#»: o browser nunca o envia ao servidor (não fica nos registos do Caddy nem da API)
+    url = f"{config.oauth.site_url}/entrar/nova-password#token={token}"
     if purpose == "reset":
         subject = "Repor a password — Serrado FC"
         html = layout(

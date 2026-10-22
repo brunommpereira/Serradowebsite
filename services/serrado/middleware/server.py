@@ -10,6 +10,8 @@ from .app import build_middleware
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    # O httpx regista o endereço completo de cada pedido (alguns levam tokens na query): só avisos
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     # O IP real do visitante é resolvido pela app (TRUST_PROXY), não pelo uvicorn
     uvicorn.run(build_middleware(), host=config.host, port=config.middleware_port, proxy_headers=False, server_header=False, log_level="info")
 

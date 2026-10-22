@@ -57,13 +57,14 @@ def _body_limit(method: str, path: str) -> int:
 
 
 def build_middleware(*, backend_client: BackendClient | None = None, oauth: dict[str, OAuthProvider] | None = None) -> FastAPI:
+    docs = not config.production  # em produção não se publica a documentação da API
     app = FastAPI(
         title="Serrado FC — Middleware (API pública)",
         version="1.0.0",
         description="API consumida pelo front. Sessão por cookie httpOnly (sfc_session) ou Authorization: Bearer.",
-        docs_url="/api/docs",
+        docs_url="/api/docs" if docs else None,
         redoc_url=None,
-        openapi_url="/api/openapi.json",
+        openapi_url="/api/openapi.json" if docs else None,
         swagger_ui_oauth2_redirect_url=None,
         servers=[{"url": "http://localhost:4000"}],
     )

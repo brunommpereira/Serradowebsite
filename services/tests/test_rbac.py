@@ -125,7 +125,7 @@ async def test_recuperar_password_por_email(mw, mail_on):
     assert len(await fetch(mw.pool, "select 1 from email_outbox")) == 1, "um pedido repetido logo a seguir não manda outro email"
     mail = await fetch_one(mw.pool, "select to_email, subject, html from email_outbox")
     assert mail and mail["to_email"] == "socio@exemplo.pt" and "Repor a password" in mail["subject"]
-    found = re.search(r"nova-password\?token=([\w-]+)", mail["html"])
+    found = re.search(r"nova-password#token=([\w-]+)", mail["html"])
     assert found
     token = found.group(1)
     row = await fetch_one(mw.pool, "select token_hash from password_tokens")

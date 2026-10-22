@@ -33,10 +33,9 @@ def sign_session(user_id: str, name: str, roles: list[str]) -> str:
 
 async def session(req: Request) -> Session:
     """Exige sessão (cookie httpOnly ou Authorization: Bearer); devolve o utilizador."""
-    token = req.cookies.get(SESSION_COOKIE)
+    # Com Authorization: Bearer usa-se só o token (o cookie fica de fora: o CSRF dispensa quem traz Bearer)
     header = req.headers.get("authorization", "")
-    if not token and header.startswith("Bearer "):
-        token = header[7:]
+    token = header[7:] if header.startswith("Bearer ") else req.cookies.get(SESSION_COOKIE)
     try:
         payload = jwt.decode(
             token or "",

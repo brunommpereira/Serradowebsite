@@ -54,7 +54,7 @@ def _body_limit(method: str, path: str) -> int:
     if EXPENSE_UPLOAD.match(path):
         # Pedido com até 3 anexos de 10 MB (em base64)
         return 42 * MiB
-    if path == "/internal/v1/results/import":
+    if path in ("/internal/v1/results/import", "/internal/v1/registry/import"):
         return 5 * MiB
     return MiB
 

@@ -10,7 +10,7 @@ import { PasswordFieldComponent } from '../../shared/password-field.component';
 const MIN = 10;
 
 /**
- * /entrar/nova-password?token=… — definir a password com a ligação recebida por email
+ * /entrar/nova-password#token=… — definir a password com a ligação recebida por email
  * (reposição, válida 1 hora, ou convite de conta nova, válido 7 dias). Uso único.
  */
 
@@ -60,7 +60,9 @@ export class NewPasswordComponent {
   private readonly auth = inject(AuthService);
   protected readonly min = MIN;
   /** O token só é lido uma vez e sai logo da barra de endereço (não fica no histórico nem em capturas de ecrã). */
-  protected readonly token = inject(ActivatedRoute).snapshot.queryParamMap.get('token') ?? '';
+  // Vem depois do «#» (#token=…, nunca chega ao servidor); ?token=… nas ligações antigas
+  private readonly snap = inject(ActivatedRoute).snapshot;
+  protected readonly token = new URLSearchParams(this.snap.fragment ?? '').get('token') ?? this.snap.queryParamMap.get('token') ?? '';
   protected readonly form = inject(FormBuilder).nonNullable.group({
     password: ['', [Validators.required, Validators.minLength(MIN), Validators.maxLength(200)]],
     confirm: ['', Validators.required],
