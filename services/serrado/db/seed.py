@@ -107,7 +107,7 @@ async def _seed_quotas(c: Conn) -> None:
 ATHLETES: list[dict[str, Any]] = [
     {
         "code": "SFC-0001", "name": "Tomás Exemplo", "birth": "2016-03-12", "gender": "Masculino", "sport": "futsal", "category": "Sub-11",
-        "id_number": "31234567", "tax": "258369140", "email": "socio@exemplo.pt", "phone": "910000000", "shirt": "10A", "emergency": (None, None), "confirmed": None,
+        "id_number": "31234567", "tax": "258369140", "email": "socio@exemplo.pt", "phone": "910000000", "shirt": None, "emergency": (None, None), "confirmed": None,
         "access": [("socio@exemplo.pt", "encarregado")],
         "docs": {"cc-frente": "Aprovado", "cc-verso": ("Rejeitado", "Imagem desfocada"), "foto": "Aprovado", "rgpd": "Em falta",
                  "exame": ("Rejeitado", "Falta a assinatura do médico"), "ficha": "Em análise"},

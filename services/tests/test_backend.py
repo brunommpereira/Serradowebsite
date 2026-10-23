@@ -155,8 +155,9 @@ async def test_ficha_alterar_contactos_e_confirmar_so_com_a_ficha_completa(call,
     tomas = await athlete_id(pool, "SFC-0001")
     incomplete = await call("POST", f"/athletes/{tomas}/confirm", SOCIO)
     assert incomplete.status_code == 422
-    assert "Contacto de emergência" in incomplete.json()["message"]
-    assert (await call("PATCH", f"/athletes/{tomas}", SOCIO, {"emergencyName": "Mãe Exemplo", "emergencyPhone": "910000003"})).status_code == 200
+    assert "Tamanho da t-shirt" in incomplete.json()["message"]
+    assert "Contacto de emergência" not in incomplete.json()["message"], "o contacto de emergência é opcional"
+    assert (await call("PATCH", f"/athletes/{tomas}", SOCIO, {"shirtSize": "10A"})).status_code == 200
     assert (await call("PATCH", f"/athletes/{tomas}", SOCIO, {"name": "Outro"})).status_code == 400, "nome não é editável diretamente"
     assert (await call("PATCH", f"/athletes/{tomas}", SOCIO, {})).status_code == 400
     assert (await call("PATCH", f"/athletes/{tomas}", SOCIO, {"phone": "123"})).json()["error"] == "invalid_phone"

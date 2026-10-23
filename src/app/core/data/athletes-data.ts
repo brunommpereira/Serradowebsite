@@ -169,7 +169,7 @@ export const DEMO_ATHLETES: Athlete[] = [
     birthDate: '2016-03-12',
     coGuardians: [],
     guardians: ['acc-socio'],
-    // Ficha incompleta: falta o contacto de emergência — a confirmação da época está pendente
+    // Ficha incompleta: falta o tamanho da t-shirt — a confirmação da época está pendente
     details: {
       ...emptyDetails(),
       gender: 'Masculino',
@@ -181,7 +181,6 @@ export const DEMO_ATHLETES: Athlete[] = [
       address: 'Rua do Exemplo, 10',
       postalCode: '2825-000',
       city: 'Caparica',
-      shirtSize: '10A',
       shirtType: 'Normal',
       consentRgpd: true,
     },

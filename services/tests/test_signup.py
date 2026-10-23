@@ -273,8 +273,7 @@ async def test_proposta_nao_se_junta_a_uma_ficha_que_ja_existe(mw, mail_on):
         "birthDate": "2014-02-03",
         "gender": "Masculino",
         "sport": "futsal",
-        "emergencyName": "Pai Exemplo",
-        "emergencyPhone": "913000001",
+        # Sem contacto de emergência: é opcional
         "accept": v,
         "imageConsent": False,
         "declaration": True,

@@ -47,12 +47,12 @@ describe('AthleteAreaService', () => {
   it('só confirma a época com a ficha completa', async () => {
     const tomas = service.athletes().find((a) => a.id === 'atl-1')!;
     expect(service.isConfirmed(tomas)).toBe(false);
-    expect(service.missingFields(tomas)).toContain('Contacto de emergência');
+    expect(service.missingFields(tomas)).toContain('Tamanho da t-shirt');
     expect(await service.confirmData('atl-1')).toBe(false);
     await service.updateAthlete('atl-1', {
       name: tomas.name,
       birthDate: tomas.birthDate,
-      details: { ...tomas.details, emergencyName: 'Mãe Exemplo', emergencyPhone: '910000003' },
+      details: { ...tomas.details, shirtSize: '10A' },
     });
     const after = service.athletes().find((a) => a.id === 'atl-1')!;
     expect(service.isConfirmed(after)).toBe(true);
