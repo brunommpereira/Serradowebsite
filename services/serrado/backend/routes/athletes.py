@@ -112,7 +112,6 @@ def missing_fields(a: dict[str, Any]) -> list[str]:
         (has("phone"), "Telemóvel"),
         (has("address") and has("postalCode") and has("city"), "Morada"),
         (has("shirtSize"), "Tamanho da t-shirt"),
-        (has("emergencyName") and has("emergencyPhone"), "Contacto de emergência"),
         (a.get("consentRgpd") is True, "Consentimento RGPD"),
     ]
     return [label for ok, label in checks if not ok]

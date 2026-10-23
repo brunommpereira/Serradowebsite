@@ -170,8 +170,9 @@ class AthleteSignup(_Signup):
     address: Text = None
     postalCode: Text = None
     city: Text = None
-    emergencyName: Annotated[str, BeforeValidator(_blank), Field(min_length=3, max_length=120)]
-    emergencyPhone: Annotated[str, BeforeValidator(lambda v: re.sub(r"\s", "", str(v or "")))]
+    # Contacto de emergência: opcional (se vier o telefone, tem de ser válido)
+    emergencyName: Annotated[Annotated[str, Field(max_length=120)] | None, BeforeValidator(_blank)] = None
+    emergencyPhone: Annotated[str | None, BeforeValidator(lambda v: re.sub(r"\s", "", str(v or "")) or None)] = None
     shirtSize: Annotated[Annotated[str, Field(max_length=5)] | None, BeforeValidator(_blank)] = None
     guardian: Guardian | None = None
 
@@ -191,8 +192,8 @@ class AthleteSignup(_Signup):
 
     @field_validator("emergencyPhone")
     @classmethod
-    def _emergency(cls, v: str) -> str:
-        if not is_valid_phone(v):
+    def _emergency(cls, v: str | None) -> str | None:
+        if v is not None and not is_valid_phone(v):
             raise ValueError("telemóvel de emergência inválido")
         return v
 
@@ -407,7 +408,7 @@ def _labels(kind: str, d: dict[str, Any]) -> list[tuple[str, str | None]]:
         ("Email", d.get("email") or ""),
         ("Telemóvel", d.get("phone") or ""),
         ("Morada", address),
-        ("Contacto de emergência", f"{d.get('emergencyName')} · {d.get('emergencyPhone')}"),
+        ("Contacto de emergência", " · ".join(x for x in (d.get("emergencyName"), d.get("emergencyPhone")) if x) or "—"),
         ("Encarregado", f"{g.get('name')} ({g.get('relation')}) · {g.get('email')} · {g.get('phone')}" if g else ""),
         ("Imagem", image),
     ]

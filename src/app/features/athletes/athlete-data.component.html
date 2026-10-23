@@ -171,12 +171,12 @@
         <legend>Emergência e equipamento</legend>
         <div class="form-row">
           <div class="field">
-            <label [for]="'ad-ename-' + id">Contacto de emergência <span class="req">*</span></label>
+            <label [for]="'ad-ename-' + id">Contacto de emergência</label>
             <input [id]="'ad-ename-' + id" name="ename" [(ngModel)]="draft.details.emergencyName" [attr.aria-invalid]="!!e['ename']" />
             @if (e['ename']) { <span class="error">{{ e['ename'] }}</span> }
           </div>
           <div class="field">
-            <label [for]="'ad-ephone-' + id">Telefone de emergência <span class="req">*</span></label>
+            <label [for]="'ad-ephone-' + id">Telefone de emergência</label>
             <input [id]="'ad-ephone-' + id" name="ephone" type="tel" [(ngModel)]="draft.details.emergencyPhone" [attr.aria-invalid]="!!e['ephone']" />
             @if (e['ephone']) { <span class="error">{{ e['ephone'] }}</span> }
           </div>

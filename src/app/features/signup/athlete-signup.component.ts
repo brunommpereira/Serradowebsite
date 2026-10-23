@@ -129,11 +129,11 @@ function ageOn(birth: string, today = new Date()): number {
               </div>
             }
             <div class="field">
-              <label for="as-ename">Contacto de emergência (nome) <span class="req">*</span></label>
+              <label for="as-ename">Contacto de emergência (nome)</label>
               <input id="as-ename" formControlName="emergencyName" />
             </div>
             <div class="field">
-              <label for="as-ephone">Contacto de emergência (telemóvel) <span class="req">*</span></label>
+              <label for="as-ephone">Contacto de emergência (telemóvel)</label>
               <input id="as-ephone" formControlName="emergencyPhone" inputmode="tel" />
             </div>
           </div>
@@ -240,8 +240,8 @@ export class AthleteSignupComponent {
     city: [''],
     email: ['', Validators.email],
     phone: ['', Validators.pattern(PHONE_PATTERN)],
-    emergencyName: ['', [Validators.required, Validators.minLength(3)]],
-    emergencyPhone: ['', [Validators.required, Validators.pattern(PHONE_PATTERN)]],
+    emergencyName: [''],
+    emergencyPhone: ['', Validators.pattern(PHONE_PATTERN)],
     guardian: this.fb.group({
       name: ['', [Validators.required, Validators.minLength(5)]],
       email: ['', [Validators.required, Validators.email]],
@@ -317,8 +317,8 @@ export class AthleteSignupComponent {
         city: nul(v.city),
         email: minor ? null : nul(v.email),
         phone: minor ? null : nul(v.phone),
-        emergencyName: v.emergencyName,
-        emergencyPhone: v.emergencyPhone,
+        emergencyName: v.emergencyName.trim() || null,
+        emergencyPhone: v.emergencyPhone.trim() || null,
         guardian: minor ? v.guardian : null,
         website: v.website,
         accept: Object.fromEntries(Object.entries(f.documents).map(([k, d]) => [k, d!.version])),

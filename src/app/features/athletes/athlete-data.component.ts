@@ -146,9 +146,9 @@ export class AthleteDataComponent {
     if (!isValidPostalCode(d.postalCode)) e['postal'] = 'Código postal no formato 0000-000.';
     if (!d.city.trim()) e['city'] = 'Indica a localidade.';
     if (!d.shirtSize) e['size'] = 'Escolhe o tamanho.';
-    if (!d.emergencyName.trim()) e['ename'] = 'Indica um contacto de emergência.';
-    if (!isValidPhone(d.emergencyPhone)) e['ephone'] = 'Telefone de emergência inválido.';
-    else if (d.emergencyPhone.replace(/\s/g, '') === d.phone.replace(/\s/g, '') && !this.minor())
+    // Contacto de emergência: opcional; se houver telefone, tem de ser válido e diferente do do próprio
+    if (d.emergencyPhone.trim() && !isValidPhone(d.emergencyPhone)) e['ephone'] = 'Telefone de emergência inválido.';
+    else if (d.emergencyPhone.trim() && d.emergencyPhone.replace(/\s/g, '') === d.phone.replace(/\s/g, '') && !this.minor())
       e['ephone'] = 'Usa um contacto diferente do teu.';
     if (!d.consentRgpd) e['rgpd'] = 'Necessário para a inscrição.';
     return e;

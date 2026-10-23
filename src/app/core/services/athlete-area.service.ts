@@ -267,7 +267,6 @@ export class AthleteAreaService {
       [!!d.phone, 'Telemóvel'],
       [!!d.address && !!d.postalCode && !!d.city, 'Morada'],
       [!!d.shirtSize, 'Tamanho da t-shirt'],
-      [!!d.emergencyName && !!d.emergencyPhone, 'Contacto de emergência'],
       [d.consentRgpd, minor ? 'Autorização RGPD do encarregado' : 'Consentimento RGPD'],
     ];
     return required.filter(([ok]) => !ok).map(([, label]) => label);

@@ -87,7 +87,8 @@ def configured() -> bool:
 
 
 def missing_for_trophy(a: dict[str, Any]) -> list[str]:
-    """O que a Xistarca exige e falta na ficha (nomes como no formulário do site)."""
+    """O que a Xistarca exige e falta na ficha (nomes como no formulário do site). O contacto de emergência é
+    opcional nas inscrições do clube, mas o formulário da Xistarca exige-o: pede-se aqui, se faltar."""
     out = []
     if not a.get("birth_date"):
         out.append("birthDate")
