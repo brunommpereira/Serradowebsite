@@ -432,6 +432,9 @@ class Edition:
     team_name: str
     club_option: str
     mode: str  # test / live
+    # Contacto de emergência do clube (para quem não tem um na ficha)
+    emergency_name: str = ""
+    emergency_phone: str = ""
 
 
 async def submit(cfg: XistarcaConfig, edition: Edition, people: list[Person], client: XistarcaClient | None = None) -> tuple[list[Outcome], str]:
@@ -442,6 +445,8 @@ async def submit(cfg: XistarcaConfig, edition: Edition, people: list[Person], cl
     try:
         ready: list[Person] = []
         for p in people:
+            if not (p.emergency_name and p.emergency_phone) and edition.emergency_phone:
+                p.emergency_name, p.emergency_phone = edition.emergency_name or edition.team_name, edition.emergency_phone
             miss = _missing(p)
             if miss:
                 outcomes.append(Outcome(p.key, "erro", "Falta: " + ", ".join(miss)))
@@ -522,7 +527,16 @@ async def active_edition(db: Pool | Conn) -> Edition | None:
     if not row:
         return None
     return Edition(
-        row["id"], row["season"], row["name"], row["event_url"], row["modality_id"] or "", row["team_name"], row["club_option"], row["mode"]
+        row["id"],
+        row["season"],
+        row["name"],
+        row["event_url"],
+        row["modality_id"] or "",
+        row["team_name"],
+        row["club_option"],
+        row["mode"],
+        row.get("emergency_name") or "",
+        row.get("emergency_phone") or "",
     )
 
 

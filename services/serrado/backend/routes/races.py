@@ -5,6 +5,7 @@ acompanha no backoffice e o envio à Xistarca é feito por serrado.xistarca (em 
 
 import asyncio
 import logging
+import re
 from datetime import date
 from typing import Annotated, Any, Literal
 
@@ -38,8 +39,19 @@ class Edition(BaseModel):
     closesOn: Annotated[str, StringConstraints(pattern=DATE)] | None = None
     mode: Literal["test", "live"] = "test"
     active: bool = True
+    # Contacto de emergência do clube: vai para a Xistarca em nome de quem não tem contacto na ficha
+    emergencyName: Annotated[str, StringConstraints(min_length=2, max_length=120)] = "Serrado FC"
+    emergencyPhone: Annotated[str, StringConstraints(max_length=20)] = ""
 
     _dates = field_validator("opensOn", "closesOn")(_valid_date)
+
+    @field_validator("emergencyPhone")
+    @classmethod
+    def _club_phone(cls, v: str) -> str:
+        v = re.sub(r"[\s.\-]", "", v)
+        if v and not is_valid_phone(v):
+            raise ValueError("telefone de emergência do clube inválido")
+        return v
 
 
 class Race(BaseModel):
@@ -86,7 +98,7 @@ def configured() -> bool:
     return bool(config.xistarca.email and config.xistarca.password)
 
 
-def missing_for_trophy(a: dict[str, Any]) -> list[str]:
+def missing_for_trophy(a: dict[str, Any], e: dict[str, Any] | None = None) -> list[str]:
     """O que a Xistarca exige e falta na ficha (nomes como no formulário do site). O contacto de emergência é
     opcional nas inscrições do clube, mas o formulário da Xistarca exige-o: pede-se aqui, se faltar."""
     out = []
@@ -96,7 +108,8 @@ def missing_for_trophy(a: dict[str, Any]) -> list[str]:
         out.append("gender")
     if not a.get("id_number"):
         out.append("idNumber")
-    if not (a.get("emergency_name") and a.get("emergency_phone")):
+    # Sem contacto na ficha, vai o do clube (se a edição o tiver)
+    if not (a.get("emergency_name") and a.get("emergency_phone")) and not (e and e.get("emergency_phone")):
         out.append("emergency")
     return out
 
@@ -173,7 +186,7 @@ def register(r: APIRouter) -> None:
             "edition": {k: v for k, v in _edition_out(e).items() if k in ("id", "season", "name", "opensOn", "closesOn", "open")},
             "races": [camel(x) for x in races],
             "signup": camel(s) if s else None,
-            "missing": missing_for_trophy(a),
+            "missing": missing_for_trophy(a, e),
             "canSignup": access != "treinador" and is_open(e),
         }
 
@@ -205,7 +218,7 @@ def register(r: APIRouter) -> None:
             a = await fetch_one(c, "select birth_date, gender, id_number, emergency_name, emergency_phone from athletes where id = %s", [id])
             if not a:
                 raise not_found()
-            miss = missing_for_trophy(a)
+            miss = missing_for_trophy(a, e)
             if miss:
                 labels = {"birthDate": "data de nascimento", "gender": "género", "idNumber": "n.º do CC", "emergency": "contacto de emergência"}
                 raise HttpError(422, "missing_data", "Faltam dados obrigatórios para a Xistarca: " + ", ".join(labels[m] for m in miss))
@@ -267,8 +280,9 @@ def register(r: APIRouter) -> None:
                 await c.execute("update race_editions set active = false")
             try:
                 cur = await c.execute(
-                    """insert into race_editions (season, name, event_url, modality_id, team_name, club_option, opens_on, closes_on, mode, active)
-                       values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning *""",
+                    """insert into race_editions (season, name, event_url, modality_id, team_name, club_option, opens_on, closes_on, mode, active,
+                                                  emergency_name, emergency_phone)
+                       values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning *""",
                     [
                         body.season,
                         body.name,
@@ -280,6 +294,8 @@ def register(r: APIRouter) -> None:
                         body.closesOn,
                         body.mode,
                         body.active,
+                        body.emergencyName,
+                        body.emergencyPhone,
                     ],
                 )
             except Exception as ex:
@@ -300,7 +316,8 @@ def register(r: APIRouter) -> None:
                 await c.execute("update race_editions set active = false where id <> %s", [edition_id])
             cur = await c.execute(
                 """update race_editions set season = %s, name = %s, event_url = %s, modality_id = %s, team_name = %s, club_option = %s,
-                          opens_on = %s, closes_on = %s, mode = %s, active = %s where id = %s returning *""",
+                          opens_on = %s, closes_on = %s, mode = %s, active = %s, emergency_name = %s, emergency_phone = %s
+                    where id = %s returning *""",
                 [
                     body.season,
                     body.name,
@@ -312,6 +329,8 @@ def register(r: APIRouter) -> None:
                     body.closesOn,
                     body.mode,
                     body.active,
+                    body.emergencyName,
+                    body.emergencyPhone,
                     edition_id,
                 ],
             )
@@ -351,10 +370,11 @@ def register(r: APIRouter) -> None:
                  order by s.requested_at desc""",  # noqa: S608 — filtro fixo
             [edition_id, *([status] if status else [])],
         )
+        edition = await _edition(pool(req), edition_id)
         out = []
         for x in rows:
             item = camel({k: v for k, v in x.items() if k not in ("id_number", "emergency_name", "emergency_phone", "gender")})
-            item["missing"] = missing_for_trophy(x)
+            item["missing"] = missing_for_trophy(x, edition)
             out.append(item)
         return out
 
