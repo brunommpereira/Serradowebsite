@@ -311,6 +311,36 @@ async def test_atleta_pede_inscricao_com_autorizacao(mw: Middleware) -> None:
     assert (await c.post(f"/api/v1/athletes/{ines}/trophy/signup", json={"consent": True})).status_code == 403
 
 
+async def test_sem_contacto_de_emergencia_vai_o_do_clube(fake: FakeXistarca) -> None:
+    from dataclasses import replace
+
+    ed = replace(edition("test"), emergency_name="Serrado FC", emergency_phone="935519828")
+    people = [person("1"), person("2", name="Tomás Exemplo", gender="Masculino", emergency_name=None, emergency_phone=None)]
+    outcomes, _ = await submit(CFG, ed, people, client_for(fake))
+    assert {o.key: o.status for o in outcomes} == {"1": "validado", "2": "validado"}
+    tomas = next(f for f in fake.validated if f["f_nome"] == "Tomás Exemplo")
+    assert (tomas["f_nome_acidente"], tomas["f_telefone_acidente"]) == ("Serrado FC", "935519828")
+    rita = next(f for f in fake.validated if f["f_nome"] != "Tomás Exemplo")
+    assert rita["f_nome_acidente"] != "Serrado FC", "quem tem contacto na ficha usa o seu"
+
+
+async def test_contacto_do_clube_dispensa_o_pedido_na_area_do_atleta(mw: Middleware) -> None:
+    sec = await mw.login("secretaria@serradofc.pt", "secretaria2026")
+    eds = (await sec.get("/api/v1/admin/races/editions")).json()
+    ed = next(e for e in eds["editions"] if e["season"] == "2026/2027")
+    body = {k: ed[k] for k in ("season", "name", "eventUrl", "modalityId", "teamName", "clubOption", "opensOn", "closesOn", "mode", "active")}
+    bad = await sec.put(f"/api/v1/admin/races/editions/{ed['id']}", json={**body, "emergencyPhone": "123"})
+    assert bad.status_code == 400
+    ok = await sec.put(f"/api/v1/admin/races/editions/{ed['id']}", json={**body, "emergencyName": "Serrado FC", "emergencyPhone": "935 519 828"})
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["emergencyPhone"] == "935519828"
+    c = await mw.login("socio@exemplo.pt", "serrado1978")
+    tomas = (await _ids(mw))["Tomás Exemplo"]
+    assert "emergency" not in (await c.get(f"/api/v1/athletes/{tomas}/trophy")).json()["missing"]
+    # Volta a ficar sem contacto do clube (para os testes seguintes)
+    assert (await sec.put(f"/api/v1/admin/races/editions/{ed['id']}", json={**body, "emergencyPhone": ""})).status_code == 200
+
+
 async def test_encarregado_completa_o_que_falta_na_ficha(mw: Middleware) -> None:
     c = await mw.login("socio@exemplo.pt", "serrado1978")
     tomas = (await _ids(mw))["Tomás Exemplo"]

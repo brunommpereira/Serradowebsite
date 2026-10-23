@@ -75,6 +75,9 @@ interface Edition {
   closesOn: string | null;
   mode: 'test' | 'live';
   active: boolean;
+  /** Contacto de emergência do clube (vai para a Xistarca por quem não tem um na ficha) */
+  emergencyName: string;
+  emergencyPhone: string;
   open: boolean;
   counts: Record<string, number>;
   races: Race[];
@@ -138,6 +141,8 @@ const blank = (): Partial<Edition> => {
     closesOn: null,
     mode: 'test',
     active: true,
+    emergencyName: 'Serrado FC',
+    emergencyPhone: '',
   };
 };
 
@@ -471,6 +476,20 @@ const blank = (): Partial<Edition> => {
             <label for="te-club">Clube na lista «Clube/Coletividade de Almada»</label>
             <input id="te-club" name="clubOption" [(ngModel)]="form.clubOption" />
           </div>
+          <div class="form-row">
+            <div class="field">
+              <label for="te-ename">Contacto de emergência do clube</label
+              ><input id="te-ename" name="emergencyName" [(ngModel)]="form.emergencyName" maxlength="120" />
+            </div>
+            <div class="field">
+              <label for="te-ephone">Telefone de emergência do clube</label
+              ><input id="te-ephone" name="emergencyPhone" type="tel" inputmode="tel" [(ngModel)]="form.emergencyPhone" maxlength="20" />
+            </div>
+          </div>
+          <p class="caption">
+            A Xistarca exige um contacto de emergência. Os atletas sem contacto na ficha são inscritos com
+            este; sem telefone aqui, a área do atleta pede-o a cada um.
+          </p>
           <div class="form-row">
             <div class="field">
               <label for="te-open">Inscrições no site de</label
@@ -860,6 +879,8 @@ export class TrophyPage {
       closesOn,
       mode,
       active,
+      emergencyName,
+      emergencyPhone,
     } = this.form;
     const body = {
       season,
@@ -872,6 +893,8 @@ export class TrophyPage {
       closesOn: closesOn || null,
       mode,
       active,
+      emergencyName: emergencyName?.trim() || 'Serrado FC',
+      emergencyPhone: (emergencyPhone ?? '').replace(/\s/g, ''),
     };
     void this.run(async () => {
       const saved = id
