@@ -39,10 +39,18 @@ const NAV = [
           (click)="open.set(false)"
           aria-label="As Rosinhas, página inicial"
         >
-          <picture>
-            <source srcset="brand/logo-branco.png" media="(prefers-color-scheme: dark)" />
-            <img src="brand/logo-rosa.png" alt="" width="150" height="50" />
-          </picture>
+          @if (over()) {
+            <!-- Sobre a ilustração: rosa no canto claro da versão horizontal, branco no canto escuro da vertical -->
+            <picture>
+              <source srcset="brand/logo-branco.png" media="(max-aspect-ratio: 4/5)" />
+              <img src="brand/logo-rosa.png" alt="" width="150" height="50" />
+            </picture>
+          } @else {
+            <picture>
+              <source srcset="brand/logo-branco.png" media="(prefers-color-scheme: dark)" />
+              <img src="brand/logo-rosa.png" alt="" width="150" height="50" />
+            </picture>
+          }
         </a>
         <nav class="nav" [class.nav--open]="open()" id="menu" aria-label="Principal">
           @for (n of nav; track n.link) {
@@ -104,20 +112,39 @@ const NAV = [
       backdrop-filter: saturate(160%) blur(12px);
       border-bottom: 1px solid var(--color-line);
     }
-    /* Por cima da ilustração: translúcida, com o texto escuro legível sobre o rosa */
+    /* Por cima da ilustração: sem barra, a imagem vê-se inteira; só os links levam uma cápsula
+       translúcida para o texto se ler tanto sobre o rosa claro como sobre o escuro */
     .bar--over {
-      background: rgb(255 246 244 / 42%);
+      background: transparent;
       border-bottom-color: transparent;
-      backdrop-filter: saturate(140%) blur(8px);
+      backdrop-filter: none;
+      .nav a:not(.btn),
+      .burger {
+        background: rgb(255 246 244 / 72%);
+        backdrop-filter: blur(6px);
+      }
+      .nav a:not(.btn):hover {
+        background: rgb(255 246 244 / 92%);
+      }
     }
     @media (prefers-color-scheme: dark) {
       .bar--over {
-        background: rgb(28 14 21 / 55%);
+        .nav a:not(.btn),
+        .burger {
+          background: rgb(28 14 21 / 62%);
+        }
+        .nav a:not(.btn):hover {
+          background: rgb(28 14 21 / 80%);
+        }
       }
     }
     @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
       .bar--over {
-        background: var(--color-header);
+        .nav a:not(.btn),
+        .burger {
+          background: var(--color-surface);
+          backdrop-filter: none;
+        }
       }
     }
     .bar__in {
