@@ -33,7 +33,7 @@ import { RouterLink } from '@angular/router';
   styles: `
     .ph {
       padding: clamp(2.5rem, 6vw, 4.5rem) 0 clamp(2rem, 4vw, 3rem);
-      background: radial-gradient(50rem 22rem at 90% 0%, var(--rose-100), transparent 65%);
+      background: radial-gradient(50rem 22rem at 90% 0%, var(--color-tint), transparent 65%);
     }
     .crumbs {
       display: flex;
@@ -43,6 +43,9 @@ import { RouterLink } from '@angular/router';
       font-size: 0.88rem;
       color: var(--color-muted);
       a {
+        display: inline-block;
+        padding-block: 0.65rem;
+        margin-block: -0.65rem;
         color: var(--color-muted);
       }
     }

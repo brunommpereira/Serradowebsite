@@ -65,7 +65,13 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
               "
             />
           } @else {
-            <form class="order" (submit)="form.submit($event)" novalidate>
+            <form
+              class="order"
+              (submit)="form.submit($event)"
+              (focusout)="form.blur($event)"
+              (input)="form.input($event)"
+              novalidate
+            >
               <fieldset>
                 <legend>
                   Cor <span class="sel">{{ color() }}</span>
@@ -93,7 +99,7 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
                       type="button"
                       class="chip"
                       [attr.aria-pressed]="size() === s"
-                      (click)="size.set(s)"
+                      (click)="size.set(s); form.recheck('tamanho')"
                     >
                       {{ s }}
                     </button>
@@ -135,7 +141,7 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
                 <ar-address-fields />
               </div>
               <label class="check">
-                <input type="checkbox" required />
+                <input type="checkbox" name="condicoes" required />
                 <span>Li as condições de entrega e de trocas.</span>
               </label>
               <button class="btn btn--primary btn--block" type="submit">
@@ -176,6 +182,9 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
       font-size: 0.88rem;
       color: var(--color-muted);
       a {
+        display: inline-block;
+        padding-block: 0.65rem;
+        margin-block: -0.65rem;
         color: var(--color-muted);
       }
     }
@@ -199,7 +208,7 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
       aspect-ratio: 1;
       object-fit: cover;
       border-radius: var(--radius-l);
-      background: var(--sand-100);
+      background: var(--color-surface-alt);
     }
     h1 {
       font-size: clamp(2rem, 4vw, 3rem);
@@ -212,7 +221,7 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
     }
     .price {
       font: 600 1.8rem/1 var(--font-display);
-      color: var(--rose-800);
+      color: var(--color-accent-text);
       margin: 0.8rem 0 1rem;
     }
     .order {
@@ -220,7 +229,7 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
       gap: 1.4rem;
       margin-top: 1.6rem;
       padding: clamp(1.2rem, 3vw, 1.8rem);
-      background: #fff;
+      background: var(--color-surface);
       border-radius: var(--radius-l);
       box-shadow: var(--shadow-s);
     }
@@ -250,7 +259,7 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
         gap: 0.45rem;
         min-height: 44px;
         cursor: pointer;
-        color: var(--color-primary);
+        color: var(--color-link);
         font-weight: 600;
       }
       img {
@@ -267,7 +276,7 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
         width: 20px;
         height: 20px;
         margin-top: 0.15rem;
-        accent-color: var(--rose-700);
+        accent-color: var(--color-accent-text);
       }
     }
     .pol {
@@ -283,7 +292,7 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
         gap: 0.6rem;
       }
       ar-icon {
-        color: var(--rose-700);
+        color: var(--color-accent-text);
         flex: none;
         margin-top: 0.15rem;
       }

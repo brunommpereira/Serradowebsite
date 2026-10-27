@@ -29,7 +29,10 @@ const NAV = [
           (click)="open.set(false)"
           aria-label="As Rosinhas, página inicial"
         >
-          <img src="brand/logo-rosa.png" alt="" width="150" height="50" />
+          <picture>
+            <source srcset="brand/logo-branco.png" media="(prefers-color-scheme: dark)" />
+            <img src="brand/logo-rosa.png" alt="" width="150" height="50" />
+          </picture>
         </a>
         <nav class="nav" [class.nav--open]="open()" id="menu" aria-label="Principal">
           @for (n of nav; track n.link) {
@@ -41,6 +44,10 @@ const NAV = [
             ><ar-icon name="heart" size="18" />Quero ajudar</a
           >
         </nav>
+        <!-- No telemóvel a ação principal fica sempre à vista, fora do menu -->
+        <a routerLink="/ajudar" class="btn btn--primary bar__cta" (click)="open.set(false)"
+          ><ar-icon name="heart" size="18" />Ajudar</a
+        >
         <button
           type="button"
           class="burger"
@@ -66,17 +73,21 @@ const NAV = [
       align-items: center;
       justify-content: center;
       gap: 0.45rem;
-      padding: 0.45rem 1rem;
-      background: var(--plum-900);
+      padding: 0.2rem 1rem;
+      background: var(--color-band);
       color: #f6e3ea;
       font-size: 0.8rem;
       text-align: center;
       a {
+        /* área de toque de 44 px sem aumentar a faixa */
+        display: inline-block;
+        padding: 0.75rem 0.25rem;
+        margin-block: -0.6rem;
         color: #fff;
       }
     }
     .bar {
-      background: rgb(255 246 244 / 88%);
+      background: var(--color-header);
       backdrop-filter: saturate(160%) blur(12px);
       border-bottom: 1px solid var(--color-line);
     }
@@ -105,14 +116,17 @@ const NAV = [
       }
       a:not(.btn):hover,
       a.on {
-        background: var(--rose-100);
-        color: var(--rose-800);
+        background: var(--color-tint);
+        color: var(--color-accent-text);
       }
     }
     .nav__cta {
       margin-left: 0.5rem;
       min-height: 44px;
       padding-block: 0.55rem;
+    }
+    .bar__cta {
+      display: none;
     }
     .burger {
       display: none;
@@ -136,7 +150,7 @@ const NAV = [
         align-items: stretch;
         gap: 0.25rem;
         padding: 0.75rem 1rem 1.25rem;
-        background: var(--rose-50);
+        background: var(--color-bg);
         border-bottom: 1px solid var(--color-line);
         box-shadow: 0 20px 30px -20px rgb(46 22 33 / 30%);
         display: none;
@@ -149,7 +163,13 @@ const NAV = [
         display: flex;
       }
       .nav__cta {
-        margin: 0.5rem 0 0;
+        display: none;
+      }
+      .bar__cta {
+        display: inline-flex;
+        margin-left: auto;
+        min-height: 44px;
+        padding: 0.55rem 1rem;
       }
     }
   `,

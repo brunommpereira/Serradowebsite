@@ -12,7 +12,6 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ar-page-head
-      eyebrow="Contactos"
       title="Fala connosco."
       lead="Precisas de uma Rosinha, queres ajudar ou tens uma pergunta sobre uma encomenda? Respondemos por email."
       [crumbs]="[{ label: 'Contactos' }]"
@@ -41,7 +40,12 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
               text="Obrigada! Respondemos assim que possível."
             />
           } @else {
-            <form (submit)="form.submit($event)" novalidate>
+            <form
+              (submit)="form.submit($event)"
+              (focusout)="form.blur($event)"
+              (input)="form.input($event)"
+              novalidate
+            >
               <div class="form-grid">
                 <div class="field">
                   <label for="nome">Nome</label>
@@ -95,13 +99,13 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
       gap: 1rem;
       padding: 1.1rem 1.3rem;
       border-radius: var(--radius-m);
-      background: #fff;
+      background: var(--color-surface);
       color: inherit;
       text-decoration: none;
       box-shadow: var(--shadow-s);
       transition: box-shadow 0.2s var(--ease);
       ar-icon {
-        color: var(--rose-700);
+        color: var(--color-accent-text);
       }
       span {
         display: grid;

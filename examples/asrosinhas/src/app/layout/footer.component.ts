@@ -42,7 +42,7 @@ import { IconComponent } from '../shared/icon.component';
         </nav>
         <nav aria-label="Ajudar">
           <h2>Ajudar</h2>
-          <a routerLink="/ajudar/socia">Ser sócia ou sócio</a>
+          <a routerLink="/ajudar/socia">Ser sócia</a>
           <a routerLink="/ajudar/donativo">Fazer um donativo</a>
           <a routerLink="/loja">Loja solidária</a>
         </nav>
@@ -60,7 +60,7 @@ import { IconComponent } from '../shared/icon.component';
   `,
   styles: `
     .foot {
-      background: var(--plum-900);
+      background: var(--color-band);
       color: #ead7de;
       padding-top: 4rem;
     }
@@ -96,7 +96,7 @@ import { IconComponent } from '../shared/icon.component';
       display: block;
       color: #fff;
       text-decoration: none;
-      padding: 0.3rem 0;
+      padding: 0.6rem 0;
       overflow-wrap: anywhere;
     }
     nav a:hover,

@@ -12,7 +12,6 @@ import { RevealDirective } from '../shared/reveal.directive';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ar-page-head
-      eyebrow="Como posso ajudar?"
       title="Há muitas maneiras de ser uma Rosinha."
       lead="As Rosinhas são enviadas gratuitamente a todas as mulheres que nos procuram. É com a ajuda de sócias, sócios, voluntárias e amigos que isso é possível."
       [crumbs]="[{ label: 'Ajudar' }]"
@@ -21,7 +20,7 @@ import { RevealDirective } from '../shared/reveal.directive';
       <div class="container ways">
         <a class="way way--main" routerLink="/ajudar/socia" arReveal>
           <ar-icon name="users" size="30" />
-          <h2>Ser sócia ou sócio</h2>
+          <h2>Ser sócia</h2>
           <p>
             A quota anual permite enviar gratuitamente mais Rosinhas a todas as mulheres que nos
             procuram.
@@ -76,7 +75,7 @@ import { RevealDirective } from '../shared/reveal.directive';
       gap: 0.4rem;
       padding: clamp(1.5rem, 3vw, 2.2rem);
       border-radius: var(--radius-l);
-      background: #fff;
+      background: var(--color-surface);
       color: inherit;
       text-decoration: none;
       box-shadow: var(--shadow-s);
@@ -84,7 +83,7 @@ import { RevealDirective } from '../shared/reveal.directive';
         transform 0.3s var(--ease),
         box-shadow 0.3s var(--ease);
       ar-icon {
-        color: var(--rose-700);
+        color: var(--color-accent-text);
         margin-bottom: 0.6rem;
       }
       h2 {
@@ -125,7 +124,7 @@ import { RevealDirective } from '../shared/reveal.directive';
       align-items: center;
       gap: 0.35rem;
       font-weight: 600;
-      color: var(--color-primary);
+      color: var(--color-link);
     }
   `,
 })
