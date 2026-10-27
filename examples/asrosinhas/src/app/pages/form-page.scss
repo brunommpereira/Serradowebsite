@@ -1,0 +1,71 @@
+/* Páginas com formulário: resumo à esquerda, formulário à direita */
+.split {
+  padding-top: 0.5rem;
+}
+.split__grid {
+  display: grid;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .split__grid {
+    grid-template-columns: 0.8fr 1.4fr;
+  }
+  .summary {
+    position: sticky;
+    top: calc(var(--header-h) + 1rem);
+  }
+}
+.summary {
+  padding: clamp(1.5rem, 3vw, 2.2rem);
+  border-radius: var(--radius-l);
+  background: linear-gradient(150deg, var(--rose-700), var(--rose-800));
+  color: #fff;
+  .eyebrow {
+    color: var(--rose-200);
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 1.2rem 0;
+    display: grid;
+    gap: 0.6rem;
+  }
+  li {
+    display: flex;
+    gap: 0.55rem;
+    align-items: center;
+  }
+}
+.fee {
+  margin: 0;
+  font-size: 1.1rem;
+  strong {
+    font: 600 clamp(2.2rem, 4vw, 3rem) / 1 var(--font-display);
+  }
+}
+.small {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin: 0;
+}
+.formcard {
+  padding: clamp(1.3rem, 3vw, 2.2rem);
+}
+form {
+  display: grid;
+  gap: 1.5rem;
+}
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+legend {
+  font-weight: 600;
+  margin-bottom: 0.6rem;
+}
+.other {
+  margin-top: 1rem;
+  max-width: 220px;
+}
