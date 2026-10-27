@@ -18,6 +18,7 @@
         "files": [
           "/index.csr.html",
           "/manifest.webmanifest",
+          "/manifest-admin.webmanifest",
           "/*.css",
           "/*.js",
           "!/ngsw-worker.js",
