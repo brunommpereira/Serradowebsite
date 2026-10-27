@@ -11,12 +11,34 @@ import { RevealDirective } from '../shared/reveal.directive';
   imports: [RouterLink, IconComponent, ProductCardComponent, RevealDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- Abertura: a missão em primeiro lugar -->
+    <!-- Abertura: a ilustração do site oficial (horizontal no computador, vertical no telemóvel) -->
+    <section class="cover">
+      <picture>
+        <source
+          media="(max-aspect-ratio: 4/5)"
+          srcset="img/hero-alto-720.webp 720w, img/hero-alto-1080.webp 1080w"
+          sizes="100vw"
+        />
+        <img
+          src="img/hero-largo-1920.webp"
+          srcset="img/hero-largo-1280.webp 1280w, img/hero-largo-1920.webp 1920w"
+          sizes="100vw"
+          alt="Ilustração de uma mulher com a rosa d’As Rosinhas no peito, sobre fundo rosa, com o logótipo As Rosinhas"
+          width="1920"
+          height="1080"
+          fetchpriority="high"
+        />
+      </picture>
+    </section>
+
+    <!-- A missão logo a seguir -->
     <section class="hero">
       <div class="container hero__grid">
-        <div class="hero__text">
+        <div>
           <p class="eyebrow">Desde {{ org.since }} · Sem fins lucrativos</p>
           <h1>Uma Rosinha para <em>cada mulher</em> que precisa.</h1>
+        </div>
+        <div>
           <p class="lead">{{ about.mission }}</p>
           <div class="hero__cta">
             <a routerLink="/ajudar" class="btn btn--primary"
@@ -29,22 +51,6 @@ import { RevealDirective } from '../shared/reveal.directive';
             <li><ar-icon name="gift" size="18" />Enviadas gratuitamente</li>
             <li><ar-icon name="users" size="18" />Com voluntárias</li>
           </ul>
-        </div>
-        <div class="hero__art">
-          <div class="arch">
-            <img
-              src="img/eventos/catamaran-grupo.webp"
-              alt="Mulheres sorridentes num catamaran no Tejo, no lançamento dos soutiens As Rosinhas"
-              width="720"
-              height="1280"
-              fetchpriority="high"
-            />
-          </div>
-          <img class="hero__rose" src="brand/rosa.png" alt="" width="140" height="135" />
-          <div class="hero__card">
-            <strong>Projeto familiar</strong>
-            <span>com a dedicação de voluntárias</span>
-          </div>
         </div>
       </div>
     </section>
@@ -260,7 +266,7 @@ export class HomePage {
       title: ORG.name,
       description:
         'As Rosinhas: projeto familiar sem fins lucrativos que oferece próteses mamárias artesanais a todas as mulheres que precisam. Torna-te sócia, faz um donativo ou compra na loja solidária.',
-      image: 'img/eventos/catamaran-grupo.webp',
+      image: 'img/hero-largo-1920.webp',
     });
   }
 }
