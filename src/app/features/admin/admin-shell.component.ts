@@ -357,21 +357,23 @@ export class AdminShellComponent {
       ['link[rel="apple-touch-icon"]', 'href', 'brand/admin-180.png'],
       ['meta[name="theme-color"]', 'content', '#00264f'],
     ];
+    const wasAdmin = doc.querySelector('link[rel="manifest"]')?.getAttribute('href') === 'manifest-admin.webmanifest';
     const before = swaps.map(([sel, attr, value]) => {
       const el = doc.querySelector(sel);
       const old = el?.getAttribute(attr) ?? null;
       el?.setAttribute(attr, value);
       return [el, attr, old] as const;
     });
-    const title = doc.createElement('meta');
+    const title = doc.querySelector<HTMLMetaElement>('meta[name="apple-mobile-web-app-title"]') ?? doc.createElement('meta');
+    const addedTitle = !title.isConnected;
     title.name = 'apple-mobile-web-app-title';
     title.content = 'SFC Admin';
-    doc.head.appendChild(title);
-    // Um pedido de instalação guardado antes era o da app do site: espera-se o da app do backoffice
-    if (!this.push.installed()) this.push.installPrompt.set(null);
+    if (addedTitle) doc.head.appendChild(title);
+    // Abriu no site e veio para o backoffice: o pedido de instalação guardado era o da app do site
+    if (!wasAdmin && !this.push.installed()) this.push.installPrompt.set(null);
     inject(DestroyRef).onDestroy(() => {
       for (const [el, attr, old] of before) if (el && old !== null) el.setAttribute(attr, old);
-      title.remove();
+      if (addedTitle) title.remove();
     });
   }
 
