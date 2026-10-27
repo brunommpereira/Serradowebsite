@@ -1,13 +1,15 @@
 /* Página inicial */
 /* Ilustração de abertura: largura toda, no primeiro ecrã, com o título a espreitar por baixo */
 .cover {
+  /* Sobe para trás da barra do menu: a ilustração vê-se inteira */
+  margin-top: calc(-1 * var(--header-h) - 1px);
   background: #c43c5a;
   img {
     display: block;
     width: 100%;
     height: auto;
     /* deixa à vista o início do título, para se perceber que a página continua */
-    max-height: calc(100svh - var(--header-h) - 32px - 150px);
+    max-height: calc(100svh - 32px - 150px);
     min-height: 280px;
     object-fit: cover;
     object-position: 50% 50%;

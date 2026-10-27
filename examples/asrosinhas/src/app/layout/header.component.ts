@@ -1,5 +1,14 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { filter, map } from 'rxjs';
 import { IconComponent } from '../shared/icon.component';
 
 const NAV = [
@@ -12,6 +21,7 @@ const NAV = [
 @Component({
   selector: 'ar-header',
   imports: [RouterLink, RouterLinkActive, IconComponent],
+  host: { '(window:scroll)': 'onScroll()' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="proto" role="note">
@@ -21,7 +31,7 @@ const NAV = [
         <a href="https://www.asrosinhas.org" rel="noopener">asrosinhas.org</a></span
       >
     </div>
-    <header class="bar">
+    <header class="bar" [class.bar--over]="over()">
       <div class="container bar__in">
         <a
           routerLink="/"
@@ -87,9 +97,28 @@ const NAV = [
       }
     }
     .bar {
+      transition:
+        background-color 0.3s var(--ease),
+        border-color 0.3s var(--ease);
       background: var(--color-header);
       backdrop-filter: saturate(160%) blur(12px);
       border-bottom: 1px solid var(--color-line);
+    }
+    /* Por cima da ilustração: translúcida, com o texto escuro legível sobre o rosa */
+    .bar--over {
+      background: rgb(255 246 244 / 42%);
+      border-bottom-color: transparent;
+      backdrop-filter: saturate(140%) blur(8px);
+    }
+    @media (prefers-color-scheme: dark) {
+      .bar--over {
+        background: rgb(28 14 21 / 55%);
+      }
+    }
+    @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+      .bar--over {
+        background: var(--color-header);
+      }
     }
     .bar__in {
       height: var(--header-h);
@@ -177,4 +206,25 @@ const NAV = [
 export class HeaderComponent {
   protected readonly nav = NAV;
   protected readonly open = signal(false);
+  private readonly router = inject(Router);
+  private readonly url = toSignal(
+    this.router.events.pipe(
+      filter((e) => e instanceof NavigationEnd),
+      map((e) => e.urlAfterRedirects),
+    ),
+    { initialValue: this.router.url },
+  );
+  private readonly atTop = signal(true);
+  /** Na página inicial, enquanto não se desce, a barra deixa ver a ilustração por trás */
+  protected readonly over = computed(
+    () => !this.open() && this.atTop() && this.url().split(/[?#]/)[0] === '/',
+  );
+
+  constructor() {
+    afterNextRender(() => this.onScroll());
+  }
+
+  protected onScroll(): void {
+    this.atTop.set(window.scrollY < 24);
+  }
 }
