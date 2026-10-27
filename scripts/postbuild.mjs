@@ -5,7 +5,7 @@
 //  - ngsw.json (app instalável) refeito no fim, porque a CSP muda o index.csr.html que o service worker confere.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const SITE_URL = process.env.SITE_URL ?? 'https://serradofc.pt';
@@ -41,6 +41,19 @@ for (const file of htmlFiles(browser)) {
   if (out === html) throw new Error(`postbuild: não encontrei <meta charset> em ${file}`);
   writeFileSync(file, out);
   cspPages++;
+}
+
+// App do backoffice: /admin servido já com o manifesto «SFC Admin» (o Chrome no Android só avalia se a página é
+// instalável com o manifesto com que ela abre). O Caddy serve admin/index.html antes do index.csr.html.
+if (existsSync(csr)) {
+  const html = readFileSync(csr, 'utf8');
+  const admin = html
+    .replace('href="manifest.webmanifest"', 'href="manifest-admin.webmanifest"')
+    .replace('href="brand/icon-180.png"', 'href="brand/admin-180.png"')
+    .replace('<meta name="theme-color" content="#004a8e">', '<meta name="theme-color" content="#00264f"><meta name="apple-mobile-web-app-title" content="SFC Admin">');
+  if (!admin.includes('manifest-admin.webmanifest') || !admin.includes('SFC Admin')) throw new Error('postbuild: não consegui preparar admin/index.html');
+  mkdirSync(join(browser, 'admin'), { recursive: true });
+  writeFileSync(join(browser, 'admin', 'index.html'), admin);
 }
 
 const { routes } = JSON.parse(readFileSync(join(dist, 'prerendered-routes.json'), 'utf8'));
