@@ -1,8 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, PLATFORM_ID, signal } from '@angular/core';
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
+import { AppPushService } from '../../core/services/app-push.service';
 import { Permission, roleName } from '../../core/permissions';
 import { IconComponent } from '../../shared/icon.component';
 import { AdminSource } from './data/admin-source';
@@ -86,6 +88,15 @@ const NAV: { title: string; items: NavItem[] }[] = [
             <strong>{{ auth.account()?.name }}</strong>
             <small>{{ roleLabels() }}</small>
           </p>
+          @if (!push.installed() && (push.installPrompt() || push.ios)) {
+            <button type="button" class="side__link side__install" (click)="install()"><sfc-icon name="download" size="16" />Instalar a app do backoffice</button>
+            @if (iosHelp()) {
+              <p class="side__help">
+                No iPhone/iPad, no Safari: toque em <strong>Partilhar</strong> e depois em <strong>Adicionar ao ecrã principal</strong>. A app
+                «SFC Admin» abre logo no backoffice.
+              </p>
+            }
+          }
           <a routerLink="/" class="side__link"><sfc-icon name="external" size="16" />Ver o site</a>
           <button type="button" class="side__link" (click)="logout()"><sfc-icon name="logout" size="16" />Terminar sessão</button>
         </div>
@@ -213,6 +224,16 @@ const NAV: { title: string; items: NavItem[] }[] = [
         color: rgba(255, 255, 255, 0.65);
       }
     }
+    .side__install {
+      color: var(--sfc-yellow);
+      font-weight: 600;
+    }
+    .side__help {
+      margin: 0 0 0.4rem;
+      font-size: 0.8rem;
+      line-height: 1.4;
+      color: rgba(255, 255, 255, 0.8);
+    }
     .side__link {
       display: flex;
       align-items: center;
@@ -323,6 +344,41 @@ export class AdminShellComponent {
   protected readonly source = inject(AdminSource);
   private readonly router = inject(Router);
   protected readonly menuOpen = signal(false);
+  protected readonly push = inject(AppPushService);
+  protected readonly iosHelp = signal(false);
+
+  constructor() {
+    // No backoffice, o site apresenta-se como a app «SFC Admin» (manifesto, ícone e nome próprios):
+    // instalada a partir daqui, abre diretamente em /admin. Ao sair, volta a ser a app do site.
+    if (!isPlatformBrowser(inject(PLATFORM_ID))) return;
+    const doc = inject(DOCUMENT);
+    const swaps: [string, string, string][] = [
+      ['link[rel="manifest"]', 'href', 'manifest-admin.webmanifest'],
+      ['link[rel="apple-touch-icon"]', 'href', 'brand/admin-180.png'],
+      ['meta[name="theme-color"]', 'content', '#00264f'],
+    ];
+    const before = swaps.map(([sel, attr, value]) => {
+      const el = doc.querySelector(sel);
+      const old = el?.getAttribute(attr) ?? null;
+      el?.setAttribute(attr, value);
+      return [el, attr, old] as const;
+    });
+    const title = doc.createElement('meta');
+    title.name = 'apple-mobile-web-app-title';
+    title.content = 'SFC Admin';
+    doc.head.appendChild(title);
+    // Um pedido de instalação guardado antes era o da app do site: espera-se o da app do backoffice
+    if (!this.push.installed()) this.push.installPrompt.set(null);
+    inject(DestroyRef).onDestroy(() => {
+      for (const [el, attr, old] of before) if (el && old !== null) el.setAttribute(attr, old);
+      title.remove();
+    });
+  }
+
+  protected async install() {
+    if (this.push.installPrompt()) await this.push.install();
+    else this.iosHelp.set(!this.iosHelp());
+  }
 
   protected readonly nav = computed(() =>
     NAV.map((g) => ({ ...g, items: g.items.filter((i) => !i.permissions.length || this.auth.can(...i.permissions)) })).filter((g) => g.items.length),
