@@ -9,7 +9,9 @@
     "!/**/*__*/**",
     "!/api/**",
     "!/admin",
-    "!/estatisticas/**"
+    "!/estatisticas/**",
+    "!/asrosinhas",
+    "!/asrosinhas/**"
   ],
   "assetGroups": [
     {

@@ -23,6 +23,9 @@ jobs:
         with:
           node-version: 24
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            examples/asrosinhas/package-lock.json
       - run: npm ci
       - run: npx ng test --watch=false
       - name: Build (base href /<repo>/)
@@ -30,6 +33,15 @@ jobs:
           REPO="${GITHUB_REPOSITORY#*/}"
           npx ng build --base-href "/${REPO}/"
           SITE_URL="https://${GITHUB_REPOSITORY_OWNER}.github.io/${REPO}" node scripts/postbuild.mjs
+      # Exemplo: revamp do site d'As Rosinhas com a mesma estrutura, publicado em /<repo>/asrosinhas/
+      - name: Build exemplo As Rosinhas
+        working-directory: examples/asrosinhas
+        run: |
+          REPO="${GITHUB_REPOSITORY#*/}"
+          npm ci
+          npx ng build --base-href "/${REPO}/asrosinhas/"
+          SITE_URL="https://${GITHUB_REPOSITORY_OWNER}.github.io/${REPO}/asrosinhas" node scripts/postbuild.mjs
+          cp -r dist/asrosinhas/browser ../../dist/serrado-fc/browser/asrosinhas
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
