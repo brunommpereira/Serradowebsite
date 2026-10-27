@@ -13,9 +13,8 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ar-page-head
-      eyebrow="Ser sócia ou sócio"
       title="Junta-te às Rosinhas."
-      lead="A quota anual permite enviar gratuitamente mais Rosinhas a todas as mulheres que nos procuram."
+      lead="A quota anual permite enviar gratuitamente mais Rosinhas a todas as mulheres que nos procuram. Sócias e sócios são todos bem-vindos."
       [crumbs]="[{ label: 'Ajudar', link: '/ajudar' }, { label: 'Ser sócia' }]"
     />
     <section class="section split">
@@ -41,7 +40,12 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
               text="Vais receber por email os dados para pagares a quota anual."
             />
           } @else {
-            <form (submit)="form.submit($event)" novalidate>
+            <form
+              (submit)="form.submit($event)"
+              (focusout)="form.blur($event)"
+              (input)="form.input($event)"
+              novalidate
+            >
               <div class="form-grid">
                 <div class="field wide">
                   <label for="nome">Nome completo</label>

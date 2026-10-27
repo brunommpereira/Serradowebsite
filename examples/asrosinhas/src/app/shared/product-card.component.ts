@@ -41,7 +41,7 @@ import { IconComponent } from './icon.component';
       display: flex;
       flex-direction: column;
       height: 100%;
-      background: #fff;
+      background: var(--color-surface);
       border-radius: var(--radius-l);
       overflow: hidden;
       text-decoration: none;
@@ -58,7 +58,7 @@ import { IconComponent } from './icon.component';
     .pc__img {
       position: relative;
       aspect-ratio: 1;
-      background: var(--sand-100);
+      background: var(--color-surface-alt);
       img {
         width: 100%;
         height: 100%;
@@ -75,8 +75,8 @@ import { IconComponent } from './icon.component';
       top: 0.8rem;
       padding: 0.35rem 0.7rem;
       border-radius: var(--radius-pill);
-      background: rgb(255 255 255 / 92%);
-      color: var(--rose-800);
+      background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+      color: var(--color-accent-text);
       font-size: 0.75rem;
       font-weight: 600;
     }
@@ -102,7 +102,7 @@ import { IconComponent } from './icon.component';
       justify-content: space-between;
       strong {
         font: 600 1.2rem/1 var(--font-display);
-        color: var(--rose-800);
+        color: var(--color-accent-text);
       }
     }
     .pc__go {
@@ -111,7 +111,7 @@ import { IconComponent } from './icon.component';
       gap: 0.3rem;
       font-weight: 600;
       font-size: 0.9rem;
-      color: var(--color-primary);
+      color: var(--color-link);
     }
   `,
 })

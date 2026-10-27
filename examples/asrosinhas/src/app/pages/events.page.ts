@@ -12,7 +12,6 @@ import { RevealDirective } from '../shared/reveal.directive';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ar-page-head
-      eyebrow="Eventos"
       title="Momentos que nos juntam."
       lead="Lançamentos, parcerias e as voluntárias que fazem as Rosinhas acontecer."
       [crumbs]="[{ label: 'Eventos' }]"

@@ -4,8 +4,8 @@
   overflow: hidden;
   padding: clamp(2.5rem, 6vw, 5rem) 0 clamp(3.5rem, 7vw, 6rem);
   background:
-    radial-gradient(60rem 30rem at 85% 0%, var(--rose-100), transparent 60%),
-    radial-gradient(40rem 25rem at 0% 100%, #fbefe6, transparent 60%);
+    radial-gradient(60rem 30rem at 85% 0%, var(--color-tint), transparent 60%),
+    radial-gradient(40rem 25rem at 0% 100%, var(--color-surface-alt), transparent 60%);
 }
 .hero__grid {
   display: grid;
@@ -18,7 +18,7 @@
 }
 .hero h1 em {
   font-style: italic;
-  color: var(--rose-700);
+  color: var(--color-accent-text);
 }
 .hero__cta {
   display: flex;
@@ -42,7 +42,7 @@
     gap: 0.45rem;
   }
   ar-icon {
-    color: var(--rose-600);
+    color: var(--color-muted);
   }
 }
 .hero__art {
@@ -55,7 +55,7 @@
   border-radius: 220px 220px var(--radius-l) var(--radius-l);
   overflow: hidden;
   box-shadow: 0 30px 60px -30px rgb(130 31 64 / 45%);
-  border: 6px solid #fff;
+  border: 6px solid var(--color-surface);
   img {
     width: 100%;
     height: 100%;
@@ -78,11 +78,11 @@
   display: grid;
   padding: 0.95rem 1.2rem;
   border-radius: var(--radius-m);
-  background: #fff;
+  background: var(--color-surface);
   box-shadow: var(--shadow-m);
   strong {
     font: 600 1.05rem/1.2 var(--font-display);
-    color: var(--rose-800);
+    color: var(--color-accent-text);
   }
   span {
     font-size: 0.85rem;
@@ -118,7 +118,7 @@
 }
 
 .what {
-  background: #fff;
+  background: var(--color-surface);
 }
 .trio {
   display: grid;
@@ -131,7 +131,7 @@
 .trio__card {
   padding: 2rem 1.8rem;
   border-radius: var(--radius-l);
-  background: var(--rose-50);
+  background: var(--color-bg);
   border: 1px solid var(--color-line);
   ul {
     list-style: none;
@@ -148,19 +148,7 @@
   }
   li ar-icon {
     margin-top: 0.2rem;
-    color: var(--rose-600);
-  }
-}
-.trio__card--accent {
-  background: var(--rose-700);
-  border-color: var(--rose-700);
-  color: #fff;
-  li ar-icon {
-    color: var(--rose-200);
-  }
-  .trio__icon {
-    background: rgb(255 255 255 / 14%);
-    color: #fff;
+    color: var(--color-muted);
   }
 }
 .trio__icon {
@@ -169,14 +157,26 @@
   width: 56px;
   height: 56px;
   border-radius: 18px;
-  background: var(--rose-100);
-  color: var(--rose-700);
+  background: var(--color-tint);
+  color: var(--color-accent-text);
   margin-bottom: 1.2rem;
 }
 
 .quote {
-  background: var(--plum-900);
-  color: #fff;
+  /* Textura de malha: o tecido de que as Rosinhas são feitas */
+  background:
+    repeating-linear-gradient(
+      60deg,
+      transparent 0 7px,
+      color-mix(in srgb, var(--rose-400) 9%, transparent) 7px 8px
+    ),
+    repeating-linear-gradient(
+      -60deg,
+      transparent 0 7px,
+      color-mix(in srgb, var(--rose-400) 9%, transparent) 7px 8px
+    ),
+    var(--color-tint);
+  color: var(--color-text);
   padding-block: clamp(3.5rem, 8vw, 6rem);
 }
 .quote__in {
@@ -191,10 +191,11 @@
   }
   blockquote p {
     font: italic 400 clamp(1.5rem, 3.4vw, 2.4rem) / 1.3 var(--font-display);
+    color: var(--color-accent-text);
   }
 }
 .quote__by {
-  color: var(--rose-200);
+  color: var(--color-muted);
   font-size: 0.98rem;
   margin: 0;
 }
@@ -212,7 +213,7 @@
   flex-direction: column;
   padding: 2rem 1.8rem;
   border-radius: var(--radius-l);
-  background: #fff;
+  background: var(--color-surface);
   color: inherit;
   text-decoration: none;
   box-shadow: var(--shadow-s);
@@ -234,8 +235,8 @@
   width: 58px;
   height: 58px;
   border-radius: 50%;
-  background: var(--rose-100);
-  color: var(--rose-700);
+  background: var(--color-tint);
+  color: var(--color-accent-text);
   margin-bottom: 1.3rem;
 }
 .way__price {
@@ -251,28 +252,10 @@
   align-items: center;
   gap: 0.4rem;
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--color-link);
 }
-.way--rose {
-  background: var(--rose-700);
-  border-color: var(--rose-700);
-  color: #fff;
-  p,
-  .way__price {
-    color: var(--rose-100);
-  }
-  .way__price strong,
-  .way__go {
-    color: #fff;
-  }
-  .way__icon {
-    background: rgb(255 255 255 / 15%);
-    color: #fff;
-  }
-}
-
 .bras {
-  background: linear-gradient(180deg, var(--rose-50), var(--sand-100));
+  background: linear-gradient(180deg, var(--color-bg), var(--color-surface-alt));
 }
 .bras__grid {
   display: grid;
@@ -293,10 +276,10 @@
   li {
     padding: 0.5rem 0.95rem;
     border-radius: var(--radius-pill);
-    background: #fff;
+    background: var(--color-surface);
     border: 1px solid var(--color-line);
     font: italic 500 1rem/1.2 var(--font-display);
-    color: var(--rose-800);
+    color: var(--color-accent-text);
   }
 }
 .bras__list {
@@ -309,7 +292,7 @@
 }
 
 .events {
-  background: #fff;
+  background: var(--color-surface);
 }
 .ev {
   display: grid;
@@ -385,12 +368,12 @@
     gap: 0.35rem;
     padding: 1.5rem;
     border-radius: var(--radius-m);
-    background: #fff;
+    background: var(--color-surface);
     border: 1px solid var(--color-line);
   }
   strong {
     font: 600 1.15rem/1.2 var(--font-display);
-    color: var(--rose-800);
+    color: var(--color-accent-text);
   }
   span {
     color: var(--color-muted);

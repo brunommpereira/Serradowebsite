@@ -12,7 +12,6 @@ import { RevealDirective } from '../shared/reveal.directive';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ar-page-head
-      eyebrow="A associação"
       title="Nasceu de uma falta. Cresceu com carinho."
       [lead]="about.intro"
       [crumbs]="[{ label: 'A associação' }]"
@@ -129,12 +128,12 @@ import { RevealDirective } from '../shared/reveal.directive';
         gap: 0.25rem;
         padding: 1.1rem;
         border-radius: var(--radius-m);
-        background: #fff;
+        background: var(--color-surface);
         border: 1px solid var(--color-line);
       }
       strong {
         font: 600 1.8rem/1 var(--font-display);
-        color: var(--rose-700);
+        color: var(--color-accent-text);
       }
       span {
         font-size: 0.85rem;
@@ -145,7 +144,7 @@ import { RevealDirective } from '../shared/reveal.directive';
       }
     }
     .made {
-      background: #fff;
+      background: var(--color-surface);
     }
     .made__grid {
       display: grid;
@@ -158,7 +157,7 @@ import { RevealDirective } from '../shared/reveal.directive';
     .made__card {
       padding: 2rem;
       border-radius: var(--radius-l);
-      background: var(--rose-50);
+      background: var(--color-bg);
       border: 1px solid var(--color-line);
     }
     .ticks {
@@ -173,7 +172,7 @@ import { RevealDirective } from '../shared/reveal.directive';
         font-weight: 500;
       }
       ar-icon {
-        color: var(--rose-600);
+        color: var(--color-muted);
         margin-top: 0.2rem;
       }
     }
@@ -184,7 +183,7 @@ import { RevealDirective } from '../shared/reveal.directive';
       article {
         padding: 1.6rem;
         border-radius: var(--radius-m);
-        background: #fff;
+        background: var(--color-surface);
         border: 1px solid var(--color-line);
       }
       p {

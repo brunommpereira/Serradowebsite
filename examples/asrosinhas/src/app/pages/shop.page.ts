@@ -13,7 +13,6 @@ type Filter = 'todos' | 'soutien' | 'merch';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ar-page-head
-      eyebrow="Loja solidária"
       title="Cada compra envia mais Rosinhas."
       lead="Soutiens para prótese, feitos com a Simel, e merchandising d’As Rosinhas. O valor ajuda a continuar a enviar as Rosinhas gratuitamente."
       [crumbs]="[{ label: 'Loja solidária' }]"
@@ -94,7 +93,7 @@ type Filter = 'todos' | 'soutien' | 'merch';
       gap: 1.2rem;
       grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
       > div {
-        background: #fff;
+        background: var(--color-surface);
         border-radius: var(--radius-l);
         padding: 1.5rem;
         box-shadow: var(--shadow-s);
@@ -102,7 +101,7 @@ type Filter = 'todos' | 'soutien' | 'merch';
         font-size: 0.95rem;
       }
       ar-icon {
-        color: var(--rose-700);
+        color: var(--color-accent-text);
       }
       h3 {
         color: var(--color-text);

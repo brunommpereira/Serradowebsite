@@ -27,8 +27,8 @@ import { IconComponent } from './icon.component';
       width: 64px;
       height: 64px;
       border-radius: 50%;
-      background: var(--rose-100);
-      color: var(--rose-700);
+      background: var(--color-tint);
+      color: var(--color-accent-text);
       margin-bottom: 1rem;
     }
     .notice {

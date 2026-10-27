@@ -67,7 +67,7 @@ import { RevealDirective } from '../shared/reveal.directive';
               }
             </ul>
           </article>
-          <article class="trio__card trio__card--accent" arReveal>
+          <article class="trio__card" arReveal>
             <span class="trio__icon"><ar-icon name="sparkles" size="26" /></span>
             <h3>Características</h3>
             <ul>
@@ -107,8 +107,7 @@ import { RevealDirective } from '../shared/reveal.directive';
     <section class="section help" id="ajudar">
       <div class="container">
         <div class="head head--center" arReveal>
-          <p class="eyebrow">Como posso ajudar?</p>
-          <h2>Cada gesto envia mais Rosinhas.</h2>
+          <h2>Como ajudar: cada gesto envia mais Rosinhas.</h2>
           <p class="lead">
             As Rosinhas são enviadas gratuitamente a todas as mulheres que nos procuram. É com a
             ajuda de sócias, sócios e amigos que isso é possível.
@@ -117,7 +116,7 @@ import { RevealDirective } from '../shared/reveal.directive';
         <div class="ways">
           <a class="way" routerLink="/ajudar/socia" arReveal>
             <span class="way__icon"><ar-icon name="users" size="28" /></span>
-            <h3>Ser sócia ou sócio</h3>
+            <h3>Ser sócia</h3>
             <p>
               A quota anual permite enviar gratuitamente mais Rosinhas a todas as mulheres que nos
               procuram.
@@ -127,7 +126,7 @@ import { RevealDirective } from '../shared/reveal.directive';
             >
             <span class="way__go">Quero ser sócia <ar-icon name="arrow" size="18" /></span>
           </a>
-          <a class="way way--rose" routerLink="/ajudar/donativo" arReveal>
+          <a class="way" routerLink="/ajudar/donativo" arReveal>
             <span class="way__icon"><ar-icon name="heart" size="28" /></span>
             <h3>Fazer um donativo</h3>
             <p>
@@ -183,10 +182,7 @@ import { RevealDirective } from '../shared/reveal.directive';
     <section class="section events">
       <div class="container">
         <div class="head head--row" arReveal>
-          <div>
-            <p class="eyebrow">Eventos</p>
-            <h2>Momentos que nos juntam.</h2>
-          </div>
+          <h2>Eventos que nos juntam.</h2>
           <a routerLink="/eventos" class="btn btn--ghost"
             >Todos os eventos <ar-icon name="arrow" size="18"
           /></a>
@@ -215,7 +211,6 @@ import { RevealDirective } from '../shared/reveal.directive';
     <section class="section partners">
       <div class="container">
         <div class="head head--center" arReveal>
-          <p class="eyebrow">Quem caminha connosco</p>
           <h2>Parceiros e voluntárias</h2>
         </div>
         <ul class="partners__list">

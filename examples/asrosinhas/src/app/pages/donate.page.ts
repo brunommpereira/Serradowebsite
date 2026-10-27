@@ -13,7 +13,6 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ar-page-head
-      eyebrow="Fazer um donativo"
       title="Qualquer valor ajuda a enviar uma Rosinha."
       lead="Ajuda As Rosinhas com uma doação ou uma contribuição para a campanha de angariação de fundos."
       [crumbs]="[{ label: 'Ajudar', link: '/ajudar' }, { label: 'Donativo' }]"
@@ -39,7 +38,12 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
               [text]="'Vais receber por email os dados para transferires ' + amountLabel() + '.'"
             />
           } @else {
-            <form (submit)="form.submit($event)" novalidate>
+            <form
+              (submit)="form.submit($event)"
+              (focusout)="form.blur($event)"
+              (input)="form.input($event)"
+              novalidate
+            >
               <fieldset>
                 <legend>Valor</legend>
                 <div class="chips">
@@ -48,7 +52,7 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
                       type="button"
                       class="chip"
                       [attr.aria-pressed]="amount() === v"
-                      (click)="amount.set(v)"
+                      (click)="pick(v)"
                     >
                       {{ v }} €
                     </button>
@@ -63,9 +67,9 @@ import { SentNoticeComponent } from '../shared/sent-notice.component';
                     min="1"
                     step="1"
                     inputmode="numeric"
-                    [value]="amount() ?? ''"
+                    [value]="custom()"
                     (input)="setAmount($event)"
-                    required
+                    [required]="amount() === null"
                   />
                 </div>
               </fieldset>
@@ -99,9 +103,20 @@ export class DonatePage {
   );
   protected readonly form = new DemoForm();
 
+  /** «Outro valor» só tem o que a pessoa escreveu; escolher um valor rápido limpa-o */
+  protected readonly custom = signal('');
+
+  protected pick(v: number) {
+    this.amount.set(v);
+    this.custom.set('');
+    this.form.recheck('valor');
+  }
+
   protected setAmount(ev: Event) {
-    const v = Number((ev.target as HTMLInputElement).value);
-    this.amount.set(v > 0 ? v : null);
+    const raw = (ev.target as HTMLInputElement).value;
+    this.custom.set(raw);
+    const v = Number(raw);
+    this.amount.set(raw && v > 0 ? v : null);
   }
 
   constructor() {
