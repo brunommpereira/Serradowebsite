@@ -1,10 +1,12 @@
-"""A abertura da época passou para domingo, 22 de novembro: evento, notícia e cartaz com a nova data (migração 030)."""
+"""A abertura da época passou para domingo, 22 de novembro: evento, notícia e cartaz com a nova data (migrações 030 e 031)."""
 
 from pathlib import Path
 
 from serrado.db.pool import fetch, fetch_one
 
-SQL = (Path(__file__).parents[1] / "serrado/db/migrations/030_abertura_epoca_22_novembro.sql").read_text()
+MIGRATIONS = Path(__file__).parents[1] / "serrado/db/migrations"
+SQL = (MIGRATIONS / "030_abertura_epoca_22_novembro.sql").read_text()
+SQL_031 = (MIGRATIONS / "031_abertura_epoca_cartaz_evento.sql").read_text()
 CARTAZ = (
     '<img src="https://www.serradofc.pt/media/eventos/cartaz-abertura-epoca-pagamento.webp" alt="Cartaz da abertura da época do Serrado FC: '
     'sábado, 7 de novembro, no Fresh Bar.">'
@@ -52,3 +54,23 @@ async def test_abertura_da_epoca_passou_para_22_de_novembro(mw):
         await c.execute(SQL)
     again = await fetch_one(mw.pool, "select starts_at::text as starts from cms_events where slug = 'abertura-da-epoca'")
     assert again and again["starts"] == "2026-11-22 10:30:00"
+
+
+async def test_cartaz_do_evento_mudado_a_mao_no_backoffice(mw):
+    # A data e o resumo já tinham sido mudados à mão: a 030 não toca no evento, a 031 troca o cartaz no texto
+    await fetch(
+        mw.pool,
+        """insert into cms_events (slug, title, kind, summary, body, starts_at, location, price, status, published_at)
+           values ('abertura-da-epoca', 'Abertura da época', 'Convívio', 'Domingo, 22 de novembro: treino e churrasco.', %s,
+                   '2026-11-22 10:30', 'Fresh Bar', 20, 'published', now())
+           on conflict (slug) do update set body = excluded.body, summary = excluded.summary, starts_at = excluded.starts_at
+           returning id""",
+        [CARTAZ],
+    )
+    async with mw.pool.connection() as c:
+        await c.execute(SQL)
+        await c.execute(SQL_031)
+    ev = await fetch_one(mw.pool, "select starts_at::text as starts, body from cms_events where slug = 'abertura-da-epoca'")
+    assert ev and ev["starts"] == "2026-11-22 10:30:00"
+    assert "7 de novembro" not in ev["body"] and "domingo, 22 de novembro" in ev["body"]
+    assert "cartaz-abertura-epoca-22nov.webp" in ev["body"] and "cartaz-abertura-epoca-22nov-a4.pdf" in ev["body"]
