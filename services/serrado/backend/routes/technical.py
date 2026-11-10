@@ -1,19 +1,22 @@
 """
-API de parceiros (sistemas externos): pedidos de gasto com credenciais de cliente.
+APIs técnicas (sistemas externos): pedidos de gasto e decisão do tesoureiro do núcleo, com credenciais de cliente.
 
-- Credenciais (backoffice, quem gere utilizadores): client_id + client_secret, mostrado uma única vez.
-  Cada cliente faz os pedidos em nome de um utilizador responsável e só nos núcleos permitidos.
+- Credenciais (backoffice, quem gere utilizadores): client_id + client_secret, mostrado uma única vez, com
+  permissões próprias (registar pedidos; decidir como tesoureiro do núcleo) e núcleos permitidos.
 - Token (OAuth2 client credentials): client_id + client_secret → token de acesso de 15 minutos.
-- Pedidos: criar (devolve o id; com externalRef, repetir o envio devolve o mesmo pedido) e consultar o estado.
+- Pedidos: criar em nome de quem pede (requesterEmail; devolve o id; com externalRef, repetir devolve o mesmo
+  pedido), consultar o estado e decidir o 2.º passo em nome do tesoureiro (approverEmail).
 
+As regras são as do backoffice: quem pede tem de poder pedir gastos, quem decide tem de ser tesoureiro desse
+núcleo (ou a tesouraria, se o núcleo não tiver outro) e ninguém decide o próprio pedido.
 Do segredo e dos tokens só se guarda o SHA-256 (são aleatórios com 256 bits: não precisam de um hash lento).
-O middleware passa o token no cabeçalho X-Api-Token; o fluxo de aprovação é o mesmo do backoffice.
+O middleware passa o token no cabeçalho X-Api-Token.
 """
 
 import hashlib
 import hmac
 import secrets
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Path, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
@@ -21,12 +24,31 @@ from pydantic import BaseModel, ConfigDict, Field
 from ...db.pool import Conn, fetch, fetch_one, tx
 from ...permissions import effective
 from ..core import Actor, HttpError, actor, audit, not_found, pool, require
-from .expenses import FLOWS, NUCLEOS, ExpenseIn, Nucleo, insert_expense, number, validate_new
+from .expenses import (
+    FLOWS,
+    NUCLEOS,
+    ExpenseIn,
+    Nucleo,
+    NucleoDecision,
+    insert_expense,
+    may_decide_nucleo,
+    nucleo_decision,
+    number,
+    teams,
+    validate_new,
+)
 
 TOKEN_TTL = 15 * 60  # segundos
 MAX_TOKENS = 20  # tokens válidos ao mesmo tempo por cliente (os mais antigos caem)
 UUID = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+EMAIL = r"^[^\s@]+@[^\s@]+\.[^\s@]+$"
 Ref = Annotated[str, Field(pattern=r"^[A-Za-z0-9._:/-]{1,64}$")]
+Email = Annotated[str, Field(pattern=EMAIL, max_length=254)]
+Scope = Literal["expenses.create", "expenses.approve_nucleo"]
+SCOPES = {
+    "expenses.create": "Registar pedidos de gasto",
+    "expenses.approve_nucleo": "Decidir como tesoureiro do núcleo",
+}
 
 STATUS = {
     "pedido": "Aguarda aprovação do tesoureiro do núcleo",
@@ -60,6 +82,7 @@ class ClientIn(BaseModel):
     name: str = Field(min_length=3, max_length=80)
     userId: str = Field(pattern=UUID)
     nucleos: list[Nucleo] = Field(default_factory=list, max_length=len(NUCLEOS))
+    scopes: list[Scope] = Field(default_factory=lambda: list[Scope](["expenses.create"]), min_length=1, max_length=len(SCOPES))
 
 
 class TokenIn(BaseModel):
@@ -68,35 +91,49 @@ class TokenIn(BaseModel):
     clientSecret: str = Field(max_length=100)
 
 
-class PartnerExpenseIn(ExpenseIn):
+class TechnicalExpenseIn(ExpenseIn):
+    requesterEmail: Email
     externalRef: Ref | None = None
+
+
+class TechnicalNucleoDecision(NucleoDecision):
+    approverEmail: Email
 
 
 def new_secret() -> str:
     return "sfc_sk_" + secrets.token_urlsafe(32)
 
 
-async def candidates(c: Conn) -> list[dict[str, Any]]:
-    """Quem pode ser o responsável: contas ativas que podem pedir gastos."""
-    rows = await fetch(
+async def person(c: Conn, email: str) -> Actor | None:
+    """Conta ativa com este email, com as permissões efetivas (como o backend faz para uma sessão)."""
+    row = await fetch_one(
         c,
-        """select u.id::text as id, u.name, u.email, coalesce(array_agg(distinct ur.role) filter (where ur.role is not null), '{}') as roles,
-                  coalesce(array_agg(distinct rp.permission) filter (where rp.permission is not null), '{}') as permissions
-             from users u left join user_roles ur on ur.user_id = u.id left join role_permissions rp on rp.role = ur.role
-            where not u.disabled group by u.id order by u.name""",
+        """select u.id::text as id, coalesce((select array_agg(role) from user_roles where user_id = u.id), '{}') as roles,
+                  coalesce((select array_agg(distinct rp.permission) from user_roles ur join role_permissions rp on rp.role = ur.role
+                             where ur.user_id = u.id), '{}') as permissions
+             from users u where lower(u.email) = lower(%s) and not u.disabled""",
+        [email.strip()],
     )
-    return [
-        {"id": r["id"], "name": r["name"], "email": r["email"]}
-        for r in rows
-        if "expenses.request" in effective(list(r["roles"]), set(r["permissions"]))
-    ]
+    if not row:
+        return None
+    roles = list(row["roles"])
+    return Actor(id=row["id"], roles=roles, permissions=effective(roles, set(row["permissions"])))
+
+
+async def candidates(c: Conn) -> list[dict[str, Any]]:
+    """Quem pode ser o responsável pela integração: contas ativas da equipa (com algum papel)."""
+    return await fetch(
+        c,
+        """select u.id::text as id, u.name, u.email from users u
+            where not u.disabled and exists (select 1 from user_roles ur where ur.user_id = u.id) order by u.name""",
+    )
 
 
 async def client_view(c: Conn, id: str) -> dict[str, Any]:
     row = await fetch_one(
         c,
         """select k.id::text as id, k.client_id as "clientId", k.name, k.secret_hint as "secretHint", k.user_id::text as "userId",
-                  u.name as "userName", k.nucleos, k.active, k.created_at as "createdAt", k.secret_rotated_at as "secretRotatedAt",
+                  u.name as "userName", k.nucleos, k.scopes, k.active, k.created_at as "createdAt", k.secret_rotated_at as "secretRotatedAt",
                   k.last_used_at as "lastUsedAt", k.revoked_at as "revokedAt",
                   (select count(*) from expenses e where e.api_client = k.id)::int as "requests"
              from api_clients k join users u on u.id = k.user_id where k.id = %s""",
@@ -107,13 +144,13 @@ async def client_view(c: Conn, id: str) -> dict[str, Any]:
     return row
 
 
-async def client_from_token(req: Request, c: Conn) -> dict[str, Any]:
-    """Cliente ativo dono do token (cabeçalho X-Api-Token); o responsável tem de estar ativo e poder pedir gastos."""
+async def client_from_token(req: Request, c: Conn, scope: str) -> dict[str, Any]:
+    """Cliente ativo dono do token (cabeçalho X-Api-Token), com a permissão pedida."""
     token = req.headers.get("x-api-token", "")
     row = (
         await fetch_one(
             c,
-            """select k.id::text as id, k.name, k.nucleos, k.user_id::text as user_id from api_tokens t join api_clients k on k.id = t.client
+            """select k.id::text as id, k.name, k.nucleos, k.scopes from api_tokens t join api_clients k on k.id = t.client
                 where t.token_hash = %s and t.expires_at > now() and k.active""",
             [sha(token)],
         )
@@ -122,19 +159,9 @@ async def client_from_token(req: Request, c: Conn) -> dict[str, Any]:
     )
     if not row:
         raise HttpError(401, "invalid_token", "Token de acesso inválido ou expirado")
-    user = await fetch_one(
-        c,
-        """select coalesce((select array_agg(role) from user_roles where user_id = u.id), '{}') as roles,
-                  coalesce((select array_agg(distinct rp.permission) from user_roles ur join role_permissions rp on rp.role = ur.role
-                             where ur.user_id = u.id), '{}') as permissions
-             from users u where u.id = %s and not u.disabled""",
-        [row["user_id"]],
-    )
-    roles = list(user["roles"]) if user else []
-    perms = effective(roles, set(user["permissions"])) if user else set()
-    if "expenses.request" not in perms:
-        raise HttpError(403, "client_user_not_allowed", "A conta responsável por este cliente já não pode fazer pedidos de gasto")
-    return {**row, "actor": Actor(id=row["user_id"], roles=roles, permissions=perms)}
+    if scope and scope not in row["scopes"]:
+        raise HttpError(403, "scope_not_allowed", f"Esta credencial não tem permissão para: {SCOPES[scope]}")
+    return row
 
 
 async def status_view(c: Conn, expense_id: int, client: str) -> dict[str, Any]:
@@ -143,7 +170,6 @@ async def status_view(c: Conn, expense_id: int, client: str) -> dict[str, Any]:
         raise not_found("Pedido")
     history = await fetch(c, "select at, action, note from expense_events where expense_id = %s order by at, id", [expense_id])
     st = e["status"]
-    # Sem passo do núcleo, o pedido nasce «aprovado_nucleo», mas à espera da tesouraria
     return {
         "id": e["id"],
         "number": number(e),
@@ -170,12 +196,12 @@ async def status_view(c: Conn, expense_id: int, client: str) -> dict[str, Any]:
 
 
 def register(r: APIRouter) -> None:
-    admin_tags: list[Any] = ["API de parceiros · credenciais"]
-    tags: list[Any] = ["API de parceiros"]
+    admin_tags: list[Any] = ["APIs técnicas · credenciais"]
+    tags: list[Any] = ["APIs técnicas"]
 
     # ------------------------------------------------------------ credenciais (backoffice)
 
-    @r.get("/api-clients", tags=admin_tags, summary="Clientes da API e quem pode ser o responsável")
+    @r.get("/api-clients", tags=admin_tags, summary="Clientes das APIs técnicas, responsáveis possíveis, núcleos e permissões")
     async def list_clients(req: Request) -> dict[str, Any]:
         require(req, "users.manage")
         async with tx(pool(req)) as c:
@@ -184,24 +210,40 @@ def register(r: APIRouter) -> None:
                 "clients": [await client_view(c, x["id"]) for x in ids],
                 "candidates": await candidates(c),
                 "nucleos": [{"key": k, "label": v} for k, v in NUCLEOS.items()],
+                "scopes": [{"key": k, "label": v} for k, v in SCOPES.items()],
             }
 
     @r.post("/api-clients", tags=admin_tags, summary="Novo cliente (o segredo só é mostrado agora)", status_code=201)
     async def create_client(req: Request, body: ClientIn) -> dict[str, Any]:
         require(req, "users.manage")
         secret = new_secret()
+        scopes = [s for s in SCOPES if s in body.scopes]
         async with tx(pool(req)) as c:
             if body.userId not in {x["id"] for x in await candidates(c)}:
-                raise HttpError(400, "invalid_user", "O responsável tem de ser uma conta ativa que possa fazer pedidos de gasto")
+                raise HttpError(400, "invalid_user", "O responsável tem de ser uma conta ativa da equipa")
             cur = await c.execute(
-                """insert into api_clients (client_id, name, secret_hash, secret_hint, user_id, nucleos, created_by)
-                   values (%s, %s, %s, %s, %s, %s, %s) returning id::text as id""",
-                ["sfc_cli_" + secrets.token_hex(8), body.name, sha(secret), secret[-4:], body.userId, sorted(set(body.nucleos)), actor(req).id],
+                """insert into api_clients (client_id, name, secret_hash, secret_hint, user_id, nucleos, scopes, created_by)
+                   values (%s, %s, %s, %s, %s, %s, %s, %s) returning id::text as id""",
+                [
+                    "sfc_cli_" + secrets.token_hex(8),
+                    body.name,
+                    sha(secret),
+                    secret[-4:],
+                    body.userId,
+                    sorted(set(body.nucleos)),
+                    scopes,
+                    actor(req).id,
+                ],
             )
             row = await cur.fetchone()
             assert row is not None
             await audit(
-                c, actor(req), "create", "api_client", row["id"], {"name": body.name, "user": body.userId, "nucleos": sorted(set(body.nucleos))}
+                c,
+                actor(req),
+                "create",
+                "api_client",
+                row["id"],
+                {"name": body.name, "user": body.userId, "nucleos": sorted(set(body.nucleos)), "scopes": scopes},
             )
             return {**await client_view(c, row["id"]), "clientSecret": secret}
 
@@ -231,9 +273,9 @@ def register(r: APIRouter) -> None:
             await audit(c, actor(req), "revoke", "api_client", id)
             return await client_view(c, id)
 
-    # ------------------------------------------------------------ API dos parceiros
+    # ------------------------------------------------------------ APIs técnicas
 
-    @r.post("/partner/token", tags=tags, summary="Token de acesso (OAuth2 client credentials)")
+    @r.post("/technical/token", tags=tags, summary="Token de acesso (OAuth2 client credentials)")
     async def token(req: Request, body: TokenIn) -> dict[str, Any]:
         async with tx(pool(req)) as c:
             row = await fetch_one(c, "select id::text as id, secret_hash from api_clients where client_id = %s and active", [body.clientId])
@@ -255,11 +297,11 @@ def register(r: APIRouter) -> None:
             await c.execute("update api_clients set last_used_at = now() where id = %s", [row["id"]])
         return {"accessToken": access, "tokenType": "Bearer", "expiresIn": TOKEN_TTL}
 
-    @r.post("/partner/expenses", tags=tags, summary="Registar um pedido de gasto (devolve o id)", status_code=201)
-    async def create(req: Request, body: PartnerExpenseIn) -> dict[str, Any]:
+    @r.post("/technical/expenses", tags=tags, summary="Registar um pedido de gasto em nome de quem pede (devolve o id)", status_code=201)
+    async def create(req: Request, body: TechnicalExpenseIn) -> dict[str, Any]:
         validate_new(body)
         async with tx(pool(req)) as c:
-            client = await client_from_token(req, c)
+            client = await client_from_token(req, c, "expenses.create")
             if client["nucleos"] and body.nucleo not in client["nucleos"]:
                 raise HttpError(403, "nucleo_not_allowed", f"Este cliente não pode fazer pedidos para o núcleo «{body.nucleo}»")
             if body.externalRef:
@@ -267,24 +309,46 @@ def register(r: APIRouter) -> None:
                 dup = await fetch_one(c, "select id from expenses where api_client = %s and external_ref = %s", [client["id"], body.externalRef])
                 if dup:
                     return {**await status_view(c, dup["id"], client["id"]), "duplicate": True}
-            data = ExpenseIn.model_validate(body.model_dump(exclude={"externalRef"}))
-            row = await insert_expense(
-                c, client["actor"], data, api_client=client["id"], external_ref=body.externalRef, via=f"API · {client['name']}"
-            )
+            who = await person(c, body.requesterEmail)
+            if not who or "expenses.request" not in who.permissions:
+                raise HttpError(403, "requester_not_allowed", "Não há uma conta ativa com este email que possa fazer pedidos de gasto")
+            data = ExpenseIn.model_validate(body.model_dump(exclude={"externalRef", "requesterEmail"}))
+            row = await insert_expense(c, who, data, api_client=client["id"], external_ref=body.externalRef, via=f"API técnica · {client['name']}")
             await c.execute("update api_clients set last_used_at = now() where id = %s", [client["id"]])
             return {**await status_view(c, row["id"], client["id"]), "duplicate": False}
 
-    @r.get("/partner/expenses", tags=tags, summary="Procurar um pedido pela referência do sistema externo")
+    @r.post("/technical/expenses/{id}/nucleo-decision", tags=tags, summary="Decisão do tesoureiro do núcleo (aprovar ou rejeitar)")
+    async def decide(req: Request, id: Annotated[int, Path(ge=1)], body: TechnicalNucleoDecision) -> dict[str, Any]:
+        async with tx(pool(req)) as c:
+            client = await client_from_token(req, c, "expenses.approve_nucleo")
+            row = await fetch_one(c, "select * from expenses where id = %s and api_client = %s for update", [id, client["id"]])
+            if not row:
+                raise not_found("Pedido")
+            if row["status"] != "pedido":
+                raise HttpError(409, "invalid_state", f"O pedido não está à espera da decisão do núcleo (estado: {row['status']})")
+            who = await person(c, body.approverEmail)
+            if not who or not may_decide_nucleo(who, row, await teams(c)):
+                raise HttpError(
+                    403,
+                    "approver_not_allowed",
+                    "Esta pessoa não pode decidir este pedido: tem de ser tesoureiro do núcleo (e não pode ser quem o pediu)",
+                )
+            data = NucleoDecision.model_validate(body.model_dump(exclude={"approverEmail"}))
+            await nucleo_decision(c, who, row, data, via=f"API técnica · {client['name']}")
+            await c.execute("update api_clients set last_used_at = now() where id = %s", [client["id"]])
+            return await status_view(c, id, client["id"])
+
+    @r.get("/technical/expenses", tags=tags, summary="Procurar um pedido pela referência do sistema externo")
     async def by_ref(req: Request, externalRef: Annotated[str, Query(pattern=r"^[A-Za-z0-9._:/-]{1,64}$")]) -> dict[str, Any]:
         async with tx(pool(req)) as c:
-            client = await client_from_token(req, c)
+            client = await client_from_token(req, c, "")
             row = await fetch_one(c, "select id from expenses where api_client = %s and external_ref = %s", [client["id"], externalRef])
             if not row:
                 raise not_found("Pedido")
             return await status_view(c, row["id"], client["id"])
 
-    @r.get("/partner/expenses/{id}", tags=tags, summary="Estado de um pedido feito por este cliente")
+    @r.get("/technical/expenses/{id}", tags=tags, summary="Estado de um pedido feito por este cliente")
     async def status(req: Request, id: Annotated[int, Path(ge=1)]) -> dict[str, Any]:
         async with tx(pool(req)) as c:
-            client = await client_from_token(req, c)
+            client = await client_from_token(req, c, "")
             return await status_view(c, id, client["id"])

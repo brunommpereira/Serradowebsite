@@ -152,8 +152,8 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./pages/expenses.page').then((m) => m.ExpensesPage),
       },
       {
-        path: 'api-parceiros',
-        title: 'API de parceiros',
+        path: 'apis-tecnicas',
+        title: 'APIs técnicas',
         canActivate: [staffGuard],
         data: { permissions: ['users.manage'] },
         loadComponent: () => import('./pages/api-clients.page').then((m) => m.ApiClientsPage),

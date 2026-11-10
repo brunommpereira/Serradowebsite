@@ -26,7 +26,6 @@ from .routes import (
     expenses,
     interest,
     me,
-    partner,
     payments,
     push,
     races,
@@ -35,11 +34,12 @@ from .routes import (
     signup,
     site,
     social,
+    technical,
 )
 from .session import SESSION_COOKIE, session, sign_session, staff
 
 # Pedidos de gasto com anexos (até 3 × 10 MB em base64)
-EXPENSE_UPLOAD = re.compile(r"^/api/v1/(admin|partner)/expenses(/\d+/(files|pay))?$")
+EXPENSE_UPLOAD = re.compile(r"^/api/v1/(admin|technical)/expenses(/\d+/(files|pay))?$")
 
 # Limites por rota (por minuto e por IP); as restantes partilham o limite global (RATE_LIMIT_MAX)
 ROUTE_LIMITS: list[tuple[str, re.Pattern[str], str, int]] = [
@@ -58,14 +58,14 @@ ROUTE_LIMITS: list[tuple[str, re.Pattern[str], str, int]] = [
     ("POST", re.compile(r"^/api/v1/contact$"), "contact", 5),
     ("POST", re.compile(r"^/api/v1/events/[a-z0-9-]+/registrations$"), "event-registration", 5),
     ("POST", re.compile(r"^/api/v1/payments/stripe/webhook$"), "stripe-webhook", 600),
-    ("POST", re.compile(r"^/api/v1/partner/oauth/token$"), "partner-token", 10),
-    ("POST", re.compile(r"^/api/v1/partner/expenses$"), "partner-expense", 30),
-    ("GET", re.compile(r"^/api/v1/partner/expenses(/\d+)?$"), "partner-status", 120),
+    ("POST", re.compile(r"^/api/v1/technical/oauth/token$"), "technical-token", 10),
+    ("POST", re.compile(r"^/api/v1/technical/expenses(/\d+/nucleo-decision)?$"), "technical-write", 30),
+    ("GET", re.compile(r"^/api/v1/technical/expenses(/\d+)?$"), "technical-status", 120),
 ]
 # Sem cookie de sessão nem X-Requested-With: autenticados pela assinatura do Stripe
 CSRF_EXEMPT = ("/api/v1/payments/stripe/webhook",)
-# API de parceiros: não usa o cookie de sessão (só credenciais do cliente / token no cabeçalho), por isso não há CSRF
-PARTNER = "/api/v1/partner/"
+# APIs técnicas: não usam o cookie de sessão (só credenciais do cliente / token no cabeçalho), por isso não há CSRF
+TECHNICAL = "/api/v1/technical/"
 
 
 def _body_limit(method: str, path: str) -> int:
@@ -122,7 +122,7 @@ def build_middleware(*, backend_client: BackendClient | None = None, oauth: dict
         if (
             req.method not in ("GET", "HEAD", "OPTIONS")
             and path not in CSRF_EXEMPT
-            and not path.startswith(PARTNER)
+            and not path.startswith(TECHNICAL)
             and not req.headers.get("authorization", "").startswith("Bearer ")
         ):
             if req.headers.get("x-requested-with") != "XMLHttpRequest":
@@ -146,7 +146,7 @@ def build_middleware(*, backend_client: BackendClient | None = None, oauth: dict
         interest,
         social,
         expenses,
-        partner,
+        technical,
         push,
         event_registrations,
         recent,

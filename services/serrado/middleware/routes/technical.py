@@ -1,10 +1,12 @@
 """
-API de parceiros (/api/v1/partner): sistemas externos registam pedidos de gasto e consultam o estado.
+APIs técnicas (/api/v1/technical): sistemas externos registam pedidos de gasto, decidem o passo do tesoureiro do
+núcleo e consultam o estado.
 
-1. POST /partner/oauth/token — OAuth2 client credentials: client_id + client_secret (HTTP Basic, formulário
+1. POST /technical/oauth/token — OAuth2 client credentials: client_id + client_secret (HTTP Basic, formulário
    ou JSON) → token de acesso de 15 minutos.
-2. POST /partner/expenses — com Authorization: Bearer <token>: regista o pedido e devolve o id.
-3. GET /partner/expenses/{id} (ou ?externalRef=...) — estado do pedido.
+2. POST /technical/expenses — com Authorization: Bearer <token>: regista o pedido (requesterEmail) e devolve o id.
+3. POST /technical/expenses/{id}/nucleo-decision — decisão do tesoureiro do núcleo (approverEmail).
+4. GET /technical/expenses/{id} (ou ?externalRef=...) — estado do pedido.
 
 Credenciais geridas no backoffice (/admin/api-clients, quem gere utilizadores). As regras estão no backend.
 """
@@ -30,7 +32,7 @@ JsonObject = Annotated[dict[str, Any], Body()]
 def bearer(req: Request) -> dict[str, str]:
     header = req.headers.get("authorization", "")
     if not header.startswith("Bearer sfc_at_"):
-        raise HttpError(401, "invalid_token", "Falta o token de acesso (Authorization: Bearer ...): pede-o em /api/v1/partner/oauth/token")
+        raise HttpError(401, "invalid_token", "Falta o token de acesso (Authorization: Bearer ...): pede-o em /api/v1/technical/oauth/token")
     return {"x-api-token": header[7:].strip()}
 
 
@@ -64,10 +66,10 @@ async def credentials(req: Request) -> tuple[str, str, str] | None:
 
 
 def register(r: APIRouter) -> None:
-    tags: list[Any] = ["API de parceiros"]
-    admin_tags: list[Any] = ["Backoffice · API de parceiros"]
+    tags: list[Any] = ["APIs técnicas"]
+    admin_tags: list[Any] = ["Backoffice · APIs técnicas"]
 
-    @r.post("/partner/oauth/token", tags=tags, summary="Token de acesso (OAuth2 client credentials)", response_model=None)
+    @r.post("/technical/oauth/token", tags=tags, summary="Token de acesso (OAuth2 client credentials)", response_model=None)
     async def token(req: Request) -> Any:
         creds = await credentials(req)
         if creds is None:
@@ -78,7 +80,7 @@ def register(r: APIRouter) -> None:
         if not cid or not secret or len(cid) > 40 or len(secret) > 100:
             return oauth_error(401, "invalid_client", "Credenciais do cliente inválidas")
         try:
-            out = await backend(req).call("POST", "/partner/token", body={"clientId": cid, "clientSecret": secret})
+            out = await backend(req).call("POST", "/technical/token", body={"clientId": cid, "clientSecret": secret})
         except BackendError as e:
             if e.status == 401:
                 return oauth_error(401, "invalid_client", "Credenciais do cliente inválidas")
@@ -88,17 +90,21 @@ def register(r: APIRouter) -> None:
             headers={"cache-control": "no-store", "pragma": "no-cache"},
         )
 
-    @r.post("/partner/expenses", tags=tags, summary="Registar um pedido de gasto (devolve o id)", status_code=201)
+    @r.post("/technical/expenses", tags=tags, summary="Registar um pedido de gasto em nome de quem pede (devolve o id)", status_code=201)
     async def create(req: Request, body: JsonObject) -> Any:
-        return await backend(req).call("POST", "/partner/expenses", body=body, headers=bearer(req))
+        return await backend(req).call("POST", "/technical/expenses", body=body, headers=bearer(req))
 
-    @r.get("/partner/expenses", tags=tags, summary="Procurar um pedido pela referência externa (?externalRef=...)")
+    @r.post("/technical/expenses/{id}/nucleo-decision", tags=tags, summary="Decisão do tesoureiro do núcleo (aprovar ou rejeitar)")
+    async def decide(req: Request, id: Annotated[int, Path(ge=1)], body: JsonObject) -> Any:
+        return await backend(req).call("POST", f"/technical/expenses/{id}/nucleo-decision", body=body, headers=bearer(req))
+
+    @r.get("/technical/expenses", tags=tags, summary="Procurar um pedido pela referência externa (?externalRef=...)")
     async def by_ref(req: Request) -> Any:
-        return await backend(req).call("GET", "/partner/expenses", query=dict(req.query_params), headers=bearer(req))
+        return await backend(req).call("GET", "/technical/expenses", query=dict(req.query_params), headers=bearer(req))
 
-    @r.get("/partner/expenses/{id}", tags=tags, summary="Estado de um pedido")
+    @r.get("/technical/expenses/{id}", tags=tags, summary="Estado de um pedido")
     async def status(req: Request, id: Annotated[int, Path(ge=1)]) -> Any:
-        return await backend(req).call("GET", f"/partner/expenses/{id}", headers=bearer(req))
+        return await backend(req).call("GET", f"/technical/expenses/{id}", headers=bearer(req))
 
     # ------------------------------------------------------------ backoffice: credenciais
 

@@ -1,19 +1,27 @@
 openapi: 3.1.0
 info:
-  title: Serrado FC — API de parceiros (pedidos de gasto)
-  version: 1.0.0
-  summary: Registo de pedidos de gasto por sistemas externos e consulta do estado do processo.
+  title: Serrado FC — APIs técnicas (pedidos de gasto)
+  version: 1.1.0
+  summary: Registo de pedidos de gasto por sistemas externos, decisão do tesoureiro do núcleo e consulta do estado.
   description: |
-    API para sistemas externos (ERP, plataforma de compras, outra aplicação) registarem **pedidos de gasto** no
-    Serrado FC e acompanharem o **estado** do processo de aprovação e pagamento.
+    APIs para sistemas externos (ERP, plataforma de compras, outra aplicação) registarem **pedidos de gasto** no
+    Serrado FC, registarem a **decisão do tesoureiro do núcleo** e acompanharem o **estado** do processo de
+    aprovação e pagamento.
 
     **Autenticação:** OAuth 2.0 *client credentials*.
     1. Peça um token em `POST /oauth/token`, com o `client_id` e o `client_secret` (HTTP Basic, formulário ou JSON).
     2. Envie o token em `Authorization: Bearer <access_token>`. O token vale 15 minutos.
 
-    **Credenciais:** são criadas no backoffice do clube (Gestão → API de parceiros). O segredo só é mostrado uma
-    vez; o clube guarda apenas o hash. Cada cliente faz os pedidos em nome de uma conta responsável e só nos núcleos
-    que lhe foram permitidos.
+    **Credenciais:** são criadas no backoffice do clube (Gestão → APIs técnicas). O segredo só é mostrado uma
+    vez; o clube guarda apenas o hash. Cada credencial tem permissões próprias (registar pedidos e/ou decidir como
+    tesoureiro do núcleo) e só funciona nos núcleos que lhe foram permitidos.
+
+    **Pessoas:** cada pedido indica o email de quem pede (`requesterEmail`), e cada decisão o de quem decide
+    (`approverEmail`). As regras são as do backoffice:
+    - quem pede tem de ter uma conta ativa que possa pedir gastos;
+    - quem decide tem de ser tesoureiro desse núcleo (ou a tesouraria da direção, se o núcleo não tiver outro
+      tesoureiro);
+    - ninguém decide o próprio pedido.
 
     **Fluxo:** um pedido registado entra no fluxo normal de aprovação do clube. A sequência depende do núcleo:
 
@@ -29,7 +37,7 @@ info:
 
     **Limites por IP e por minuto:**
     - 10 pedidos de token;
-    - 30 registos de pedidos;
+    - 30 registos de pedidos e decisões;
     - 120 consultas.
 
     Acima disso, a resposta é `429`.
@@ -37,7 +45,7 @@ info:
     name: Serrado FC
     url: https://www.serradofc.pt/contactos
 servers:
-  - url: https://www.serradofc.pt/api/v1/partner
+  - url: https://www.serradofc.pt/api/v1/technical
     description: Produção
 tags:
   - name: Autenticação
@@ -111,7 +119,9 @@ paths:
       description: |
         Regista o pedido e devolve o **`id`**, que serve para consultar o estado, e o número interno (`number`).
 
-        - O pedido fica em nome da conta responsável do cliente e entra no fluxo de aprovação do núcleo.
+        Precisa da permissão **registar pedidos** na credencial.
+
+        - O pedido fica em nome de quem pede (`requesterEmail`) e entra no fluxo de aprovação do núcleo.
         - Os tesoureiros recebem o aviso por email, como num pedido feito no backoffice.
         - Com `externalRef`, um reenvio devolve o pedido existente com `duplicate: true` (também com HTTP 201).
       security:
@@ -122,6 +132,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/ExpenseRequest' }
             example:
+              requesterEmail: joana.silva@serradofc.pt
               externalRef: ERP-2026-0042
               nucleo: rugby
               category: Deslocações e transportes
@@ -169,11 +180,14 @@ paths:
               example: { error: validation, message: 'amount: Input should be greater than 0' }
         '401': { $ref: '#/components/responses/InvalidToken' }
         '403':
-          description: Núcleo fora dos permitidos ao cliente (`nucleo_not_allowed`), ou a conta responsável deixou de poder pedir gastos (`client_user_not_allowed`)
+          description: |
+            - `scope_not_allowed`: a credencial não pode registar pedidos;
+            - `nucleo_not_allowed`: núcleo fora dos permitidos ao cliente;
+            - `requester_not_allowed`: não há uma conta ativa com esse email que possa pedir gastos.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
-              example: { error: nucleo_not_allowed, message: Este cliente não pode fazer pedidos para o núcleo «futsal» }
+              example: { error: requester_not_allowed, message: Não há uma conta ativa com este email que possa fazer pedidos de gasto }
         '413':
           description: Anexo com mais de 10 MB (`file_too_large`) ou corpo grande demais
           content:
@@ -206,6 +220,75 @@ paths:
         '400': { $ref: '#/components/responses/Validation' }
         '401': { $ref: '#/components/responses/InvalidToken' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /expenses/{id}/nucleo-decision:
+    post:
+      tags: [Pedidos de gasto]
+      operationId: decideNucleo
+      summary: Decisão do tesoureiro do núcleo (aprovar ou rejeitar)
+      description: |
+        Regista a decisão do 2.º passo em nome de quem decide (`approverEmail`). A resposta é o estado atualizado.
+
+        Precisa da permissão **decidir como tesoureiro do núcleo** na credencial. Só funciona para pedidos
+        registados pelo próprio cliente que estejam no estado `pedido`.
+
+        - **Quem decide:** tem de ser tesoureiro do núcleo do pedido (definido no backoffice). Se o núcleo não tiver outro
+          tesoureiro além de quem pediu, decide a tesouraria da direção. Quem pediu nunca decide.
+        - **Aprovar:** pode indicar um valor aprovado (`amount`) igual ou menor do que o pedido; sem `amount`,
+          aprova o valor pedido. O pedido passa a `aprovado_nucleo` (ou a `aprovado`, se o núcleo usa o fluxo
+          «só o tesoureiro do núcleo»), e a tesouraria é avisada para o pagamento.
+        - **Rejeitar:** é obrigatório o motivo (`note`), que fica em `rejectReason`.
+        - **Avisos:** quem pediu e a tesouraria recebem o email da decisão, como no backoffice.
+      security:
+        - bearerToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NucleoDecisionRequest' }
+            examples:
+              aprovar:
+                summary: Aprovar com valor menor
+                value: { approverEmail: tesoureiro.rugby@serradofc.pt, approve: true, amount: '320.00', note: Sem o regresso à noite }
+              rejeitar:
+                summary: Rejeitar (motivo obrigatório)
+                value: { approverEmail: tesoureiro.rugby@serradofc.pt, approve: false, note: O jogo foi adiado }
+      responses:
+        '200':
+          description: Decisão registada; devolve o estado atualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ExpenseStatus' }
+        '400':
+          description: 'Dados inválidos (`validation`), valor aprovado maior do que o pedido (`amount_too_high`) ou rejeição sem motivo (`reason_required`)'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: reason_required, message: Indique o motivo da rejeição }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403':
+          description: |
+            - `scope_not_allowed`: a credencial não pode decidir;
+            - `approver_not_allowed`: a pessoa não pode decidir este pedido (não é tesoureira do núcleo, não tem
+              conta ativa ou foi quem o pediu).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: approver_not_allowed, message: 'Esta pessoa não pode decidir este pedido: tem de ser tesoureiro do núcleo (e não pode ser quem o pediu)' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: O pedido já não está à espera da decisão do núcleo (`invalid_state`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: invalid_state, message: 'O pedido não está à espera da decisão do núcleo (estado: aprovado_nucleo)' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
   /expenses/{id}:
@@ -271,7 +354,7 @@ components:
       description: OAuth 2.0 client credentials (o token vale 15 minutos)
       flows:
         clientCredentials:
-          tokenUrl: https://www.serradofc.pt/api/v1/partner/oauth/token
+          tokenUrl: https://www.serradofc.pt/api/v1/technical/oauth/token
           scopes: {}
     bearerToken:
       type: http
@@ -337,9 +420,28 @@ components:
         error:
           type: string
           description: Código estável, para tratar no vosso sistema
-          examples: [validation, invalid_token, nucleo_not_allowed, client_user_not_allowed, not_found, invalid_due_date, invalid_file, file_too_large, unsupported_file, rate_limited]
+          examples: [validation, invalid_token, scope_not_allowed, nucleo_not_allowed, requester_not_allowed, approver_not_allowed, invalid_state, amount_too_high, reason_required, not_found, invalid_due_date, invalid_file, file_too_large, unsupported_file, rate_limited]
         message: { type: string, description: 'Explicação em português, para pessoas' }
 
+    Email:
+      type: string
+      format: email
+      maxLength: 254
+      pattern: '^[^\s@]+@[^\s@]+\.[^\s@]+$'
+      example: joana.silva@serradofc.pt
+    NucleoDecisionRequest:
+      type: object
+      additionalProperties: false
+      required: [approverEmail, approve]
+      properties:
+        approverEmail: { $ref: '#/components/schemas/Email', description: Email da conta de quem decide (tesoureiro do núcleo) }
+        approve: { type: boolean, description: 'true para aprovar, false para rejeitar' }
+        amount:
+          description: Valor aprovado (só ao aprovar; igual ou menor do que o pedido). Sem ele, aprova o valor pedido.
+          oneOf:
+            - { $ref: '#/components/schemas/Money' }
+            - { type: 'null' }
+        note: { type: string, maxLength: 1000, default: '', description: 'Observações ou condições; obrigatório ao rejeitar (fica em rejectReason)' }
     ExternalRef:
       type: string
       pattern: '^[A-Za-z0-9._:/-]{1,64}$'
@@ -404,8 +506,9 @@ components:
     ExpenseRequest:
       type: object
       additionalProperties: false
-      required: [nucleo, category, title, supplier, amount]
+      required: [requesterEmail, nucleo, category, title, supplier, amount]
       properties:
+        requesterEmail: { $ref: '#/components/schemas/Email', description: Email da conta de quem pede (sem distinguir maiúsculas) }
         externalRef: { $ref: '#/components/schemas/ExternalRef' }
         nucleo: { $ref: '#/components/schemas/Nucleo' }
         category: { $ref: '#/components/schemas/Category' }

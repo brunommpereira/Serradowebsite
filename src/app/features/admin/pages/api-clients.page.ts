@@ -12,6 +12,7 @@ interface Client {
   userId: string;
   userName: string;
   nucleos: string[];
+  scopes: string[];
   active: boolean;
   createdAt: string;
   secretRotatedAt: string;
@@ -28,11 +29,12 @@ interface Meta {
   clients: Client[];
   candidates: Option[];
   nucleos: { key: string; label: string }[];
+  scopes: { key: string; label: string }[];
 }
 
 /**
- * Credenciais da API de parceiros (sistemas externos que registam pedidos de gasto): criar, trocar o segredo e
- * revogar. O segredo só é mostrado uma vez; no servidor fica apenas o hash.
+ * Credenciais das APIs técnicas (sistemas externos que registam pedidos de gasto e decidem o passo do tesoureiro
+ * do núcleo): criar, trocar o segredo e revogar. O segredo só é mostrado uma vez; no servidor fica apenas o hash.
  */
 @Component({
   selector: 'sfc-admin-api-clients',
@@ -41,19 +43,20 @@ interface Meta {
   template: `
     <div class="adm-head">
       <div>
-        <h1>API de parceiros</h1>
+        <h1>APIs técnicas</h1>
         <p>
-          Credenciais para sistemas externos registarem pedidos de gasto e consultarem o estado.
-          Cada cliente faz os pedidos em nome de um responsável e entram no fluxo normal de
-          aprovação, em «Pedidos de gasto». Documentação para quem integra:
-          <code>docs/API-PARCEIROS.md</code>.
+          Credenciais para sistemas externos registarem pedidos de gasto, decidirem o passo do
+          tesoureiro do núcleo e consultarem o estado. Cada pedido indica o email de quem pede (e
+          cada decisão, o de quem decide), com as mesmas regras de «Pedidos de gasto». Documentação
+          para quem integra:
+          <code>docs/API-TECNICAS.md</code>.
         </p>
       </div>
     </div>
     @if (!api.enabled) {
       <sfc-offline-notice
         title="Só com o servidor"
-        text="A API de parceiros funciona com o site ligado à API (VPS)."
+        text="As APIs técnicas funcionam com o site ligado à API (VPS)."
       />
     } @else {
       @if (error()) {
@@ -103,18 +106,30 @@ interface Meta {
             />
           </div>
           <div class="field">
-            <label for="c-user">Pedidos em nome de <span class="req">*</span></label>
+            <label for="c-user">Responsável pela integração <span class="req">*</span></label>
             <select id="c-user" name="user" [(ngModel)]="f.userId" required>
               <option value="" disabled>Escolher…</option>
               @for (u of meta()?.candidates ?? []; track u.id) {
                 <option [value]="u.id">{{ u.name }} ({{ u.email }})</option>
               }
             </select>
-            <span class="caption"
-              >Só contas que podem pedir gastos. Esta pessoa não pode aprovar os pedidos do
-              cliente.</span
-            >
+            <span class="caption">Contacto no clube para este sistema (não é quem pede).</span>
           </div>
+          <fieldset class="wide">
+            <legend>O que pode fazer <span class="req">*</span></legend>
+            <div class="checks">
+              @for (sc of meta()?.scopes ?? []; track sc.key) {
+                <label
+                  ><input
+                    type="checkbox"
+                    [checked]="f.scopes.includes(sc.key)"
+                    (change)="toggleScope(sc.key)"
+                  />
+                  {{ sc.label }}</label
+                >
+              }
+            </div>
+          </fieldset>
           <fieldset class="wide">
             <legend>Núcleos permitidos (nenhum marcado = todos)</legend>
             <div class="checks">
@@ -134,7 +149,7 @@ interface Meta {
             <button
               class="btn btn--primary"
               type="submit"
-              [disabled]="busy() || !f.userId || f.name.trim().length < 3"
+              [disabled]="busy() || !f.userId || !f.scopes.length || f.name.trim().length < 3"
             >
               Criar credenciais
             </button>
@@ -147,7 +162,8 @@ interface Meta {
           <thead>
             <tr>
               <th scope="col">Cliente</th>
-              <th scope="col">Em nome de</th>
+              <th scope="col">Responsável</th>
+              <th scope="col">Pode</th>
               <th scope="col">Núcleos</th>
               <th scope="col">Pedidos</th>
               <th scope="col">Último uso</th>
@@ -169,6 +185,7 @@ interface Meta {
                   }
                 </td>
                 <td>{{ c.userName }}</td>
+                <td>{{ scopeLabels(c.scopes) }}</td>
                 <td>{{ c.nucleos.length ? labels(c.nucleos) : 'Todos' }}</td>
                 <td>{{ c.requests }}</td>
                 <td>{{ c.lastUsedAt ? (c.lastUsedAt | date: 'dd/MM/yyyy HH:mm') : 'Nunca' }}</td>
@@ -195,7 +212,7 @@ interface Meta {
               </tr>
             } @empty {
               <tr>
-                <td colspan="6" class="caption">Ainda não há clientes da API.</td>
+                <td colspan="7" class="caption">Ainda não há clientes da API.</td>
               </tr>
             }
           </tbody>
@@ -276,7 +293,7 @@ export class ApiClientsPage {
   protected readonly secret = signal<(Client & { clientSecret: string }) | null>(null);
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
-  protected f = { name: '', userId: '', nucleos: [] as string[] };
+  protected f = { name: '', userId: '', nucleos: [] as string[], scopes: ['expenses.create'] };
 
   constructor() {
     if (this.api.enabled) void this.load();
@@ -285,6 +302,17 @@ export class ApiClientsPage {
   protected labels(keys: string[]) {
     const all = this.meta()?.nucleos ?? [];
     return keys.map((k) => all.find((n) => n.key === k)?.label ?? k).join(', ');
+  }
+
+  protected scopeLabels(keys: string[]) {
+    const all = this.meta()?.scopes ?? [];
+    return keys.map((k) => all.find((x) => x.key === k)?.label ?? k).join(' · ');
+  }
+
+  protected toggleScope(key: string) {
+    this.f.scopes = this.f.scopes.includes(key)
+      ? this.f.scopes.filter((k) => k !== key)
+      : [...this.f.scopes, key];
   }
 
   protected toggle(key: string) {
@@ -310,7 +338,7 @@ export class ApiClientsPage {
       this.secret.set(
         await this.api.post('/admin/api-clients', { ...this.f, name: this.f.name.trim() }),
       );
-      this.f = { name: '', userId: '', nucleos: [] };
+      this.f = { name: '', userId: '', nucleos: [], scopes: ['expenses.create'] };
       form.resetForm({ name: '', user: '' });
     });
   }
