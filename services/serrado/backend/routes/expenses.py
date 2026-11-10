@@ -250,7 +250,7 @@ def can_decide_nucleo(req: Request, row: dict[str, Any], t: Teams) -> bool:
     return not team and can(req, "expenses.pay")
 
 
-def can_cancel(row: dict[str, Any], me: str) -> bool:
+def can_cancel(row: dict[str, Any], me: str | None) -> bool:
     """O próprio pedido, enquanto ninguém decidiu (sem passo do núcleo, é até à aprovação da tesouraria)."""
     waiting = row["status"] == "pedido" or (row["status"] == "aprovado_nucleo" and row["flow"] == "so_direcao")
     return waiting and me == str(row["requested_by"])
