@@ -10,6 +10,9 @@ Pedidos de gasto, com aprovação em 3 passos e emails em cada um:
 
 Ninguém aprova o próprio pedido, e os passos 2 e 3 são de pessoas diferentes. Se o núcleo não tiver
 outro tesoureiro além de quem pede, o 2.º passo passa para a tesouraria da direção.
+
+O fluxo é configurável por núcleo (FLOWS): além do completo, «só o tesoureiro do núcleo» (a tesouraria
+só paga) e «só a tesouraria da direção» (sem passo do núcleo). O modo fica gravado no pedido.
 """
 
 import base64
@@ -35,6 +38,13 @@ NUCLEOS = {
     "rugby": "Rugby",
 }
 Nucleo = Literal["direcao", "atletismo", "futsal", "rugby"]
+FLOWS = {
+    "nucleo_direcao": "Tesoureiro do núcleo e depois tesouraria da direção",
+    "so_nucleo": "Só o tesoureiro do núcleo (a tesouraria paga)",
+    "so_direcao": "Só a tesouraria da direção",
+}
+Flow = Literal["nucleo_direcao", "so_nucleo", "so_direcao"]
+DEFAULT_FLOW = "nucleo_direcao"
 CATEGORIES = [
     "Material e equipamentos",
     "Deslocações e transportes",
@@ -129,6 +139,11 @@ class InvoiceIn(BaseModel):
     received: bool
 
 
+class FlowIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    mode: Flow
+
+
 class ApproversIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     userIds: list[Annotated[str, Field(pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")]] = Field(
@@ -219,6 +234,11 @@ async def teams(c: Conn) -> Teams:
     return out
 
 
+async def flow_of(c: Conn, nucleo: str) -> str:
+    row = await fetch_one(c, "select mode from expense_flows where nucleo = %s", [nucleo])
+    return row["mode"] if row else DEFAULT_FLOW
+
+
 def can_decide_nucleo(req: Request, row: dict[str, Any], t: Teams) -> bool:
     me = actor(req).id
     if row["status"] != "pedido" or me == str(row["requested_by"]):
@@ -228,6 +248,12 @@ def can_decide_nucleo(req: Request, row: dict[str, Any], t: Teams) -> bool:
         return True
     # Sem outro tesoureiro no núcleo além de quem pede: a tesouraria da direção faz o 2.º passo
     return not team and can(req, "expenses.pay")
+
+
+def can_cancel(row: dict[str, Any], me: str | None) -> bool:
+    """O próprio pedido, enquanto ninguém decidiu (sem passo do núcleo, é até à aprovação da tesouraria)."""
+    waiting = row["status"] == "pedido" or (row["status"] == "aprovado_nucleo" and row["flow"] == "so_direcao")
+    return waiting and me == str(row["requested_by"])
 
 
 def can_final(req: Request, row: dict[str, Any]) -> bool:
@@ -256,7 +282,7 @@ def actions(req: Request, row: dict[str, Any], t: Teams) -> list[str]:
         out.append("final")
     if can_pay(req, row):
         out.append("pay")
-    if row["status"] == "pedido" and me == str(row["requested_by"]):
+    if can_cancel(row, me):
         out.append("cancel")
     if row["status"] == "pago" and can(req, "expenses.pay"):
         out.append("invoice")
@@ -265,7 +291,7 @@ def actions(req: Request, row: dict[str, Any], t: Teams) -> list[str]:
     return out
 
 
-LIST_COLUMNS = """e.id, e.year, e.seq, e.nucleo, e.category, e.title, e.supplier, e.amount, e.due_date as "dueDate", e.status,
+LIST_COLUMNS = """e.id, e.year, e.seq, e.nucleo, e.flow, e.category, e.title, e.supplier, e.amount, e.due_date as "dueDate", e.status,
     e.requested_by::text as "requestedBy", e.nucleo_by::text as "nucleoBy", e.requested_at as "requestedAt", ru.name as "requestedByName",
     e.nucleo_at as "nucleoAt", e.nucleo_amount as "nucleoAmount", nu.name as "nucleoByName",
     e.final_at as "finalAt", fu.name as "finalByName", e.paid_on as "paidOn", e.paid_amount as "paidAmount",
@@ -418,15 +444,18 @@ def register(r: APIRouter) -> None:
         year = date.today().year
         async with tx(pool(req)) as c:
             await c.execute("lock table expenses in share row exclusive mode")
+            flow = await flow_of(c, body.nucleo)
             nxt = await fetch_one(c, "select coalesce(max(seq), 0) + 1 as n from expenses where year = %s", [year])
             assert nxt is not None
             cur = await c.execute(
-                """insert into expenses (year, seq, nucleo, category, title, purpose, supplier, supplier_nif, amount, due_date, payment_info, requested_by)
-                   values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning *""",
+                """insert into expenses (year, seq, nucleo, flow, status, category, title, purpose, supplier, supplier_nif, amount, due_date, payment_info, requested_by)
+                   values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning *""",
                 [
                     year,
                     nxt["n"],
                     body.nucleo,
+                    flow,
+                    "aprovado_nucleo" if flow == "so_direcao" else "pedido",
                     body.category,
                     body.title,
                     body.purpose,
@@ -446,7 +475,10 @@ def register(r: APIRouter) -> None:
             requester = await fetch_one(c, "select name from users where id = %s", [me])
             assert requester is not None
             team = [u for u in (await teams(c))[body.nucleo] if u != me]
-            to = await users_by_id(c, team) if team else [p for p in await holders(c, "expenses.pay") if p["id"] != me]
+            if flow == "so_direcao" or not team:
+                to = [p for p in await holders(c, "expenses.pay") if p["id"] != me]
+            else:
+                to = await users_by_id(c, team)
             await mail(
                 c,
                 to,
@@ -477,9 +509,9 @@ def register(r: APIRouter) -> None:
                 raise HttpError(400, "reason_required", "Indique o motivo da rejeição")
             if body.approve:
                 await c.execute(
-                    """update expenses set status = 'aprovado_nucleo', nucleo_by = %s, nucleo_at = now(), nucleo_amount = %s,
+                    """update expenses set status = %s, nucleo_by = %s, nucleo_at = now(), nucleo_amount = %s,
                        nucleo_note = %s, updated_at = now() where id = %s""",
-                    [me, amount, body.note, id],
+                    ["aprovado" if row["flow"] == "so_nucleo" else "aprovado_nucleo", me, amount, body.note, id],
                 )
             else:
                 await c.execute(
@@ -588,7 +620,7 @@ def register(r: APIRouter) -> None:
         me = require_user(req)
         async with tx(pool(req)) as c:
             row = await load(c, id)
-            if row["status"] != "pedido" or str(row["requested_by"]) != me:
+            if not can_cancel(row, me):
                 raise forbidden()
             await c.execute("update expenses set status = 'anulado', updated_at = now() where id = %s", [id])
             await event(c, id, me, "anulado")
@@ -652,10 +684,27 @@ def register(r: APIRouter) -> None:
                join user_roles ur on ur.user_id = u.id join role_permissions rp on rp.role = ur.role
                where rp.permission in ('expenses.approve', 'expenses.pay') and not u.disabled order by u.name""",
         )
+        modes = {r["nucleo"]: r["mode"] for r in await fetch(pool(req), "select nucleo, mode from expense_flows")}
         return {
-            "nucleos": [{"key": k, "label": v, "approvers": [r for r in rows if r["nucleo"] == k]} for k, v in NUCLEOS.items()],
+            "nucleos": [
+                {"key": k, "label": v, "flow": modes.get(k, DEFAULT_FLOW), "approvers": [r for r in rows if r["nucleo"] == k]}
+                for k, v in NUCLEOS.items()
+            ],
             "candidates": candidates,
+            "flows": [{"key": k, "label": v} for k, v in FLOWS.items()],
         }
+
+    @r.put("/expenses-flows/{nucleo}", tags=tags, summary="Definir o fluxo de aprovação de um núcleo")
+    async def set_flow(req: Request, nucleo: Nucleo, body: FlowIn) -> dict[str, Any]:
+        require(req, "expenses.pay", "users.manage")
+        async with tx(pool(req)) as c:
+            await c.execute(
+                """insert into expense_flows (nucleo, mode) values (%s, %s)
+                   on conflict (nucleo) do update set mode = excluded.mode, updated_at = now()""",
+                [nucleo, body.mode],
+            )
+            await audit(c, actor(req), "update", "expense_flow", nucleo, {"mode": body.mode})
+        return {"ok": True}
 
     @r.put("/expenses-approvers/{nucleo}", tags=tags, summary="Definir os tesoureiros de um núcleo")
     async def set_approvers(req: Request, nucleo: Nucleo, body: ApproversIn) -> dict[str, Any]:

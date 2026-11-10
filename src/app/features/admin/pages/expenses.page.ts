@@ -76,8 +76,9 @@ interface Person {
   email: string;
 }
 interface Approvers {
-  nucleos: (Option & { approvers: Person[] })[];
+  nucleos: (Option & { approvers: Person[]; flow: string })[];
   candidates: Person[];
+  flows: Option[];
 }
 interface FileIn {
   name: string;
@@ -205,15 +206,24 @@ function readFile(file: File): Promise<FileIn> {
 
       @if (tab() === 'nucleos') {
         <section class="adm-panel block">
-          <h2>Tesoureiros de cada núcleo</h2>
+          <h2>Fluxo e tesoureiros de cada núcleo</h2>
           <p class="caption">
-            Recebem os pedidos do núcleo e fazem o 2.º passo. Só aparecem aqui as contas com o papel
+            O fluxo de aprovação escolhe-se por núcleo e vale para os pedidos novos; os que já estão em curso
+            mantêm o fluxo com que foram feitos. Os tesoureiros recebem os pedidos do núcleo e fazem o 2.º passo. Só aparecem aqui as contas com o papel
             «Tesoureiro de núcleo» ou «Tesouraria» (Gestão → Utilizadores). Se quem pede for o único
             tesoureiro do núcleo, o 2.º passo passa para a tesouraria da direção.
           </p>
           @for (n of approvers()?.nucleos ?? []; track n.key) {
             <form class="nucleo" (submit)="$event.preventDefault(); saveApprovers(n.key)">
               <strong>{{ n.label }}</strong>
+              <label
+                >Fluxo de aprovação
+                <select [ngModel]="n.flow" [ngModelOptions]="{ standalone: true }" (ngModelChange)="saveFlow(n.key, $event)">
+                  @for (f of approvers()?.flows ?? []; track f.key) {
+                    <option [value]="f.key">{{ f.label }}</option>
+                  }
+                </select></label
+              >
               <div class="people">
                 @for (p of approvers()?.candidates ?? []; track p.id) {
                   <label class="check"
@@ -1162,6 +1172,13 @@ export class ExpensesPage {
     if (s.has(id)) s.delete(id);
     else s.add(id);
     this.picks.set(nucleo, s);
+  }
+  protected async saveFlow(nucleo: string, mode: string) {
+    await this.run(async () => {
+      await this.api.put(`/admin/expenses-flows/${nucleo}`, { mode });
+      this.notice.set(`Fluxo do núcleo ${this.nucleoName(nucleo)} guardado.`);
+      await this.loadApprovers();
+    });
   }
   protected async saveApprovers(nucleo: string) {
     await this.run(async () => {

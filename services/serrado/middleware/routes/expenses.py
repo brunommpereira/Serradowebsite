@@ -62,6 +62,11 @@ def register(r: APIRouter) -> None:
         s = await staff(req)
         return await backend(req).call("PUT", f"/expenses-approvers/{nucleo}", actor=s, body=body)
 
+    @r.put("/admin/expenses-flows/{nucleo}", tags=tags, summary="Definir o fluxo de aprovação de um núcleo")
+    async def set_flow(req: Request, nucleo: Nucleo, body: JsonObject) -> Any:
+        s = await staff(req)
+        return await backend(req).call("PUT", f"/expenses-flows/{nucleo}", actor=s, body=body)
+
     @r.get("/admin/expenses/{id}", tags=tags, summary="Pedido, com anexos e histórico")
     async def get(req: Request, id: Id) -> Any:
         s = await staff(req)
