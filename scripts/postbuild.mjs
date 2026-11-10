@@ -15,6 +15,10 @@ const browser = join(dist, 'browser');
 const csr = join(browser, 'index.csr.html');
 if (existsSync(csr)) copyFileSync(csr, join(browser, '404.html'));
 
+// Documentação pública das APIs técnicas: a especificação vem de docs/ (uma só fonte), ao lado do Swagger UI
+const apiDocs = join(browser, 'developers', 'apis-tecnicas');
+if (existsSync(apiDocs)) copyFileSync('docs/openapi-apis-tecnicas.yaml', join(apiDocs, 'openapi.yaml'));
+
 // CSP: só correm os scripts do próprio site e os scripts embutidos que o Angular gerou neste build
 // (identificados pelo hash). Um script injetado (XSS) é bloqueado pelo browser.
 // O Angular não permite a opção autoCsp com páginas pré-renderizadas, por isso é feito aqui.
