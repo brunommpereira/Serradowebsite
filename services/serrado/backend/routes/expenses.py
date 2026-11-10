@@ -561,7 +561,7 @@ def register(r: APIRouter) -> None:
             await event(c, id, me, "aprovado" if body.approve else "rejeitado", body.note)
             await audit(c, actor(req), "approve" if body.approve else "reject", "expense", id, {"step": "final"})
             verdict = "APROVADO" if body.approve else "REJEITADO"
-            to = await users_by_id(c, [str(row["requested_by"]), str(row["nucleo_by"])])
+            to = await users_by_id(c, [str(u) for u in (row["requested_by"], row["nucleo_by"]) if u])  # sem passo do núcleo, não há nucleo_by
             await mail(
                 c,
                 to,
