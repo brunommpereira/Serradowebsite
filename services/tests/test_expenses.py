@@ -193,7 +193,10 @@ async def test_fluxo_so_nucleo_a_tesouraria_so_paga(mw):
     try:
         r = await direcao.post("/api/v1/admin/expenses", json=request(nucleo="futsal", files=[]))
         eid = r.json()["id"]
-        await execute(mw.pool, "insert into expense_approvers (nucleo, user_id) select 'futsal', id from users where email = 'nucleo@serradofc.pt' on conflict do nothing")
+        await execute(
+            mw.pool,
+            "insert into expense_approvers (nucleo, user_id) select 'futsal', id from users where email = 'nucleo@serradofc.pt' on conflict do nothing",
+        )
         assert (await nucleo.post(f"/api/v1/admin/expenses/{eid}/nucleo", json={"approve": True})).status_code == 200
         row = await fetch_one(mw.pool, "select status, flow from expenses where id = %s", [eid])
         assert (row["status"], row["flow"]) == ("aprovado", "so_nucleo")
