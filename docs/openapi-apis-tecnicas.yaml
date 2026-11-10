@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Serrado FC — APIs técnicas (pedidos de gasto)
-  version: 1.1.0
+  version: 1.1.1
   summary: Registo de pedidos de gasto por sistemas externos, decisão do tesoureiro do núcleo e consulta do estado.
   description: |
     APIs para sistemas externos (ERP, plataforma de compras, outra aplicação) registarem **pedidos de gasto** no
@@ -17,7 +17,8 @@ info:
     tesoureiro do núcleo) e só funciona nos núcleos que lhe foram permitidos.
 
     **Pessoas:** cada pedido indica o email de quem pede (`requesterEmail`), e cada decisão o de quem decide
-    (`approverEmail`). As regras são as do backoffice:
+    (`approverEmail`). A credencial identifica o sistema e não fica associada a nenhum utilizador: o perfil de cada
+    email (conta ativa, papéis e permissões) é validado no momento de cada chamada. As regras são as do backoffice:
     - quem pede tem de ter uma conta ativa que possa pedir gastos;
     - quem decide tem de ser tesoureiro desse núcleo (ou a tesouraria da direção, se o núcleo não tiver outro
       tesoureiro);
