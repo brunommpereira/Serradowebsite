@@ -2,7 +2,7 @@ import { computed, inject, Injectable, PLATFORM_ID, signal } from '@angular/core
 import { isPlatformBrowser } from '@angular/common';
 import { DEMO_ATHLETE_MEMBER, DEMO_MEMBER, DEMO_PAYMENTS } from '../data/mock-data';
 import { Account, MembershipPayment } from '../models';
-import { demoRoles, Permission, permissionsFor } from '../permissions';
+import { demoRoles, isExpensesOnly, Permission, permissionsFor } from '../permissions';
 import { ApiClient } from '../api/api-client';
 
 const STORAGE_KEY = 'sfc.session';
@@ -107,6 +107,8 @@ export class AuthService {
     return this.api.enabled ? s.permissions : permissionsFor(s.roles, demoRoles());
   });
   readonly isStaff = computed(() => this.permissions().length > 0);
+  /** Só tem permissões de pedidos de gasto: vê apenas esse ponto do backoffice e abre logo nele. */
+  readonly expensesOnly = computed(() => isExpensesOnly(this.permissions()));
 
   /** Tem pelo menos uma das permissões (sem argumentos: tem alguma, ou seja, é da equipa). */
   can(...permissions: Permission[]) {

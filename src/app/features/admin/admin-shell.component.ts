@@ -93,7 +93,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
             @if (iosHelp()) {
               <p class="side__help">
                 No iPhone/iPad, no Safari: toque em <strong>Partilhar</strong> e depois em <strong>Adicionar ao ecrã principal</strong>. A app
-                «SFC Admin» abre logo no backoffice.
+                «{{ appName }}» abre logo {{ auth.expensesOnly() ? 'nos pedidos de gasto' : 'no backoffice' }}.
               </p>
             }
           }
@@ -118,6 +118,21 @@ const NAV: { title: string; items: NavItem[] }[] = [
           <p class="alert alert--warning adm-denied" role="alert"><sfc-icon name="warning" />Não tens permissão para essa secção.</p>
         }
         <div class="content">
+          @if (auth.expensesOnly() && canInstall()) {
+            <div class="install-tip" role="region" aria-label="Instalar a app">
+              <p>
+                <strong>Instala a app «{{ appName }}»</strong> no telemóvel ou no computador para abrires os pedidos de gasto com um toque.
+              </p>
+              <button type="button" class="btn btn--primary" (click)="install()">
+                <sfc-icon name="download" size="16" />{{ push.installPrompt() ? 'Instalar a app' : 'Ver como instalar' }}
+              </button>
+              @if (iosHelp()) {
+                <p class="install-tip__help">
+                  No iPhone/iPad, no Safari: toque em <strong>Partilhar</strong> e depois em <strong>Adicionar ao ecrã principal</strong>.
+                </p>
+              }
+            </div>
+          }
           <router-outlet />
         </div>
       </div>
@@ -300,6 +315,26 @@ const NAV: { title: string; items: NavItem[] }[] = [
       max-width: 1240px;
       width: 100%;
     }
+    .install-tip {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.6rem 1rem;
+      margin-bottom: 1rem;
+      padding: 0.8rem 1rem;
+      border: 1px solid var(--color-line);
+      border-radius: 10px;
+      background: #fff;
+      p {
+        margin: 0;
+        flex: 1 1 240px;
+      }
+    }
+    .install-tip__help {
+      flex-basis: 100%;
+      font-size: 0.85rem;
+      color: var(--color-muted, #555);
+    }
     .scrim {
       display: none;
     }
@@ -346,18 +381,23 @@ export class AdminShellComponent {
   protected readonly menuOpen = signal(false);
   protected readonly push = inject(AppPushService);
   protected readonly iosHelp = signal(false);
+  /** Nome da app instalável: contas só de despesas têm a sua própria */
+  protected readonly appName = this.auth.expensesOnly() ? 'SFC Despesas' : 'SFC Admin';
+  protected readonly canInstall = computed(() => !this.push.installed() && (!!this.push.installPrompt() || this.push.ios));
 
   constructor() {
     // No backoffice, o site apresenta-se como a app «SFC Admin» (manifesto, ícone e nome próprios):
     // instalada a partir daqui, abre diretamente em /admin. Ao sair, volta a ser a app do site.
     if (!isPlatformBrowser(inject(PLATFORM_ID))) return;
     const doc = inject(DOCUMENT);
+    // Contas só de despesas instalam a app «SFC Despesas», que abre direto nos pedidos de gasto
+    const manifest = this.appName === 'SFC Despesas' ? 'manifest-despesas.webmanifest' : 'manifest-admin.webmanifest';
     const swaps: [string, string, string][] = [
-      ['link[rel="manifest"]', 'href', 'manifest-admin.webmanifest'],
+      ['link[rel="manifest"]', 'href', manifest],
       ['link[rel="apple-touch-icon"]', 'href', 'brand/admin-180.png'],
       ['meta[name="theme-color"]', 'content', '#00264f'],
     ];
-    const wasAdmin = doc.querySelector('link[rel="manifest"]')?.getAttribute('href') === 'manifest-admin.webmanifest';
+    const wasAdmin = doc.querySelector('link[rel="manifest"]')?.getAttribute('href') === manifest;
     const before = swaps.map(([sel, attr, value]) => {
       const el = doc.querySelector(sel);
       const old = el?.getAttribute(attr) ?? null;
@@ -367,7 +407,7 @@ export class AdminShellComponent {
     const title = doc.querySelector<HTMLMetaElement>('meta[name="apple-mobile-web-app-title"]') ?? doc.createElement('meta');
     const addedTitle = !title.isConnected;
     title.name = 'apple-mobile-web-app-title';
-    title.content = 'SFC Admin';
+    title.content = this.appName;
     if (addedTitle) doc.head.appendChild(title);
     // Abriu no site e veio para o backoffice: o pedido de instalação guardado era o da app do site
     if (!wasAdmin && !this.push.installed()) this.push.installPrompt.set(null);
@@ -383,7 +423,11 @@ export class AdminShellComponent {
   }
 
   protected readonly nav = computed(() =>
-    NAV.map((g) => ({ ...g, items: g.items.filter((i) => !i.permissions.length || this.auth.can(...i.permissions)) })).filter((g) => g.items.length),
+    NAV.map((g) => ({
+      ...g,
+      // Os pontos sem permissão (Dashboard, Auditoria) são da equipa em geral; quem só trata de despesas não os vê
+      items: g.items.filter((i) => (i.permissions.length ? this.auth.can(...i.permissions) : !this.auth.expensesOnly())),
+    })).filter((g) => g.items.length),
   );
   protected readonly roleLabels = computed(() => this.auth.roles().map((r) => roleName(r)).join(' · '));
   protected readonly denied = toSignal(

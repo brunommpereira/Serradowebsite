@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
 import { ApiClient } from '../../core/api/api-client';
-import { staffGuard } from '../account/member.guard';
+import { staffGuard, staffHomeGuard } from '../account/member.guard';
 import { AdminSource } from './data/admin-source';
 import { DemoAdminSource } from './data/demo-admin-source';
 import { HttpAdminSource } from './data/http-admin-source';
@@ -20,7 +20,7 @@ export const ADMIN_ROUTES: Routes = [
       { provide: AdminSource, useFactory: () => (inject(ApiClient).enabled ? inject(HttpAdminSource) : inject(DemoAdminSource)) },
     ],
     children: [
-      { path: '', title: 'Backoffice', loadComponent: () => import('./pages/dashboard.page').then((m) => m.DashboardPage) },
+      { path: '', title: 'Backoffice', canActivate: [staffHomeGuard], loadComponent: () => import('./pages/dashboard.page').then((m) => m.DashboardPage) },
       {
         path: 'conteudos/:type',
         canActivate: [staffGuard],

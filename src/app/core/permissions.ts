@@ -107,6 +107,11 @@ export function permissionsFor(roles: string[], defs: RoleDef[] = DEFAULT_ROLES)
   return ALL_PERMISSIONS.filter((p) => set.has(p));
 }
 
+/** Conta cujas permissões são todas de pedidos de gasto: no backoffice só usa esse circuito. */
+export function isExpensesOnly(permissions: readonly Permission[]): boolean {
+  return permissions.length > 0 && permissions.every((p) => p.startsWith('expenses.'));
+}
+
 export function roleName(key: string, defs: RoleDef[] = DEFAULT_ROLES) {
   return defs.find((r) => r.key === key)?.name ?? key;
 }
