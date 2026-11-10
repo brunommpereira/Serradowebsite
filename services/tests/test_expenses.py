@@ -177,3 +177,61 @@ async def test_validacoes_e_nucleos(mw):
     assert (await tesouraria.put("/api/v1/admin/expenses-approvers/futsal", json={"userIds": [uid]})).status_code == 200
     meta = (await (await mw.login("nucleo@serradofc.pt", "nucleo2026")).get("/api/v1/admin/expenses/meta")).json()
     assert sorted(meta["myNucleos"]) == ["atletismo", "futsal", "rugby"]
+
+
+async def _fluxo(mw, nucleo: str, mode: str):
+    admin = await mw.login("diretor@serradofc.pt", "diretor2026")  # só para ter sessão; quem configura é a tesouraria
+    tesouraria = await mw.login("tesouraria@serradofc.pt", "tesouraria2026")
+    r = await tesouraria.put(f"/api/v1/admin/expenses-flows/{nucleo}", json={"mode": mode})
+    assert r.status_code == 200, r.text
+    return admin, tesouraria
+
+
+async def test_fluxo_so_nucleo_a_tesouraria_so_paga(mw):
+    direcao, tesouraria = await _fluxo(mw, "futsal", "so_nucleo")
+    nucleo = await mw.login("nucleo@serradofc.pt", "nucleo2026")
+    try:
+        r = await direcao.post("/api/v1/admin/expenses", json=request(nucleo="futsal", files=[]))
+        eid = r.json()["id"]
+        await execute(mw.pool, "insert into expense_approvers (nucleo, user_id) select 'futsal', id from users where email = 'nucleo@serradofc.pt' on conflict do nothing")
+        assert (await nucleo.post(f"/api/v1/admin/expenses/{eid}/nucleo", json={"approve": True})).status_code == 200
+        row = await fetch_one(mw.pool, "select status, flow from expenses where id = %s", [eid])
+        assert (row["status"], row["flow"]) == ("aprovado", "so_nucleo")
+        # Sem 3.º passo: a tesouraria vai direto ao pagamento
+        assert (await tesouraria.post(f"/api/v1/admin/expenses/{eid}/final", json={"approve": True})).status_code == 403
+        paid = await tesouraria.post(
+            f"/api/v1/admin/expenses/{eid}/pay",
+            json={"paidOn": "2026-01-02", "amount": "245.90", "method": "transferencia", "accountCode": "62", "docNumber": "F1"},
+        )
+        assert paid.status_code == 200, paid.text
+    finally:
+        await execute(mw.pool, "delete from expense_flows")
+        await execute(mw.pool, "delete from expense_approvers where nucleo = 'futsal'")
+
+
+async def test_fluxo_so_direcao_vai_direto_a_tesouraria(mw):
+    direcao, tesouraria = await _fluxo(mw, "atletismo", "so_direcao")
+    nucleo = await mw.login("nucleo@serradofc.pt", "nucleo2026")
+    try:
+        r = await direcao.post("/api/v1/admin/expenses", json=request(nucleo="atletismo", files=[]))
+        assert r.status_code == 201, r.text
+        eid = r.json()["id"]
+        row = await fetch_one(mw.pool, "select status, flow from expenses where id = %s", [eid])
+        assert (row["status"], row["flow"]) == ("aprovado_nucleo", "so_direcao")
+        # O tesoureiro do núcleo não decide; a tesouraria dá a aprovação final
+        assert (await nucleo.post(f"/api/v1/admin/expenses/{eid}/nucleo", json={"approve": True})).status_code == 403
+        todo = (await tesouraria.get("/api/v1/admin/expenses?scope=todo")).json()
+        assert eid in [x["id"] for x in todo]
+        assert (await tesouraria.post(f"/api/v1/admin/expenses/{eid}/final", json={"approve": True})).status_code == 200
+        # O pedido já em curso mantém o fluxo gravado, mesmo que a configuração mude
+        await tesouraria.put("/api/v1/admin/expenses-flows/atletismo", json={"mode": "nucleo_direcao"})
+        assert (await fetch_one(mw.pool, "select flow from expenses where id = %s", [eid]))["flow"] == "so_direcao"
+    finally:
+        await execute(mw.pool, "delete from expense_flows")
+
+
+async def test_so_a_tesouraria_configura_o_fluxo(mw):
+    direcao = await mw.login("diretor@serradofc.pt", "diretor2026")
+    assert (await direcao.put("/api/v1/admin/expenses-flows/rugby", json={"mode": "so_nucleo"})).status_code == 403
+    tesouraria = await mw.login("tesouraria@serradofc.pt", "tesouraria2026")
+    assert (await tesouraria.put("/api/v1/admin/expenses-flows/rugby", json={"mode": "inventado"})).status_code in (400, 422)
