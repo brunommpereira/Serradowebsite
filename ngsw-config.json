@@ -11,7 +11,9 @@
     "!/admin",
     "!/estatisticas/**",
     "!/asrosinhas",
-    "!/asrosinhas/**"
+    "!/asrosinhas/**",
+    "!/developers",
+    "!/developers/**"
   ],
   "assetGroups": [
     {

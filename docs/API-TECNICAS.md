@@ -8,6 +8,7 @@ APIs para sistemas externos (ERP, plataforma de compras, outra aplicação). Per
 - **Endereço base:** `https://www.serradofc.pt/api/v1/technical`
 - **Formato:** JSON (UTF-8), datas ISO 8601, valores em euros com ponto decimal (`"245.90"`).
 - **Autenticação:** OAuth 2.0 *client credentials*. Troca o `client_id` e o `client_secret` por um token de acesso de 15 minutos.
+- **Documentação pública (Swagger), para partilhar:** https://www.serradofc.pt/developers/apis-tecnicas/ (a especificação está em `…/apis-tecnicas/openapi.yaml`)
 - **Especificação OpenAPI 3.1 (Swagger):** [`docs/openapi-apis-tecnicas.yaml`](openapi-apis-tecnicas.yaml). Pode ser importada no Postman, no Insomnia ou num gerador de clientes. Foi validada e comparada com as respostas reais da API.
 - **Uso:** só entre servidores. Não é para chamar a partir de um browser: o segredo nunca pode estar em código que corre no cliente.
 
