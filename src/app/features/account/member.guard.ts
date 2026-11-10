@@ -21,6 +21,12 @@ export const accountGuard: CanActivateFn = (_route, state) => {
   return inject(Router).createUrlTree(['/entrar'], { queryParams: { perfil: 'atleta', voltar: state.url } });
 };
 
+/** Início do backoffice: quem só usa pedidos de gasto vai direto para eles (não tem dashboard). */
+export const staffHomeGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  return auth.expensesOnly() ? inject(Router).createUrlTree(['/admin/pedidos-de-gasto']) : true;
+};
+
 /**
  * Backoffice: exige alguma permissão (é da equipa). Com `data: { permissions: [...] }` na rota,
  * exige uma dessas permissões. O servidor volta a verificar cada pedido.

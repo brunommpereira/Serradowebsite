@@ -26,8 +26,13 @@ async def send_link(c: Conn, *, user_id: str, email: str, name: str, purpose: Pu
         "insert into password_tokens (token_hash, user_id, purpose, expires_at) values (%s, %s, %s, now() + %s)",
         [token_hash(token), user_id, purpose, LIFETIME[purpose]],
     )
+    # Convite de quem tem papéis no backoffice (equipa): depois da password, a página leva à entrada da equipa
+    team = False
+    if purpose == "invite":
+        cur = await c.execute("select 1 from user_roles where user_id = %s limit 1", [user_id])
+        team = await cur.fetchone() is not None
     # O token vai depois do «#»: o browser nunca o envia ao servidor (não fica nos registos do Caddy nem da API)
-    url = f"{config.oauth.site_url}/entrar/nova-password#token={token}"
+    url = f"{config.oauth.site_url}/entrar/nova-password#token={token}" + ("&equipa=1" if team else "")
     if purpose == "reset":
         subject = "Repor a password — Serrado FC"
         html = layout(
@@ -41,12 +46,17 @@ async def send_link(c: Conn, *, user_id: str, email: str, name: str, purpose: Pu
         )
     else:
         subject = "A tua conta no site do Serrado FC"
+        paragraphs = [
+            f"Olá {name},",
+            "Foi criada uma conta para ti no site do Serrado FC. Escolhe a tua password para entrares. A ligação é válida durante 7 dias.",
+        ]
+        if team:
+            paragraphs.append(
+                "Depois de escolheres a password, entras na área da equipa do clube. Podes instalar a app no telemóvel para a abrires com um toque."
+            )
         html = layout(
             "Bem-vindo ao Serrado FC",
-            [
-                f"Olá {name},",
-                "Foi criada uma conta para ti no site do Serrado FC. Escolhe a tua password para entrares. A ligação é válida durante 7 dias.",
-            ],
+            paragraphs,
             ("Definir password", url),
             "Também podes entrar com a conta Google ou Microsoft deste email, se o clube as tiver ativas.",
         )

@@ -329,3 +329,25 @@ async def test_hash_antigo_e_atualizado_no_login(mw):
     assert row and row["password_hash"].startswith(f"scrypt${N}$8$1$") and not needs_rehash(row["password_hash"])
     # Continua a entrar com a mesma password
     await mw.login("rehash@exemplo.pt", "password-antiga-123")
+
+
+async def test_convite_da_equipa_leva_a_entrada_da_equipa(mw, mail_on):
+    admin = await mw.login("admin@serradofc.pt", "admin2026")
+    users = {u["email"]: u["id"] for u in (await admin.get("/api/v1/admin/users")).json()}
+    joao, editor = users["joao@exemplo.pt"], users["editor@serradofc.pt"]
+    await admin.put(f"/api/v1/admin/users/{joao}/roles", json={"roles": []})
+    await admin.put(f"/api/v1/admin/users/{editor}/roles", json={"roles": ["editor"]})
+
+    # Conta sem papéis (atleta, sócio): o convite fica como estava
+    await execute(mw.pool, "delete from email_outbox")
+    assert (await admin.post(f"/api/v1/admin/users/{joao}/invite")).status_code == 202
+    mail = await fetch_one(mw.pool, "select html from email_outbox")
+    assert mail and "nova-password#token=" in mail["html"] and "equipa=1" not in mail["html"]
+
+    # Conta com papel no backoffice: a ligação leva a marca da equipa e o email fala da app
+    await execute(mw.pool, "delete from email_outbox")
+    assert (await admin.post(f"/api/v1/admin/users/{editor}/invite")).status_code == 202
+    mail = await fetch_one(mw.pool, "select html from email_outbox")
+    assert mail and "equipa=1" in mail["html"] and "instalar a app" in mail["html"]
+    found = re.search(r"token=([\w-]+)", mail["html"])
+    assert found, "o token continua a ser lido como antes"

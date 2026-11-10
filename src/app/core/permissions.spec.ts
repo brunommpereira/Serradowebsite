@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { ALL_PERMISSIONS, DEFAULT_ROLES, permissionsFor, roleName, saveDemoRoles } from './permissions';
+import { ALL_PERMISSIONS, DEFAULT_ROLES, isExpensesOnly, permissionsFor, roleName, saveDemoRoles } from './permissions';
 import { AuthService } from './services/auth.service';
 
 describe('permissões', () => {
@@ -32,5 +32,15 @@ describe('permissões', () => {
     const auth = TestBed.inject(AuthService);
     await auth.login('treinador@serradofc.pt', 'treinador2026');
     expect(auth.can('athletes.sensitive')).toBe(true);
+  });
+
+  it('só vê o circuito de despesas quem tem apenas permissões de despesas', () => {
+    expect(isExpensesOnly(permissionsFor(['direcao']))).toBe(true);
+    expect(isExpensesOnly(permissionsFor(['tesoureiro-nucleo']))).toBe(true);
+    expect(isExpensesOnly(permissionsFor(['presidente']))).toBe(true);
+    expect(isExpensesOnly(permissionsFor(['tesouraria']))).toBe(false);
+    expect(isExpensesOnly(permissionsFor(['direcao', 'editor']))).toBe(false);
+    expect(isExpensesOnly(permissionsFor(['admin']))).toBe(false);
+    expect(isExpensesOnly([])).toBe(false);
   });
 });

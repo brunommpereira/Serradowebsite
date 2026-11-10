@@ -26,7 +26,7 @@ const MIN = 10;
 
         @if (done(); as email) {
           <p class="alert alert--success" role="status"><sfc-icon name="check" /><span>Password definida. Já podes entrar com {{ email }}.</span></p>
-          <a class="btn btn--primary btn--block" routerLink="/entrar">Entrar</a>
+          <a class="btn btn--primary btn--block" routerLink="/entrar" [queryParams]="team ? { perfil: 'staff', voltar: '/admin' } : null">Entrar</a>
         } @else if (!token) {
           <p class="alert alert--warning" role="alert"><sfc-icon name="warning" /><span>Esta ligação está incompleta. Abre-a outra vez a partir do email ou pede uma nova.</span></p>
           <a class="btn btn--outline btn--block" routerLink="/entrar">Pedir nova ligação</a>
@@ -63,6 +63,8 @@ export class NewPasswordComponent {
   // Vem depois do «#» (#token=…, nunca chega ao servidor); ?token=… nas ligações antigas
   private readonly snap = inject(ActivatedRoute).snapshot;
   protected readonly token = new URLSearchParams(this.snap.fragment ?? '').get('token') ?? this.snap.queryParamMap.get('token') ?? '';
+  /** Convite de quem tem papéis no backoffice (#…&equipa=1): depois da password, entra na área da equipa */
+  protected readonly team = new URLSearchParams(this.snap.fragment ?? '').get('equipa') === '1';
   protected readonly form = inject(FormBuilder).nonNullable.group({
     password: ['', [Validators.required, Validators.minLength(MIN), Validators.maxLength(200)]],
     confirm: ['', Validators.required],
