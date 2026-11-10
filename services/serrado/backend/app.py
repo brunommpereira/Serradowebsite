@@ -27,6 +27,7 @@ from .routes import (
     interest,
     media,
     members,
+    partner,
     payments,
     push,
     races,
@@ -40,7 +41,7 @@ from .routes import (
 )
 
 UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)
-EXPENSE_UPLOAD = re.compile(r"^/internal/v1/expenses(/\d+/(files|pay))?$")
+EXPENSE_UPLOAD = re.compile(r"^/internal/v1/(partner/)?expenses(/\d+/(files|pay))?$")
 PUBLIC = ("/internal/health", "/internal/docs", "/internal/openapi.json")
 
 
@@ -145,6 +146,7 @@ def build_backend(pool: Pool) -> FastAPI:
         contact,
         stats,
         expenses,
+        partner,
         push,
         event_registrations,
         recent,

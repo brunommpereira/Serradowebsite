@@ -33,12 +33,22 @@ class BackendClient:
     def __init__(self, transport: httpx.AsyncBaseTransport | None = None, base_url: str | None = None) -> None:
         self.http = httpx.AsyncClient(transport=transport, base_url=base_url or config.backend_url, timeout=10.0, trust_env=False)
 
-    async def call(self, method: str, path: str, *, actor: Session | None = None, body: Any = None, query: dict[str, Any] | None = None) -> Any:
+    async def call(
+        self,
+        method: str,
+        path: str,
+        *,
+        actor: Session | None = None,
+        body: Any = None,
+        query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> Any:
         qs = ""
         if query:
             clean = {k: str(v).lower() if isinstance(v, bool) else str(v) for k, v in query.items() if v is not None and v != ""}
             qs = ("?" + urlencode(clean)) if clean else ""
         headers = {
+            **(headers or {}),
             "authorization": f"Bearer {config.service_token}",
             "x-actor-id": actor.sub if actor else "",
             "x-actor-iat": str(actor.iat) if actor and actor.iat else "",

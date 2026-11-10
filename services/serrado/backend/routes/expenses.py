@@ -28,7 +28,7 @@ from ...config import config
 from ...db.pool import Conn, fetch, fetch_one, tx
 from ...mail import enqueue, layout
 from ...notify import expense as notify_expense
-from ..core import HttpError, actor, audit, can, forbidden, not_found, pool, require, require_user
+from ..core import Actor, HttpError, actor, audit, can, forbidden, not_found, pool, require, require_user
 from .media import sniff_image
 
 NUCLEOS = {
@@ -343,6 +343,78 @@ async def mail(
         await enqueue(c, to_email=p["email"], to_name=p["name"], subject=subject, html_body=layout(title, lines, link(row)), attachments=attach)
 
 
+def validate_new(body: ExpenseIn) -> None:
+    """Validações de um pedido novo que não dependem da base de dados (antes de abrir a transação)."""
+    if body.dueDate and body.dueDate < date.today():
+        raise HttpError(400, "invalid_due_date", "A data limite já passou")
+    for f in body.files:
+        decode(f)  # valida antes de gravar
+
+
+async def insert_expense(
+    c: Conn, who: Actor, body: ExpenseIn, *, api_client: str | None = None, external_ref: str | None = None, via: str = ""
+) -> dict[str, Any]:
+    """Grava um pedido novo em nome de `who` (backoffice ou API de parceiros) e avisa quem o aprova a seguir."""
+    me = who.id
+    assert me is not None
+    year = date.today().year
+    await c.execute("lock table expenses in share row exclusive mode")
+    flow = await flow_of(c, body.nucleo)
+    nxt = await fetch_one(c, "select coalesce(max(seq), 0) + 1 as n from expenses where year = %s", [year])
+    assert nxt is not None
+    cur = await c.execute(
+        """insert into expenses (year, seq, nucleo, flow, status, category, title, purpose, supplier, supplier_nif, amount, due_date, payment_info,
+                                 requested_by, api_client, external_ref)
+           values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning *""",
+        [
+            year,
+            nxt["n"],
+            body.nucleo,
+            flow,
+            "aprovado_nucleo" if flow == "so_direcao" else "pedido",
+            body.category,
+            body.title,
+            body.purpose,
+            body.supplier,
+            body.supplierNif,
+            body.amount,
+            body.dueDate,
+            body.paymentInfo,
+            me,
+            api_client,
+            external_ref,
+        ],
+    )
+    row = await cur.fetchone()
+    assert row is not None
+    files = [await add_file(c, row["id"], "fatura", f, me) for f in body.files]
+    await event(c, row["id"], me, "pedido", via)
+    await audit(c, who, "create", "expense", row["id"], {"amount": str(body.amount), "nucleo": body.nucleo, **({"via": via} if via else {})})
+    requester = await fetch_one(c, "select name from users where id = %s", [me])
+    assert requester is not None
+    team = [u for u in (await teams(c))[body.nucleo] if u != me]
+    if flow == "so_direcao" or not team:
+        to = [p for p in await holders(c, "expenses.pay") if p["id"] != me]
+    else:
+        to = await users_by_id(c, team)
+    await mail(
+        c,
+        to,
+        f"[PEDIDO DE GASTO] {body.title} – {eur(body.amount)}",
+        f"Pedido de gasto {number(row)}",
+        [
+            "Exmo(a). Responsável Financeiro,",
+            "Solicito autorização para o seguinte gasto:",
+            *summary_lines(row, requester["name"]),
+            *([f"Origem: {via}"] if via else []),
+            f"Anexos: {', '.join(f.name for f in body.files)}" if body.files else "Anexos: (sem anexos)",
+        ],
+        row,
+        files,
+    )
+    return row
+
+
 # ---------------------------------------------------------------- rotas
 
 
@@ -435,64 +507,11 @@ def register(r: APIRouter) -> None:
 
     @r.post("/expenses", tags=tags, summary="Novo pedido de gasto (com anexos em base64)", status_code=201)
     async def create(req: Request, body: ExpenseIn) -> dict[str, Any]:
-        me = require_user(req)
+        require_user(req)
         require(req, "expenses.request")
-        if body.dueDate and body.dueDate < date.today():
-            raise HttpError(400, "invalid_due_date", "A data limite já passou")
-        for f in body.files:
-            decode(f)  # valida antes de gravar
-        year = date.today().year
+        validate_new(body)
         async with tx(pool(req)) as c:
-            await c.execute("lock table expenses in share row exclusive mode")
-            flow = await flow_of(c, body.nucleo)
-            nxt = await fetch_one(c, "select coalesce(max(seq), 0) + 1 as n from expenses where year = %s", [year])
-            assert nxt is not None
-            cur = await c.execute(
-                """insert into expenses (year, seq, nucleo, flow, status, category, title, purpose, supplier, supplier_nif, amount, due_date, payment_info, requested_by)
-                   values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning *""",
-                [
-                    year,
-                    nxt["n"],
-                    body.nucleo,
-                    flow,
-                    "aprovado_nucleo" if flow == "so_direcao" else "pedido",
-                    body.category,
-                    body.title,
-                    body.purpose,
-                    body.supplier,
-                    body.supplierNif,
-                    body.amount,
-                    body.dueDate,
-                    body.paymentInfo,
-                    me,
-                ],
-            )
-            row = await cur.fetchone()
-            assert row is not None
-            files = [await add_file(c, row["id"], "fatura", f, me) for f in body.files]
-            await event(c, row["id"], me, "pedido")
-            await audit(c, actor(req), "create", "expense", row["id"], {"amount": str(body.amount), "nucleo": body.nucleo})
-            requester = await fetch_one(c, "select name from users where id = %s", [me])
-            assert requester is not None
-            team = [u for u in (await teams(c))[body.nucleo] if u != me]
-            if flow == "so_direcao" or not team:
-                to = [p for p in await holders(c, "expenses.pay") if p["id"] != me]
-            else:
-                to = await users_by_id(c, team)
-            await mail(
-                c,
-                to,
-                f"[PEDIDO DE GASTO] {body.title} – {eur(body.amount)}",
-                f"Pedido de gasto {number(row)}",
-                [
-                    "Exmo(a). Responsável Financeiro,",
-                    "Solicito autorização para o seguinte gasto:",
-                    *summary_lines(row, requester["name"]),
-                    f"Anexos: {', '.join(f.name for f in body.files)}" if body.files else "Anexos: (sem anexos)",
-                ],
-                row,
-                files,
-            )
+            row = await insert_expense(c, actor(req), body)
         return {"id": row["id"], "number": number(row)}
 
     @r.post("/expenses/{id}/nucleo", tags=tags, summary="2.º passo: decisão do tesoureiro do núcleo")
