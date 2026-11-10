@@ -166,7 +166,9 @@ async def test_credenciais_tokens_e_limites(mw):
     # Credenciais erradas, outra forma de pedido e HTTP Basic / JSON
     bad = await c.post("/api/v1/technical/oauth/token", data={"grant_type": "client_credentials", "client_id": cid, "client_secret": "sfc_sk_errado"})
     assert bad.status_code == 401 and bad.json()["error"] == "invalid_client"
-    assert (await c.post("/api/v1/technical/oauth/token", data={"grant_type": "password", "client_id": cid, "client_secret": secret})).status_code == 400
+    assert (
+        await c.post("/api/v1/technical/oauth/token", data={"grant_type": "password", "client_id": cid, "client_secret": secret})
+    ).status_code == 400
     basic = base64.b64encode(f"{cid}:{secret}".encode()).decode()
     r = await c.post("/api/v1/technical/oauth/token", data={"grant_type": "client_credentials"}, headers={"authorization": f"Basic {basic}"})
     assert r.status_code == 200, r.text
