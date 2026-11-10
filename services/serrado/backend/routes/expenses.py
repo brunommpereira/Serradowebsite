@@ -240,14 +240,19 @@ async def flow_of(c: Conn, nucleo: str) -> str:
 
 
 def can_decide_nucleo(req: Request, row: dict[str, Any], t: Teams) -> bool:
-    me = actor(req).id
+    return may_decide_nucleo(actor(req), row, t)
+
+
+def may_decide_nucleo(who: Actor, row: dict[str, Any], t: Teams) -> bool:
+    """Quem pode decidir o 2.º passo (backoffice ou API técnica): nunca o próprio requerente."""
+    me = who.id
     if row["status"] != "pedido" or me == str(row["requested_by"]):
         return False
     team = [u for u in t[row["nucleo"]] if u != str(row["requested_by"])]
-    if me in team and can(req, "expenses.approve", "expenses.pay"):
+    if me in team and who.permissions & {"expenses.approve", "expenses.pay"}:
         return True
     # Sem outro tesoureiro no núcleo além de quem pede: a tesouraria da direção faz o 2.º passo
-    return not team and can(req, "expenses.pay")
+    return not team and "expenses.pay" in who.permissions
 
 
 def can_cancel(row: dict[str, Any], me: str | None) -> bool:
@@ -415,6 +420,48 @@ async def insert_expense(
     return row
 
 
+async def nucleo_decision(c: Conn, who: Actor, row: dict[str, Any], body: NucleoDecision, via: str = "") -> None:
+    """Aplica a decisão do tesoureiro do núcleo (quem pode já foi verificado) e avisa quem pediu e a tesouraria."""
+    me = who.id
+    assert me is not None
+    id = row["id"]
+    amount = body.amount or row["amount"]
+    if body.approve and amount > row["amount"]:
+        raise HttpError(400, "amount_too_high", "O valor aprovado não pode ser maior do que o pedido")
+    if not body.approve and not body.note:
+        raise HttpError(400, "reason_required", "Indique o motivo da rejeição")
+    if body.approve:
+        await c.execute(
+            """update expenses set status = %s, nucleo_by = %s, nucleo_at = now(), nucleo_amount = %s,
+               nucleo_note = %s, updated_at = now() where id = %s""",
+            ["aprovado" if row["flow"] == "so_nucleo" else "aprovado_nucleo", me, amount, body.note, id],
+        )
+    else:
+        await c.execute(
+            """update expenses set status = 'rejeitado', nucleo_by = %s, nucleo_at = now(), nucleo_note = %s,
+               rejected_by = %s, rejected_at = now(), reject_reason = %s, updated_at = now() where id = %s""",
+            [me, body.note, me, body.note, id],
+        )
+    await event(c, id, me, "aprovado_nucleo" if body.approve else "rejeitado_nucleo", body.note)
+    await audit(c, who, "approve" if body.approve else "reject", "expense", id, {"step": "nucleo", **({"via": via} if via else {})})
+    decider = await fetch_one(c, "select name from users where id = %s", [me])
+    assert decider is not None
+    verdict = "APROVADO" if body.approve else "REJEITADO"
+    lines = [
+        f"Pedido {number(row)}: {row['title']} ({row['supplier']}, {eur(row['amount'])})",
+        f"Decisão: {verdict}",
+        *([f"Valor aprovado: {eur(amount)}"] if body.approve else []),
+        f"Observações / condições: {body.note or '—'}",
+        f"Data: {date.today():%d/%m/%Y} · {decider['name']} (tesoureiro do núcleo {NUCLEOS[row['nucleo']]})",
+        *([f"Origem: {via}"] if via else []),
+    ]
+    to = await users_by_id(c, [str(row["requested_by"])])
+    if body.approve:
+        lines.append("Tesoureiro, pode proceder ao pagamento.")
+        to += [p for p in await holders(c, "expenses.pay") if p["id"] not in (me, str(row["requested_by"]))]
+    await mail(c, to, f"RE: [PEDIDO DE GASTO] {row['title']} – {verdict}", f"Pedido de gasto {number(row)}: {verdict.lower()}", lines, row)
+
+
 # ---------------------------------------------------------------- rotas
 
 
@@ -516,45 +563,12 @@ def register(r: APIRouter) -> None:
 
     @r.post("/expenses/{id}/nucleo", tags=tags, summary="2.º passo: decisão do tesoureiro do núcleo")
     async def decide_nucleo(req: Request, id: Id, body: NucleoDecision) -> dict[str, Any]:
-        me = require_user(req)
+        require_user(req)
         async with tx(pool(req)) as c:
             row = await load(c, id)
             if not can_decide_nucleo(req, row, await teams(c)):
                 raise forbidden()
-            amount = body.amount or row["amount"]
-            if body.approve and amount > row["amount"]:
-                raise HttpError(400, "amount_too_high", "O valor aprovado não pode ser maior do que o pedido")
-            if not body.approve and not body.note:
-                raise HttpError(400, "reason_required", "Indique o motivo da rejeição")
-            if body.approve:
-                await c.execute(
-                    """update expenses set status = %s, nucleo_by = %s, nucleo_at = now(), nucleo_amount = %s,
-                       nucleo_note = %s, updated_at = now() where id = %s""",
-                    ["aprovado" if row["flow"] == "so_nucleo" else "aprovado_nucleo", me, amount, body.note, id],
-                )
-            else:
-                await c.execute(
-                    """update expenses set status = 'rejeitado', nucleo_by = %s, nucleo_at = now(), nucleo_note = %s,
-                       rejected_by = %s, rejected_at = now(), reject_reason = %s, updated_at = now() where id = %s""",
-                    [me, body.note, me, body.note, id],
-                )
-            await event(c, id, me, "aprovado_nucleo" if body.approve else "rejeitado_nucleo", body.note)
-            await audit(c, actor(req), "approve" if body.approve else "reject", "expense", id, {"step": "nucleo"})
-            decider = await fetch_one(c, "select name from users where id = %s", [me])
-            assert decider is not None
-            verdict = "APROVADO" if body.approve else "REJEITADO"
-            lines = [
-                f"Pedido {number(row)}: {row['title']} ({row['supplier']}, {eur(row['amount'])})",
-                f"Decisão: {verdict}",
-                *([f"Valor aprovado: {eur(amount)}"] if body.approve else []),
-                f"Observações / condições: {body.note or '—'}",
-                f"Data: {date.today():%d/%m/%Y} · {decider['name']} (tesoureiro do núcleo {NUCLEOS[row['nucleo']]})",
-            ]
-            to = await users_by_id(c, [str(row["requested_by"])])
-            if body.approve:
-                lines.append("Tesoureiro, pode proceder ao pagamento.")
-                to += [p for p in await holders(c, "expenses.pay") if p["id"] not in (me, str(row["requested_by"]))]
-            await mail(c, to, f"RE: [PEDIDO DE GASTO] {row['title']} – {verdict}", f"Pedido de gasto {number(row)}: {verdict.lower()}", lines, row)
+            await nucleo_decision(c, actor(req), row, body)
         return {"ok": True}
 
     @r.post("/expenses/{id}/final", tags=tags, summary="3.º passo: aprovação final ou rejeição pelo tesoureiro da direção (sem pagar ainda)")

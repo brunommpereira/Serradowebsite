@@ -4561,13 +4561,13 @@
         }
       }
     },
-    "/api/v1/partner/oauth/token": {
+    "/api/v1/technical/oauth/token": {
       "post": {
         "tags": [
-          "API de parceiros"
+          "APIs técnicas"
         ],
         "summary": "Token de acesso (OAuth2 client credentials)",
-        "operationId": "token_api_v1_partner_oauth_token_post",
+        "operationId": "token_api_v1_technical_oauth_token_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -4580,20 +4580,20 @@
         }
       }
     },
-    "/api/v1/partner/expenses": {
+    "/api/v1/technical/expenses": {
       "get": {
         "tags": [
-          "API de parceiros"
+          "APIs técnicas"
         ],
         "summary": "Procurar um pedido pela referência externa (?externalRef=...)",
-        "operationId": "by_ref_api_v1_partner_expenses_get",
+        "operationId": "by_ref_api_v1_technical_expenses_get",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response By Ref Api V1 Partner Expenses Get"
+                  "title": "Response By Ref Api V1 Technical Expenses Get"
                 }
               }
             }
@@ -4602,10 +4602,10 @@
       },
       "post": {
         "tags": [
-          "API de parceiros"
+          "APIs técnicas"
         ],
-        "summary": "Registar um pedido de gasto (devolve o id)",
-        "operationId": "create_api_v1_partner_expenses_post",
+        "summary": "Registar um pedido de gasto em nome de quem pede (devolve o id)",
+        "operationId": "create_api_v1_technical_expenses_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4624,7 +4624,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Create Api V1 Partner Expenses Post"
+                  "title": "Response Create Api V1 Technical Expenses Post"
                 }
               }
             }
@@ -4642,13 +4642,68 @@
         }
       }
     },
-    "/api/v1/partner/expenses/{id}": {
+    "/api/v1/technical/expenses/{id}/nucleo-decision": {
+      "post": {
+        "tags": [
+          "APIs técnicas"
+        ],
+        "summary": "Decisão do tesoureiro do núcleo (aprovar ou rejeitar)",
+        "operationId": "decide_api_v1_technical_expenses__id__nucleo_decision_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Decide Api V1 Technical Expenses  Id  Nucleo Decision Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/technical/expenses/{id}": {
       "get": {
         "tags": [
-          "API de parceiros"
+          "APIs técnicas"
         ],
         "summary": "Estado de um pedido",
-        "operationId": "status_api_v1_partner_expenses__id__get",
+        "operationId": "status_api_v1_technical_expenses__id__get",
         "parameters": [
           {
             "name": "id",
@@ -4667,7 +4722,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Status Api V1 Partner Expenses  Id  Get"
+                  "title": "Response Status Api V1 Technical Expenses  Id  Get"
                 }
               }
             }
@@ -4688,7 +4743,7 @@
     "/api/v1/admin/api-clients": {
       "get": {
         "tags": [
-          "Backoffice · API de parceiros"
+          "Backoffice · APIs técnicas"
         ],
         "summary": "Clientes da API",
         "operationId": "list_clients_api_v1_admin_api_clients_get",
@@ -4707,7 +4762,7 @@
       },
       "post": {
         "tags": [
-          "Backoffice · API de parceiros"
+          "Backoffice · APIs técnicas"
         ],
         "summary": "Novo cliente (o segredo só é mostrado agora)",
         "operationId": "create_client_api_v1_admin_api_clients_post",
@@ -4750,7 +4805,7 @@
     "/api/v1/admin/api-clients/{id}/{action}": {
       "post": {
         "tags": [
-          "Backoffice · API de parceiros"
+          "Backoffice · APIs técnicas"
         ],
         "summary": "Novo segredo (rotate) ou revogar (revoke)",
         "operationId": "act_api_v1_admin_api_clients__id___action__post",

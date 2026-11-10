@@ -56,7 +56,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
       { label: 'Estatísticas', link: '/admin/estatisticas', icon: 'eye', permissions: ['stats.view'] },
       { label: 'Utilizadores', link: '/admin/utilizadores', icon: 'user', permissions: ['users.manage'] },
       { label: 'Papéis e permissões', link: '/admin/papeis', icon: 'shield', permissions: ['users.manage'] },
-      { label: 'API de parceiros', link: '/admin/api-parceiros', icon: 'link', permissions: ['users.manage'] },
+      { label: 'APIs técnicas', link: '/admin/apis-tecnicas', icon: 'link', permissions: ['users.manage'] },
       { label: 'Auditoria', link: '/admin/auditoria', icon: 'clock', permissions: [] },
     ],
   },

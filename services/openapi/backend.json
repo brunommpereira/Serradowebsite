@@ -8295,9 +8295,9 @@
     "/internal/v1/api-clients": {
       "get": {
         "tags": [
-          "API de parceiros · credenciais"
+          "APIs técnicas · credenciais"
         ],
-        "summary": "Clientes da API e quem pode ser o responsável",
+        "summary": "Clientes das APIs técnicas, responsáveis possíveis, núcleos e permissões",
         "operationId": "list_clients_internal_v1_api_clients_get",
         "responses": {
           "200": {
@@ -8316,7 +8316,7 @@
       },
       "post": {
         "tags": [
-          "API de parceiros · credenciais"
+          "APIs técnicas · credenciais"
         ],
         "summary": "Novo cliente (o segredo só é mostrado agora)",
         "operationId": "create_client_internal_v1_api_clients_post",
@@ -8359,7 +8359,7 @@
     "/internal/v1/api-clients/{id}/rotate": {
       "post": {
         "tags": [
-          "API de parceiros · credenciais"
+          "APIs técnicas · credenciais"
         ],
         "summary": "Novo segredo (o anterior e os tokens deixam de valer)",
         "operationId": "rotate_internal_v1_api_clients__id__rotate_post",
@@ -8404,7 +8404,7 @@
     "/internal/v1/api-clients/{id}/revoke": {
       "post": {
         "tags": [
-          "API de parceiros · credenciais"
+          "APIs técnicas · credenciais"
         ],
         "summary": "Revogar (deixa de conseguir entrar; os pedidos ficam)",
         "operationId": "revoke_internal_v1_api_clients__id__revoke_post",
@@ -8446,13 +8446,13 @@
         }
       }
     },
-    "/internal/v1/partner/token": {
+    "/internal/v1/technical/token": {
       "post": {
         "tags": [
-          "API de parceiros"
+          "APIs técnicas"
         ],
         "summary": "Token de acesso (OAuth2 client credentials)",
-        "operationId": "token_internal_v1_partner_token_post",
+        "operationId": "token_internal_v1_technical_token_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8471,7 +8471,7 @@
                 "schema": {
                   "additionalProperties": true,
                   "type": "object",
-                  "title": "Response Token Internal V1 Partner Token Post"
+                  "title": "Response Token Internal V1 Technical Token Post"
                 }
               }
             }
@@ -8489,19 +8489,19 @@
         }
       }
     },
-    "/internal/v1/partner/expenses": {
+    "/internal/v1/technical/expenses": {
       "post": {
         "tags": [
-          "API de parceiros"
+          "APIs técnicas"
         ],
-        "summary": "Registar um pedido de gasto (devolve o id)",
-        "operationId": "create_internal_v1_partner_expenses_post",
+        "summary": "Registar um pedido de gasto em nome de quem pede (devolve o id)",
+        "operationId": "create_internal_v1_technical_expenses_post",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PartnerExpenseIn"
+                "$ref": "#/components/schemas/TechnicalExpenseIn"
               }
             }
           }
@@ -8514,7 +8514,7 @@
                 "schema": {
                   "type": "object",
                   "additionalProperties": true,
-                  "title": "Response Create Internal V1 Partner Expenses Post"
+                  "title": "Response Create Internal V1 Technical Expenses Post"
                 }
               }
             }
@@ -8533,10 +8533,10 @@
       },
       "get": {
         "tags": [
-          "API de parceiros"
+          "APIs técnicas"
         ],
         "summary": "Procurar um pedido pela referência do sistema externo",
-        "operationId": "by_ref_internal_v1_partner_expenses_get",
+        "operationId": "by_ref_internal_v1_technical_expenses_get",
         "parameters": [
           {
             "name": "externalRef",
@@ -8557,7 +8557,7 @@
                 "schema": {
                   "type": "object",
                   "additionalProperties": true,
-                  "title": "Response By Ref Internal V1 Partner Expenses Get"
+                  "title": "Response By Ref Internal V1 Technical Expenses Get"
                 }
               }
             }
@@ -8575,13 +8575,68 @@
         }
       }
     },
-    "/internal/v1/partner/expenses/{id}": {
+    "/internal/v1/technical/expenses/{id}/nucleo-decision": {
+      "post": {
+        "tags": [
+          "APIs técnicas"
+        ],
+        "summary": "Decisão do tesoureiro do núcleo (aprovar ou rejeitar)",
+        "operationId": "decide_internal_v1_technical_expenses__id__nucleo_decision_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TechnicalNucleoDecision"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Decide Internal V1 Technical Expenses  Id  Nucleo Decision Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/technical/expenses/{id}": {
       "get": {
         "tags": [
-          "API de parceiros"
+          "APIs técnicas"
         ],
         "summary": "Estado de um pedido feito por este cliente",
-        "operationId": "status_internal_v1_partner_expenses__id__get",
+        "operationId": "status_internal_v1_technical_expenses__id__get",
         "parameters": [
           {
             "name": "id",
@@ -8602,7 +8657,7 @@
                 "schema": {
                   "type": "object",
                   "additionalProperties": true,
-                  "title": "Response Status Internal V1 Partner Expenses  Id  Get"
+                  "title": "Response Status Internal V1 Technical Expenses  Id  Get"
                 }
               }
             }
@@ -9769,6 +9824,19 @@
             "type": "array",
             "maxItems": 4,
             "title": "Nucleos"
+          },
+          "scopes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "expenses.create",
+                "expenses.approve_nucleo"
+              ]
+            },
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Scopes"
           }
         },
         "additionalProperties": false,
@@ -11616,116 +11684,6 @@
         ],
         "title": "PagesBody"
       },
-      "PartnerExpenseIn": {
-        "properties": {
-          "nucleo": {
-            "type": "string",
-            "enum": [
-              "direcao",
-              "atletismo",
-              "futsal",
-              "rugby"
-            ],
-            "title": "Nucleo"
-          },
-          "category": {
-            "type": "string",
-            "title": "Category"
-          },
-          "title": {
-            "type": "string",
-            "maxLength": 120,
-            "minLength": 3,
-            "title": "Title"
-          },
-          "purpose": {
-            "type": "string",
-            "maxLength": 2000,
-            "title": "Purpose",
-            "default": ""
-          },
-          "supplier": {
-            "type": "string",
-            "maxLength": 160,
-            "minLength": 2,
-            "title": "Supplier"
-          },
-          "supplierNif": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^[0-9]{9}$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Suppliernif"
-          },
-          "amount": {
-            "anyOf": [
-              {
-                "type": "number",
-                "exclusiveMaximum": 1000000.0,
-                "exclusiveMinimum": 0.0
-              },
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,6}|(?=[\\d.]{1,9}0*$)\\d{0,6}\\.\\d{0,2}0*$)"
-              }
-            ],
-            "title": "Amount"
-          },
-          "dueDate": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Duedate"
-          },
-          "paymentInfo": {
-            "type": "string",
-            "maxLength": 300,
-            "title": "Paymentinfo",
-            "default": ""
-          },
-          "files": {
-            "items": {
-              "$ref": "#/components/schemas/FileIn"
-            },
-            "type": "array",
-            "maxItems": 3,
-            "title": "Files"
-          },
-          "externalRef": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^[A-Za-z0-9._:/-]{1,64}$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Externalref"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "nucleo",
-          "category",
-          "title",
-          "supplier",
-          "amount"
-        ],
-        "title": "PartnerExpenseIn"
-      },
       "PartnersBody": {
         "properties": {
           "slug": {
@@ -12594,6 +12552,167 @@
           "keys"
         ],
         "title": "Subscription"
+      },
+      "TechnicalExpenseIn": {
+        "properties": {
+          "nucleo": {
+            "type": "string",
+            "enum": [
+              "direcao",
+              "atletismo",
+              "futsal",
+              "rugby"
+            ],
+            "title": "Nucleo"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 3,
+            "title": "Title"
+          },
+          "purpose": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Purpose",
+            "default": ""
+          },
+          "supplier": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 2,
+            "title": "Supplier"
+          },
+          "supplierNif": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]{9}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suppliernif"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMaximum": 1000000.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,6}|(?=[\\d.]{1,9}0*$)\\d{0,6}\\.\\d{0,2}0*$)"
+              }
+            ],
+            "title": "Amount"
+          },
+          "dueDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duedate"
+          },
+          "paymentInfo": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Paymentinfo",
+            "default": ""
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/FileIn"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Files"
+          },
+          "requesterEmail": {
+            "type": "string",
+            "maxLength": 254,
+            "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+            "title": "Requesteremail"
+          },
+          "externalRef": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._:/-]{1,64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Externalref"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "nucleo",
+          "category",
+          "title",
+          "supplier",
+          "amount",
+          "requesterEmail"
+        ],
+        "title": "TechnicalExpenseIn"
+      },
+      "TechnicalNucleoDecision": {
+        "properties": {
+          "approve": {
+            "type": "boolean",
+            "title": "Approve"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMaximum": 1000000.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,6}|(?=[\\d.]{1,9}0*$)\\d{0,6}\\.\\d{0,2}0*$)"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Note",
+            "default": ""
+          },
+          "approverEmail": {
+            "type": "string",
+            "maxLength": 254,
+            "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+            "title": "Approveremail"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "approve",
+          "approverEmail"
+        ],
+        "title": "TechnicalNucleoDecision"
       },
       "TokenIn": {
         "properties": {
