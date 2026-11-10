@@ -579,7 +579,7 @@
         "tags": [
           "Conteúdo público"
         ],
-        "summary": "Imagem do CMS",
+        "summary": "Imagem ou PDF do CMS",
         "operationId": "media_api_v1_media__file__get",
         "parameters": [
           {
@@ -608,6 +608,50 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/content/sitemap.xml": {
+      "get": {
+        "tags": [
+          "Conteúdo público"
+        ],
+        "summary": "Sitemap das notícias, eventos e páginas do CMS (referido no sitemap.xml do site)",
+        "operationId": "sitemap_api_v1_content_sitemap_xml_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/content/analytics": {
+      "get": {
+        "tags": [
+          "Conteúdo público"
+        ],
+        "summary": "ID do site para o contador de visitas (Umami, sem cookies); vazio = desligado",
+        "operationId": "analytics_api_v1_content_analytics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Analytics Api V1 Content Analytics Get"
                 }
               }
             }
@@ -1602,6 +1646,585 @@
         }
       }
     },
+    "/api/v1/athletes/{id}/trophy": {
+      "get": {
+        "tags": [
+          "Área de Atletas"
+        ],
+        "summary": "Troféu de Almada: provas e estado da inscrição",
+        "operationId": "trophy_api_v1_athletes__id__trophy_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Trophy Api V1 Athletes  Id  Trophy Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/athletes/{id}/trophy/signup": {
+      "post": {
+        "tags": [
+          "Área de Atletas"
+        ],
+        "summary": "Pedir a inscrição no Troféu",
+        "operationId": "signup_api_v1_athletes__id__trophy_signup_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Signup Api V1 Athletes  Id  Trophy Signup Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Área de Atletas"
+        ],
+        "summary": "Cancelar o pedido de inscrição",
+        "operationId": "cancel_api_v1_athletes__id__trophy_signup_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Cancel Api V1 Athletes  Id  Trophy Signup Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/races/editions": {
+      "get": {
+        "tags": [
+          "Backoffice · Troféu de Almada"
+        ],
+        "summary": "Edições, provas e contagens",
+        "operationId": "editions_api_v1_admin_races_editions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Editions Api V1 Admin Races Editions Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Backoffice · Troféu de Almada"
+        ],
+        "summary": "Nova edição",
+        "operationId": "create_api_v1_admin_races_editions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Create Api V1 Admin Races Editions Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/races/editions/{edition_id}": {
+      "put": {
+        "tags": [
+          "Backoffice · Troféu de Almada"
+        ],
+        "summary": "Alterar edição",
+        "operationId": "update_api_v1_admin_races_editions__edition_id__put",
+        "parameters": [
+          {
+            "name": "edition_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Edition Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Update Api V1 Admin Races Editions  Edition Id  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/races/editions/{edition_id}/calendar": {
+      "put": {
+        "tags": [
+          "Backoffice · Troféu de Almada"
+        ],
+        "summary": "Provas da edição",
+        "operationId": "calendar_api_v1_admin_races_editions__edition_id__calendar_put",
+        "parameters": [
+          {
+            "name": "edition_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Edition Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Calendar Api V1 Admin Races Editions  Edition Id  Calendar Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/races/editions/{edition_id}/signups": {
+      "get": {
+        "tags": [
+          "Backoffice · Troféu de Almada"
+        ],
+        "summary": "Pedidos de inscrição",
+        "operationId": "signups_api_v1_admin_races_editions__edition_id__signups_get",
+        "parameters": [
+          {
+            "name": "edition_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Edition Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Signups Api V1 Admin Races Editions  Edition Id  Signups Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Backoffice · Troféu de Almada"
+        ],
+        "summary": "Inscrever atletas (secretaria)",
+        "operationId": "staff_signup_api_v1_admin_races_editions__edition_id__signups_post",
+        "parameters": [
+          {
+            "name": "edition_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Edition Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Staff Signup Api V1 Admin Races Editions  Edition Id  Signups Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/races/editions/{edition_id}/import": {
+      "post": {
+        "tags": [
+          "Backoffice · Troféu de Almada"
+        ],
+        "summary": "Lista de inscritos da Xistarca (marca inscritos e cria quem falta)",
+        "operationId": "import_list_api_v1_admin_races_editions__edition_id__import_post",
+        "parameters": [
+          {
+            "name": "edition_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Edition Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Import List Api V1 Admin Races Editions  Edition Id  Import Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/races/editions/{edition_id}/check": {
+      "post": {
+        "tags": [
+          "Backoffice · Troféu de Almada"
+        ],
+        "summary": "Testar a ligação à Xistarca",
+        "operationId": "check_api_v1_admin_races_editions__edition_id__check_post",
+        "parameters": [
+          {
+            "name": "edition_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Edition Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Check Api V1 Admin Races Editions  Edition Id  Check Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/races/run": {
+      "post": {
+        "tags": [
+          "Backoffice · Troféu de Almada"
+        ],
+        "summary": "Enviar já os pedidos em fila",
+        "operationId": "run_api_v1_admin_races_run_post",
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Run Api V1 Admin Races Run Post"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/races/signups/{signup_id}/{action}": {
+      "post": {
+        "tags": [
+          "Backoffice · Troféu de Almada"
+        ],
+        "summary": "retry · cancel · done",
+        "operationId": "act_api_v1_admin_races_signups__signup_id___action__post",
+        "parameters": [
+          {
+            "name": "signup_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Signup Id"
+            }
+          },
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(retry|cancel|done)$",
+              "title": "Action"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Act Api V1 Admin Races Signups  Signup Id   Action  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/members": {
       "get": {
         "tags": [
@@ -1798,6 +2421,257 @@
               "application/json": {
                 "schema": {
                   "title": "Response Add Quota Api V1 Admin Members  Number  Quotas Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/members/{number}/athlete-suggestions": {
+      "get": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Atletas que podem ser deste sócio (ou pesquisa com q)",
+        "operationId": "athlete_suggestions_api_v1_admin_members__number__athlete_suggestions_get",
+        "parameters": [
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{1,8}$",
+              "title": "Number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Athlete Suggestions Api V1 Admin Members  Number  Athlete Suggestions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/members/{number}/athletes/{id}": {
+      "post": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Ligar atleta ao sócio",
+        "operationId": "link_athlete_api_v1_admin_members__number__athletes__id__post",
+        "parameters": [
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{1,8}$",
+              "title": "Number"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Link Athlete Api V1 Admin Members  Number  Athletes  Id  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Desligar atleta do sócio",
+        "operationId": "unlink_athlete_api_v1_admin_members__number__athletes__id__delete",
+        "parameters": [
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{1,8}$",
+              "title": "Number"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Unlink Athlete Api V1 Admin Members  Number  Athletes  Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/members/{number}/guardian/{id}": {
+      "post": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Sócio passa a encarregado do atleta",
+        "operationId": "link_guardian_api_v1_admin_members__number__guardian__id__post",
+        "parameters": [
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{1,8}$",
+              "title": "Number"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Link Guardian Api V1 Admin Members  Number  Guardian  Id  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Retirar o papel de encarregado",
+        "operationId": "unlink_guardian_api_v1_admin_members__number__guardian__id__delete",
+        "parameters": [
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{1,8}$",
+              "title": "Number"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Unlink Guardian Api V1 Admin Members  Number  Guardian  Id  Delete"
                 }
               }
             }
@@ -2179,12 +3053,55 @@
         }
       }
     },
+    "/api/v1/registrations/confirm": {
+      "post": {
+        "tags": [
+          "Registo online"
+        ],
+        "summary": "Confirmar a proposta (ligação do email)",
+        "operationId": "confirm_api_v1_registrations_confirm_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Confirm Api V1 Registrations Confirm Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/registrations/{kind}": {
       "post": {
         "tags": [
           "Registo online"
         ],
-        "summary": "Registo de sócio ou de atleta com assinatura desenhada",
+        "summary": "Proposta de sócio ou de atleta (aceitação; confirmação por email)",
         "operationId": "submit_api_v1_registrations__kind__post",
         "parameters": [
           {
@@ -2345,6 +3262,28 @@
               ],
               "title": "Kind"
             }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "por_confirmar",
+                    "pendente",
+                    "aceite",
+                    "recusada"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
           }
         ],
         "responses": {
@@ -2354,6 +3293,137 @@
               "application/json": {
                 "schema": {
                   "title": "Response Registrations Api V1 Admin Registrations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/registrations/next-member-number": {
+      "get": {
+        "tags": [
+          "Backoffice · Registos"
+        ],
+        "summary": "N.º do próximo sócio",
+        "operationId": "next_number_api_v1_admin_registrations_next_member_number_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Next Number Api V1 Admin Registrations Next Member Number Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/registrations/{id}/approve": {
+      "post": {
+        "tags": [
+          "Backoffice · Registos"
+        ],
+        "summary": "Aceitar a proposta",
+        "operationId": "approve_api_v1_admin_registrations__id__approve_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Approve Api V1 Admin Registrations  Id  Approve Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/registrations/{id}/reject": {
+      "post": {
+        "tags": [
+          "Backoffice · Registos"
+        ],
+        "summary": "Recusar a proposta",
+        "operationId": "reject_api_v1_admin_registrations__id__reject_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Reject Api V1 Admin Registrations  Id  Reject Post"
                 }
               }
             }
@@ -2405,6 +3475,1781 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/content/blocks": {
+      "get": {
+        "tags": [
+          "Conteúdo público"
+        ],
+        "summary": "Blocos editados no backoffice (o site junta-os ao conteúdo original)",
+        "operationId": "blocks_api_v1_content_blocks_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Blocks Api V1 Content Blocks Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/email/logo.png": {
+      "get": {
+        "tags": [
+          "Conteúdo público"
+        ],
+        "summary": "Símbolo da assinatura dos emails (PNG)",
+        "operationId": "email_logo_api_v1_email_logo_png_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/site/email-test": {
+      "post": {
+        "tags": [
+          "Backoffice · Conteúdos do site"
+        ],
+        "summary": "Enviar a mim um email de teste com a assinatura",
+        "operationId": "email_test_api_v1_admin_site_email_test_post",
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Email Test Api V1 Admin Site Email Test Post"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/site/blocks/{key}": {
+      "get": {
+        "tags": [
+          "Backoffice · Conteúdos do site"
+        ],
+        "summary": "Um bloco",
+        "operationId": "get_api_v1_admin_site_blocks__key__get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,40}$",
+              "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Api V1 Admin Site Blocks  Key  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Backoffice · Conteúdos do site"
+        ],
+        "summary": "Gravar",
+        "operationId": "save_api_v1_admin_site_blocks__key__put",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,40}$",
+              "title": "Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Save Api V1 Admin Site Blocks  Key  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Backoffice · Conteúdos do site"
+        ],
+        "summary": "Voltar ao conteúdo original",
+        "operationId": "reset_api_v1_admin_site_blocks__key__delete",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,40}$",
+              "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/site/blocks/{key}/revisions": {
+      "get": {
+        "tags": [
+          "Backoffice · Conteúdos do site"
+        ],
+        "summary": "Histórico de versões",
+        "operationId": "revisions_api_v1_admin_site_blocks__key__revisions_get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,40}$",
+              "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Revisions Api V1 Admin Site Blocks  Key  Revisions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/site/blocks/{key}/revisions/{rev}/restore": {
+      "post": {
+        "tags": [
+          "Backoffice · Conteúdos do site"
+        ],
+        "summary": "Repor versão",
+        "operationId": "restore_api_v1_admin_site_blocks__key__revisions__rev__restore_post",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,40}$",
+              "title": "Key"
+            }
+          },
+          {
+            "name": "rev",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Rev"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Restore Api V1 Admin Site Blocks  Key  Revisions  Rev  Restore Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interest": {
+      "post": {
+        "tags": [
+          "Pré-inscrições"
+        ],
+        "summary": "Pré-inscrição (pais deixam os contactos)",
+        "operationId": "create_api_v1_interest_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Create Api V1 Interest Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/contact": {
+      "post": {
+        "tags": [
+          "Contactos"
+        ],
+        "summary": "Formulário de contacto do site",
+        "operationId": "contact_api_v1_contact_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Contact Api V1 Contact Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/visits": {
+      "get": {
+        "tags": [
+          "Backoffice · Estatísticas"
+        ],
+        "summary": "Visitas ao site (período: 7d, 30d, 90d, 12m)",
+        "operationId": "stats_api_v1_admin_visits_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Stats Api V1 Admin Visits Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/interest": {
+      "get": {
+        "tags": [
+          "Backoffice · Pré-inscrições"
+        ],
+        "summary": "Pré-inscrições (filtros: status, sport)",
+        "operationId": "list__api_v1_admin_interest_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List  Api V1 Admin Interest Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/interest/{id}": {
+      "patch": {
+        "tags": [
+          "Backoffice · Pré-inscrições"
+        ],
+        "summary": "Estado e nota interna",
+        "operationId": "update_api_v1_admin_interest__id__patch",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Update Api V1 Admin Interest  Id  Patch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Backoffice · Pré-inscrições"
+        ],
+        "summary": "Apagar",
+        "operationId": "delete_api_v1_admin_interest__id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/content/social": {
+      "get": {
+        "tags": [
+          "Conteúdos"
+        ],
+        "summary": "Reels e histórias da página de Facebook",
+        "operationId": "public_api_v1_content_social_get",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "reel",
+                "story"
+              ],
+              "type": "string",
+              "default": "reel",
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 24,
+              "minimum": 1,
+              "default": 12,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Public Api V1 Content Social Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/social": {
+      "get": {
+        "tags": [
+          "Backoffice · Redes sociais"
+        ],
+        "summary": "Reels e histórias importados",
+        "operationId": "admin_list_api_v1_admin_social_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Admin List Api V1 Admin Social Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/social/{id}": {
+      "patch": {
+        "tags": [
+          "Backoffice · Redes sociais"
+        ],
+        "summary": "Esconder ou mostrar no site",
+        "operationId": "set_hidden_api_v1_admin_social__id__patch",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Set Hidden Api V1 Admin Social  Id  Patch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/expenses/meta": {
+      "get": {
+        "tags": [
+          "Backoffice · Pedidos de gasto"
+        ],
+        "summary": "Núcleos, categorias e o que o utilizador pode fazer",
+        "operationId": "meta_api_v1_admin_expenses_meta_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Meta Api V1 Admin Expenses Meta Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/expenses": {
+      "get": {
+        "tags": [
+          "Backoffice · Pedidos de gasto"
+        ],
+        "summary": "Pedidos (scope: todo, mine, all; year)",
+        "operationId": "list__api_v1_admin_expenses_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List  Api V1 Admin Expenses Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Backoffice · Pedidos de gasto"
+        ],
+        "summary": "Novo pedido de gasto (anexos em base64)",
+        "operationId": "create_api_v1_admin_expenses_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Create Api V1 Admin Expenses Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/expenses/files/{file_id}": {
+      "get": {
+        "tags": [
+          "Backoffice · Pedidos de gasto"
+        ],
+        "summary": "Descarregar um anexo",
+        "operationId": "download_api_v1_admin_expenses_files__file_id__get",
+        "parameters": [
+          {
+            "name": "file_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+              "title": "File Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/expenses-approvers": {
+      "get": {
+        "tags": [
+          "Backoffice · Pedidos de gasto"
+        ],
+        "summary": "Tesoureiros de cada núcleo",
+        "operationId": "approvers_api_v1_admin_expenses_approvers_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Approvers Api V1 Admin Expenses Approvers Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/expenses-approvers/{nucleo}": {
+      "put": {
+        "tags": [
+          "Backoffice · Pedidos de gasto"
+        ],
+        "summary": "Definir os tesoureiros de um núcleo",
+        "operationId": "set_approvers_api_v1_admin_expenses_approvers__nucleo__put",
+        "parameters": [
+          {
+            "name": "nucleo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "direcao",
+                "atletismo",
+                "futsal",
+                "rugby"
+              ],
+              "type": "string",
+              "title": "Nucleo"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Set Approvers Api V1 Admin Expenses Approvers  Nucleo  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/expenses-flows/{nucleo}": {
+      "put": {
+        "tags": [
+          "Backoffice · Pedidos de gasto"
+        ],
+        "summary": "Definir o fluxo de aprovação de um núcleo",
+        "operationId": "set_flow_api_v1_admin_expenses_flows__nucleo__put",
+        "parameters": [
+          {
+            "name": "nucleo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "direcao",
+                "atletismo",
+                "futsal",
+                "rugby"
+              ],
+              "type": "string",
+              "title": "Nucleo"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Set Flow Api V1 Admin Expenses Flows  Nucleo  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/expenses/{id}": {
+      "get": {
+        "tags": [
+          "Backoffice · Pedidos de gasto"
+        ],
+        "summary": "Pedido, com anexos e histórico",
+        "operationId": "get_api_v1_admin_expenses__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Api V1 Admin Expenses  Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/expenses/{id}/files": {
+      "post": {
+        "tags": [
+          "Backoffice · Pedidos de gasto"
+        ],
+        "summary": "Juntar um anexo (ex.: a fatura-recibo final)",
+        "operationId": "upload_api_v1_admin_expenses__id__files_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Upload Api V1 Admin Expenses  Id  Files Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/expenses/{id}/{step}": {
+      "post": {
+        "tags": [
+          "Backoffice · Pedidos de gasto"
+        ],
+        "summary": "Decidir, pagar, anular ou marcar a fatura recebida",
+        "operationId": "act_api_v1_admin_expenses__id___step__post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          },
+          {
+            "name": "step",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "nucleo",
+                "final",
+                "pay",
+                "cancel",
+                "invoice"
+              ],
+              "type": "string",
+              "title": "Step"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Act Api V1 Admin Expenses  Id   Step  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/partner/oauth/token": {
+      "post": {
+        "tags": [
+          "API de parceiros"
+        ],
+        "summary": "Token de acesso (OAuth2 client credentials)",
+        "operationId": "token_api_v1_partner_oauth_token_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/partner/expenses": {
+      "get": {
+        "tags": [
+          "API de parceiros"
+        ],
+        "summary": "Procurar um pedido pela referência externa (?externalRef=...)",
+        "operationId": "by_ref_api_v1_partner_expenses_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response By Ref Api V1 Partner Expenses Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "API de parceiros"
+        ],
+        "summary": "Registar um pedido de gasto (devolve o id)",
+        "operationId": "create_api_v1_partner_expenses_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Create Api V1 Partner Expenses Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/partner/expenses/{id}": {
+      "get": {
+        "tags": [
+          "API de parceiros"
+        ],
+        "summary": "Estado de um pedido",
+        "operationId": "status_api_v1_partner_expenses__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Status Api V1 Partner Expenses  Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/api-clients": {
+      "get": {
+        "tags": [
+          "Backoffice · API de parceiros"
+        ],
+        "summary": "Clientes da API",
+        "operationId": "list_clients_api_v1_admin_api_clients_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Clients Api V1 Admin Api Clients Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Backoffice · API de parceiros"
+        ],
+        "summary": "Novo cliente (o segredo só é mostrado agora)",
+        "operationId": "create_client_api_v1_admin_api_clients_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Create Client Api V1 Admin Api Clients Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/api-clients/{id}/{action}": {
+      "post": {
+        "tags": [
+          "Backoffice · API de parceiros"
+        ],
+        "summary": "Novo segredo (rotate) ou revogar (revoke)",
+        "operationId": "act_api_v1_admin_api_clients__id___action__post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(rotate|revoke)$",
+              "title": "Action"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Act Api V1 Admin Api Clients  Id   Action  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/push/key": {
+      "get": {
+        "tags": [
+          "Notificações"
+        ],
+        "summary": "Chave pública para subscrever, temas e modalidades",
+        "operationId": "key_api_v1_push_key_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Key Api V1 Push Key Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/push/subscribe": {
+      "post": {
+        "tags": [
+          "Notificações"
+        ],
+        "summary": "Ativar ou alterar as notificações deste dispositivo",
+        "operationId": "subscribe_api_v1_push_subscribe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Subscribe Api V1 Push Subscribe Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/push/status": {
+      "post": {
+        "tags": [
+          "Notificações"
+        ],
+        "summary": "Temas ativos neste dispositivo",
+        "operationId": "status_api_v1_push_status_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Status Api V1 Push Status Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/push/unsubscribe": {
+      "post": {
+        "tags": [
+          "Notificações"
+        ],
+        "summary": "Desligar as notificações deste dispositivo",
+        "operationId": "unsubscribe_api_v1_push_unsubscribe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/push/stats": {
+      "get": {
+        "tags": [
+          "Backoffice · Notificações"
+        ],
+        "summary": "Dispositivos por tema",
+        "operationId": "stats_api_v1_admin_push_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Stats Api V1 Admin Push Stats Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/push/broadcast": {
+      "post": {
+        "tags": [
+          "Backoffice · Notificações"
+        ],
+        "summary": "Enviar um aviso a quem segue um tema",
+        "operationId": "broadcast_api_v1_admin_push_broadcast_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Broadcast Api V1 Admin Push Broadcast Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/{slug}/availability": {
+      "get": {
+        "tags": [
+          "Inscrições em eventos"
+        ],
+        "summary": "Vagas e se o evento aceita inscrições",
+        "operationId": "availability_api_v1_events__slug__availability_get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,120}$",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Availability Api V1 Events  Slug  Availability Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/{slug}/registrations": {
+      "post": {
+        "tags": [
+          "Inscrições em eventos"
+        ],
+        "summary": "Inscrição num evento",
+        "operationId": "create_api_v1_events__slug__registrations_post",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,120}$",
+              "title": "Slug"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Create Api V1 Events  Slug  Registrations Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/event-registrations/events": {
+      "get": {
+        "tags": [
+          "Backoffice · Inscrições em eventos"
+        ],
+        "summary": "Eventos com inscrição e totais",
+        "operationId": "events_api_v1_admin_event_registrations_events_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Events Api V1 Admin Event Registrations Events Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/event-registrations": {
+      "get": {
+        "tags": [
+          "Backoffice · Inscrições em eventos"
+        ],
+        "summary": "Inscrições de um evento (?eventId=)",
+        "operationId": "list__api_v1_admin_event_registrations_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List  Api V1 Admin Event Registrations Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/event-registrations/{id}": {
+      "patch": {
+        "tags": [
+          "Backoffice · Inscrições em eventos"
+        ],
+        "summary": "Estado e nota interna",
+        "operationId": "update_api_v1_admin_event_registrations__id__patch",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Update Api V1 Admin Event Registrations  Id  Patch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Backoffice · Inscrições em eventos"
+        ],
+        "summary": "Apagar",
+        "operationId": "delete_api_v1_admin_event_registrations__id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/recent-entries": {
+      "get": {
+        "tags": [
+          "Backoffice · Novas entradas"
+        ],
+        "summary": "Entradas dos últimos dias (?days=30)",
+        "operationId": "recent_api_v1_admin_recent_entries_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Recent Api V1 Admin Recent Entries Get"
                 }
               }
             }
@@ -3306,6 +6151,70 @@
         }
       }
     },
+    "/api/v1/admin/results": {
+      "get": {
+        "tags": [
+          "Backoffice · Resultados"
+        ],
+        "summary": "Resultados carregados (com filtros)",
+        "operationId": "results_list_api_v1_admin_results_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Results List Api V1 Admin Results Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/results/link": {
+      "post": {
+        "tags": [
+          "Backoffice · Resultados"
+        ],
+        "summary": "Ligar resultados de uma pessoa a um atleta",
+        "operationId": "results_link_api_v1_admin_results_link_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Results Link Api V1 Admin Results Link Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/results/import": {
       "post": {
         "tags": [
@@ -3363,6 +6272,47 @@
               "application/json": {
                 "schema": {
                   "title": "Response Users Api V1 Admin Users Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Backoffice · Gestão"
+        ],
+        "summary": "Criar um utilizador e enviar o convite",
+        "operationId": "user_create_api_v1_admin_users_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response User Create Api V1 Admin Users Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }

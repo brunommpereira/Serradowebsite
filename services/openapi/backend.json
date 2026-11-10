@@ -148,7 +148,7 @@
           "Sessão"
         ],
         "summary": "Entrada com uma conta externa (Google, Microsoft…) já validada pelo middleware",
-        "description": "Procura a conta ligada a (provider, subject). Na primeira vez, liga-a à conta do clube com o mesmo email, só se o fornecedor garantir que o email está verificado. Não cria contas novas.",
+        "description": "Procura a conta ligada a (provider, subject). Na primeira vez, liga-a à conta do clube com o mesmo email, só se o fornecedor garantir que o email está verificado. Se ainda não houver conta mas o email estiver numa ficha de sócio ou de atleta, cria a conta (sem password) e liga-a; as fichas ficam ligadas ao carregar o perfil.",
         "operationId": "oauth_login_internal_v1_auth_oauth_post",
         "requestBody": {
           "content": {
@@ -402,6 +402,47 @@
                   },
                   "type": "array",
                   "title": "Response Users Internal V1 Users Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Gestão"
+        ],
+        "summary": "Cria uma conta (sem password) com papéis e envia o convite",
+        "operationId": "create_user_internal_v1_users_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewUser"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Create User Internal V1 Users Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -3140,6 +3181,314 @@
         }
       }
     },
+    "/internal/v1/site/blocks": {
+      "get": {
+        "tags": [
+          "Conteúdos do site"
+        ],
+        "summary": "Todos os blocos editados (público: o site junta-os ao conteúdo original)",
+        "operationId": "all_blocks_internal_v1_site_blocks_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response All Blocks Internal V1 Site Blocks Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/site/blocks/{key}": {
+      "get": {
+        "tags": [
+          "Conteúdos do site"
+        ],
+        "summary": "Um bloco, com a data e o autor da última alteração",
+        "operationId": "one_internal_v1_site_blocks__key__get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,40}$",
+              "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response One Internal V1 Site Blocks  Key  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Conteúdos do site"
+        ],
+        "summary": "Grava um bloco (fica uma versão no histórico)",
+        "operationId": "save_internal_v1_site_blocks__key__put",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,40}$",
+              "title": "Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlockBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Save Internal V1 Site Blocks  Key  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Conteúdos do site"
+        ],
+        "summary": "Volta ao conteúdo original (a versão atual fica no histórico)",
+        "operationId": "reset_internal_v1_site_blocks__key__delete",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,40}$",
+              "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/site/blocks/{key}/revisions": {
+      "get": {
+        "tags": [
+          "Conteúdos do site"
+        ],
+        "summary": "Histórico de versões de um bloco",
+        "operationId": "revisions_internal_v1_site_blocks__key__revisions_get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,40}$",
+              "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Revisions Internal V1 Site Blocks  Key  Revisions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/site/blocks/{key}/revisions/{rev}/restore": {
+      "post": {
+        "tags": [
+          "Conteúdos do site"
+        ],
+        "summary": "Repõe uma versão anterior (como nova versão)",
+        "operationId": "restore_internal_v1_site_blocks__key__revisions__rev__restore_post",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,40}$",
+              "title": "Key"
+            }
+          },
+          {
+            "name": "rev",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Rev"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Restore Internal V1 Site Blocks  Key  Revisions  Rev  Restore Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/site/email-logo": {
+      "get": {
+        "tags": [
+          "Conteúdos do site"
+        ],
+        "summary": "Símbolo da assinatura dos emails, em PNG (público)",
+        "operationId": "email_logo_internal_v1_site_email_logo_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Email Logo Internal V1 Site Email Logo Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/site/email-test": {
+      "post": {
+        "tags": [
+          "Conteúdos do site"
+        ],
+        "summary": "Envia um email de teste (com a assinatura atual) a quem pede",
+        "operationId": "email_test_internal_v1_site_email_test_post",
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Email Test Internal V1 Site Email Test Post"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/internal/v1/athletes": {
       "get": {
         "tags": [
@@ -3206,7 +3555,10 @@
                   "enum": [
                     "docs",
                     "confirm",
-                    "requests"
+                    "requests",
+                    "email",
+                    "account",
+                    "new"
                   ],
                   "type": "string"
                 },
@@ -4237,6 +4589,297 @@
         }
       }
     },
+    "/internal/v1/members/{number}/athlete-suggestions": {
+      "get": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Atletas que podem ser deste sócio (pelo nome ou por ser encarregado); com q, pesquisa",
+        "operationId": "athlete_suggestions_internal_v1_members__number__athlete_suggestions_get",
+        "parameters": [
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{1,8}$",
+              "title": "Number"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Athlete Suggestions Internal V1 Members  Number  Athlete Suggestions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/members/{number}/athletes/{id}": {
+      "post": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Liga o atleta a este sócio (preenche o n.º de sócio na ficha do atleta)",
+        "operationId": "link_athlete_internal_v1_members__number__athletes__id__post",
+        "parameters": [
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{1,8}$",
+              "title": "Number"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Force"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Link Athlete Internal V1 Members  Number  Athletes  Id  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Desliga o atleta deste sócio",
+        "operationId": "unlink_athlete_internal_v1_members__number__athletes__id__delete",
+        "parameters": [
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{1,8}$",
+              "title": "Number"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Unlink Athlete Internal V1 Members  Number  Athletes  Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/members/{number}/guardian/{id}": {
+      "post": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "O sócio passa a encarregado de educação do atleta (acesso à ficha no site)",
+        "operationId": "link_guardian_internal_v1_members__number__guardian__id__post",
+        "parameters": [
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{1,8}$",
+              "title": "Number"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Link Guardian Internal V1 Members  Number  Guardian  Id  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Backoffice · Sócios e atletas"
+        ],
+        "summary": "Retira ao sócio o papel de encarregado do atleta",
+        "operationId": "unlink_guardian_internal_v1_members__number__guardian__id__delete",
+        "parameters": [
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{1,8}$",
+              "title": "Number"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Unlink Guardian Internal V1 Members  Number  Guardian  Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/internal/v1/athletes/{id}/admin": {
       "put": {
         "tags": [
@@ -4465,6 +5108,184 @@
                   "additionalProperties": true,
                   "type": "object",
                   "title": "Response Import Registry Internal V1 Registry Import Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/results": {
+      "get": {
+        "tags": [
+          "Backoffice · Resultados"
+        ],
+        "summary": "Resultados carregados (filtros: época, prova, escalão, nome, ligados ou não)",
+        "operationId": "list_results_internal_v1_results_get",
+        "parameters": [
+          {
+            "name": "season",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 9
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Season"
+            }
+          },
+          {
+            "name": "race",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Race"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 60
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "linked",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "yes",
+                    "no"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Linked"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 2000,
+              "minimum": 1,
+              "default": 500,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response List Results Internal V1 Results Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/results/link": {
+      "post": {
+        "tags": [
+          "Backoffice · Resultados"
+        ],
+        "summary": "Liga à mão os resultados de uma pessoa (nome + ano) a um atleta, ou desliga",
+        "operationId": "link_internal_v1_results_link_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Link"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Link Internal V1 Results Link Post"
                 }
               }
             }
@@ -5241,7 +6062,7 @@
         "tags": [
           "Registo online"
         ],
-        "summary": "Registo de sócio (ativo de imediato) com assinatura",
+        "summary": "Proposta de sócio (aceitação + confirmação por email; depois fica à espera da secretaria)",
         "operationId": "signup_member_internal_v1_signup_member_post",
         "requestBody": {
           "content": {
@@ -5284,7 +6105,7 @@
         "tags": [
           "Registo online"
         ],
-        "summary": "Inscrição de atleta (ativa de imediato) com assinatura",
+        "summary": "Proposta de inscrição de atleta (aceitação + confirmação por email)",
         "operationId": "signup_athlete_internal_v1_signup_athlete_post",
         "requestBody": {
           "content": {
@@ -5305,6 +6126,49 @@
                   "additionalProperties": true,
                   "type": "object",
                   "title": "Response Signup Athlete Internal V1 Signup Athlete Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/signup/confirm": {
+      "post": {
+        "tags": [
+          "Registo online"
+        ],
+        "summary": "Confirmação por email: a proposta passa à secretaria (com o PDF)",
+        "operationId": "confirm_signup_internal_v1_signup_confirm_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Confirm Signup Internal V1 Signup Confirm Post"
                 }
               }
             }
@@ -5432,6 +6296,28 @@
               ],
               "title": "Kind"
             }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "por_confirmar",
+                    "pendente",
+                    "aceite",
+                    "recusada"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
           }
         ],
         "responses": {
@@ -5446,6 +6332,141 @@
                     "additionalProperties": true
                   },
                   "title": "Response Registrations Internal V1 Registrations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/registrations/next-member-number": {
+      "get": {
+        "tags": [
+          "Backoffice · Registos"
+        ],
+        "summary": "O n.º que o próximo sócio vai ter (o maior que existe + 1)",
+        "operationId": "next_number_internal_v1_registrations_next_member_number_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Next Number Internal V1 Registrations Next Member Number Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/registrations/{id}/approve": {
+      "post": {
+        "tags": [
+          "Backoffice · Registos"
+        ],
+        "summary": "Aceita a proposta: cria o sócio (n.º seguinte) ou o atleta",
+        "operationId": "approve_registration_internal_v1_registrations__id__approve_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Decision"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Approve Registration Internal V1 Registrations  Id  Approve Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/registrations/{id}/reject": {
+      "post": {
+        "tags": [
+          "Backoffice · Registos"
+        ],
+        "summary": "Recusa a proposta (email com o motivo)",
+        "operationId": "reject_registration_internal_v1_registrations__id__reject_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Decision"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Reject Registration Internal V1 Registrations  Id  Reject Post"
                 }
               }
             }
@@ -5493,6 +6514,2619 @@
                     "type": "string"
                   },
                   "title": "Response Registration Pdf Internal V1 Registrations  Id  Pdf Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/interest": {
+      "post": {
+        "tags": [
+          "Pré-inscrições"
+        ],
+        "summary": "Pré-inscrição pública (o middleware junta o IP)",
+        "operationId": "create_internal_v1_interest_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InterestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Create Internal V1 Interest Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Pré-inscrições"
+        ],
+        "summary": "Pré-inscrições (secretaria)",
+        "operationId": "list__internal_v1_interest_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "novo",
+                    "contactado",
+                    "inscrito",
+                    "desistiu"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "sport",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "atletismo",
+                    "futsal",
+                    "rugby",
+                    "formacao",
+                    "escola-de-desporto"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sport"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response List  Internal V1 Interest Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/interest/{id}": {
+      "patch": {
+        "tags": [
+          "Pré-inscrições"
+        ],
+        "summary": "Muda o estado ou a nota interna",
+        "operationId": "update_internal_v1_interest__id__patch",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InterestUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Update Internal V1 Interest  Id  Patch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Pré-inscrições"
+        ],
+        "summary": "Apaga (pedido do próprio ou já sem interesse)",
+        "operationId": "delete_internal_v1_interest__id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/social": {
+      "get": {
+        "tags": [
+          "Conteúdos"
+        ],
+        "summary": "Reels e histórias visíveis no site (histórias: só nas 24 h seguintes)",
+        "operationId": "public_internal_v1_social_get",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "reel",
+                "story"
+              ],
+              "type": "string",
+              "default": "reel",
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 24,
+              "minimum": 1,
+              "default": 12,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Public Internal V1 Social Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/social/admin": {
+      "get": {
+        "tags": [
+          "Backoffice · Redes sociais"
+        ],
+        "summary": "Reels e histórias importados (incluindo escondidos e expirados)",
+        "operationId": "admin_list_internal_v1_social_admin_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Admin List Internal V1 Social Admin Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/social/{id}": {
+      "patch": {
+        "tags": [
+          "Backoffice · Redes sociais"
+        ],
+        "summary": "Esconde ou volta a mostrar no site",
+        "operationId": "set_hidden_internal_v1_social__id__patch",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Visibility"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Set Hidden Internal V1 Social  Id  Patch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/athletes/{id}/trophy": {
+      "get": {
+        "tags": [
+          "Troféu de Almada · inscrições"
+        ],
+        "summary": "Edição ativa do Troféu, provas e estado da inscrição deste atleta",
+        "operationId": "trophy_internal_v1_athletes__id__trophy_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Trophy Internal V1 Athletes  Id  Trophy Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/athletes/{id}/trophy/signup": {
+      "post": {
+        "tags": [
+          "Troféu de Almada · inscrições"
+        ],
+        "summary": "Pedir a inscrição no Troféu (com autorização para enviar os dados à Xistarca)",
+        "operationId": "signup_internal_v1_athletes__id__trophy_signup_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Signup Internal V1 Athletes  Id  Trophy Signup Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Troféu de Almada · inscrições"
+        ],
+        "summary": "Cancelar o pedido (antes de estar inscrito)",
+        "operationId": "cancel_mine_internal_v1_athletes__id__trophy_signup_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Cancel Mine Internal V1 Athletes  Id  Trophy Signup Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/races/editions": {
+      "get": {
+        "tags": [
+          "Troféu de Almada · inscrições"
+        ],
+        "summary": "Edições do Troféu (com contagens por estado)",
+        "operationId": "editions_internal_v1_races_editions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Editions Internal V1 Races Editions Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Troféu de Almada · inscrições"
+        ],
+        "summary": "Nova edição",
+        "operationId": "create_edition_internal_v1_races_editions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Edition"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Create Edition Internal V1 Races Editions Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/races/editions/{edition_id}": {
+      "put": {
+        "tags": [
+          "Troféu de Almada · inscrições"
+        ],
+        "summary": "Alterar edição (modo test/live, datas, endereço)",
+        "operationId": "update_edition_internal_v1_races_editions__edition_id__put",
+        "parameters": [
+          {
+            "name": "edition_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Edition Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Edition"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Update Edition Internal V1 Races Editions  Edition Id  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/races/editions/{edition_id}/calendar": {
+      "put": {
+        "tags": [
+          "Troféu de Almada · inscrições"
+        ],
+        "summary": "Provas da edição (substitui a lista)",
+        "operationId": "set_calendar_internal_v1_races_editions__edition_id__calendar_put",
+        "parameters": [
+          {
+            "name": "edition_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Edition Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Calendar"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Set Calendar Internal V1 Races Editions  Edition Id  Calendar Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/races/editions/{edition_id}/signups": {
+      "get": {
+        "tags": [
+          "Troféu de Almada · inscrições"
+        ],
+        "summary": "Pedidos de inscrição (filtro: status)",
+        "operationId": "signups_internal_v1_races_editions__edition_id__signups_get",
+        "parameters": [
+          {
+            "name": "edition_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Edition Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(pedido|validado|inscrito|erro|cancelado)$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Signups Internal V1 Races Editions  Edition Id  Signups Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Troféu de Almada · inscrições"
+        ],
+        "summary": "A secretaria inscreve atletas (pedido em nome do clube)",
+        "operationId": "staff_signup_internal_v1_races_editions__edition_id__signups_post",
+        "parameters": [
+          {
+            "name": "edition_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Edition Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffSignup"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Staff Signup Internal V1 Races Editions  Edition Id  Signups Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/races/editions/{edition_id}/import": {
+      "post": {
+        "tags": [
+          "Troféu de Almada · inscrições"
+        ],
+        "summary": "Lista de inscritos da Xistarca: marca inscritos e cria quem falta",
+        "operationId": "import_xistarca_list_internal_v1_races_editions__edition_id__import_post",
+        "parameters": [
+          {
+            "name": "edition_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Edition Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListImport"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Import Xistarca List Internal V1 Races Editions  Edition Id  Import Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/races/signups/{signup_id}/{action}": {
+      "post": {
+        "tags": [
+          "Troféu de Almada · inscrições"
+        ],
+        "summary": "retry · cancel · done (marcar inscrito à mão)",
+        "operationId": "act_internal_v1_races_signups__signup_id___action__post",
+        "parameters": [
+          {
+            "name": "signup_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Signup Id"
+            }
+          },
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(retry|cancel|done)$",
+              "title": "Action"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Act Internal V1 Races Signups  Signup Id   Action  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/races/run": {
+      "post": {
+        "tags": [
+          "Troféu de Almada · inscrições"
+        ],
+        "summary": "Enviar já os pedidos em fila (em segundo plano)",
+        "operationId": "run_now_internal_v1_races_run_post",
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "type": "object",
+                  "title": "Response Run Now Internal V1 Races Run Post"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/races/editions/{edition_id}/check": {
+      "post": {
+        "tags": [
+          "Troféu de Almada · inscrições"
+        ],
+        "summary": "Testar o login e ler o evento na Xistarca",
+        "operationId": "check_internal_v1_races_editions__edition_id__check_post",
+        "parameters": [
+          {
+            "name": "edition_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Edition Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Check Internal V1 Races Editions  Edition Id  Check Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/contact": {
+      "post": {
+        "tags": [
+          "Contactos"
+        ],
+        "summary": "Mensagem do formulário de contacto (o middleware junta o IP)",
+        "operationId": "create_internal_v1_contact_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Create Internal V1 Contact Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/visits": {
+      "get": {
+        "tags": [
+          "Estatísticas"
+        ],
+        "summary": "Visitas ao site (Umami): resumo, evolução e listas de topo",
+        "operationId": "stats_internal_v1_visits_get",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "7d",
+                "30d",
+                "90d",
+                "12m"
+              ],
+              "type": "string",
+              "default": "30d",
+              "title": "Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Stats Internal V1 Visits Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/expenses/meta": {
+      "get": {
+        "tags": [
+          "Pedidos de gasto"
+        ],
+        "summary": "Núcleos, categorias e o que o utilizador pode fazer",
+        "operationId": "meta_internal_v1_expenses_meta_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Meta Internal V1 Expenses Meta Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/expenses": {
+      "get": {
+        "tags": [
+          "Pedidos de gasto"
+        ],
+        "summary": "Pedidos (scope: todo = à espera de mim, mine = os meus, all = todos os que posso ver)",
+        "operationId": "list__internal_v1_expenses_get",
+        "parameters": [
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "todo",
+                "mine",
+                "all"
+              ],
+              "type": "string",
+              "default": "todo",
+              "title": "Scope"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 2100,
+                  "minimum": 2020
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response List  Internal V1 Expenses Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Pedidos de gasto"
+        ],
+        "summary": "Novo pedido de gasto (com anexos em base64)",
+        "operationId": "create_internal_v1_expenses_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExpenseIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Create Internal V1 Expenses Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/expenses/{id}": {
+      "get": {
+        "tags": [
+          "Pedidos de gasto"
+        ],
+        "summary": "Pedido, com anexos e histórico",
+        "operationId": "get_internal_v1_expenses__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Internal V1 Expenses  Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/expenses/{id}/nucleo": {
+      "post": {
+        "tags": [
+          "Pedidos de gasto"
+        ],
+        "summary": "2.º passo: decisão do tesoureiro do núcleo",
+        "operationId": "decide_nucleo_internal_v1_expenses__id__nucleo_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NucleoDecision"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Decide Nucleo Internal V1 Expenses  Id  Nucleo Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/expenses/{id}/final": {
+      "post": {
+        "tags": [
+          "Pedidos de gasto"
+        ],
+        "summary": "3.º passo: aprovação final ou rejeição pelo tesoureiro da direção (sem pagar ainda)",
+        "operationId": "decide_final_internal_v1_expenses__id__final_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalDecision"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Decide Final Internal V1 Expenses  Id  Final Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/expenses/{id}/pay": {
+      "post": {
+        "tags": [
+          "Pedidos de gasto"
+        ],
+        "summary": "Pagamento e registo contabilístico (inclui a aprovação final, se ainda não estiver dada)",
+        "operationId": "pay_internal_v1_expenses__id__pay_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Pay Internal V1 Expenses  Id  Pay Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/expenses/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Pedidos de gasto"
+        ],
+        "summary": "Anular o próprio pedido (antes da decisão do núcleo)",
+        "operationId": "cancel_internal_v1_expenses__id__cancel_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Cancel Internal V1 Expenses  Id  Cancel Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/expenses/{id}/files": {
+      "post": {
+        "tags": [
+          "Pedidos de gasto"
+        ],
+        "summary": "Juntar um anexo (ex.: a fatura-recibo final)",
+        "operationId": "upload_internal_v1_expenses__id__files_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileUpload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Upload Internal V1 Expenses  Id  Files Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/expenses/{id}/invoice": {
+      "post": {
+        "tags": [
+          "Pedidos de gasto"
+        ],
+        "summary": "Marcar a fatura/recibo final como recebida (ou não)",
+        "operationId": "invoice_internal_v1_expenses__id__invoice_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Invoice Internal V1 Expenses  Id  Invoice Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/expenses/files/{file_id}": {
+      "get": {
+        "tags": [
+          "Pedidos de gasto"
+        ],
+        "summary": "Descarregar um anexo (quem pode ver o pedido)",
+        "operationId": "download_internal_v1_expenses_files__file_id__get",
+        "parameters": [
+          {
+            "name": "file_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f-]{36}$",
+              "title": "File Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Download Internal V1 Expenses Files  File Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/expenses-approvers": {
+      "get": {
+        "tags": [
+          "Pedidos de gasto"
+        ],
+        "summary": "Tesoureiros de cada núcleo e quem pode ser escolhido",
+        "operationId": "get_approvers_internal_v1_expenses_approvers_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Approvers Internal V1 Expenses Approvers Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/expenses-flows/{nucleo}": {
+      "put": {
+        "tags": [
+          "Pedidos de gasto"
+        ],
+        "summary": "Definir o fluxo de aprovação de um núcleo",
+        "operationId": "set_flow_internal_v1_expenses_flows__nucleo__put",
+        "parameters": [
+          {
+            "name": "nucleo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "direcao",
+                "atletismo",
+                "futsal",
+                "rugby"
+              ],
+              "type": "string",
+              "title": "Nucleo"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlowIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Set Flow Internal V1 Expenses Flows  Nucleo  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/expenses-approvers/{nucleo}": {
+      "put": {
+        "tags": [
+          "Pedidos de gasto"
+        ],
+        "summary": "Definir os tesoureiros de um núcleo",
+        "operationId": "set_approvers_internal_v1_expenses_approvers__nucleo__put",
+        "parameters": [
+          {
+            "name": "nucleo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "direcao",
+                "atletismo",
+                "futsal",
+                "rugby"
+              ],
+              "type": "string",
+              "title": "Nucleo"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproversIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Set Approvers Internal V1 Expenses Approvers  Nucleo  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/api-clients": {
+      "get": {
+        "tags": [
+          "API de parceiros · credenciais"
+        ],
+        "summary": "Clientes da API e quem pode ser o responsável",
+        "operationId": "list_clients_internal_v1_api_clients_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response List Clients Internal V1 Api Clients Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "API de parceiros · credenciais"
+        ],
+        "summary": "Novo cliente (o segredo só é mostrado agora)",
+        "operationId": "create_client_internal_v1_api_clients_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Create Client Internal V1 Api Clients Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/api-clients/{id}/rotate": {
+      "post": {
+        "tags": [
+          "API de parceiros · credenciais"
+        ],
+        "summary": "Novo segredo (o anterior e os tokens deixam de valer)",
+        "operationId": "rotate_internal_v1_api_clients__id__rotate_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Rotate Internal V1 Api Clients  Id  Rotate Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/api-clients/{id}/revoke": {
+      "post": {
+        "tags": [
+          "API de parceiros · credenciais"
+        ],
+        "summary": "Revogar (deixa de conseguir entrar; os pedidos ficam)",
+        "operationId": "revoke_internal_v1_api_clients__id__revoke_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Revoke Internal V1 Api Clients  Id  Revoke Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/partner/token": {
+      "post": {
+        "tags": [
+          "API de parceiros"
+        ],
+        "summary": "Token de acesso (OAuth2 client credentials)",
+        "operationId": "token_internal_v1_partner_token_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Token Internal V1 Partner Token Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/partner/expenses": {
+      "post": {
+        "tags": [
+          "API de parceiros"
+        ],
+        "summary": "Registar um pedido de gasto (devolve o id)",
+        "operationId": "create_internal_v1_partner_expenses_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerExpenseIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Create Internal V1 Partner Expenses Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "API de parceiros"
+        ],
+        "summary": "Procurar um pedido pela referência do sistema externo",
+        "operationId": "by_ref_internal_v1_partner_expenses_get",
+        "parameters": [
+          {
+            "name": "externalRef",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:/-]{1,64}$",
+              "title": "Externalref"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response By Ref Internal V1 Partner Expenses Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/partner/expenses/{id}": {
+      "get": {
+        "tags": [
+          "API de parceiros"
+        ],
+        "summary": "Estado de um pedido feito por este cliente",
+        "operationId": "status_internal_v1_partner_expenses__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Status Internal V1 Partner Expenses  Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/push/key": {
+      "get": {
+        "tags": [
+          "Notificações"
+        ],
+        "summary": "Chave pública VAPID (para o browser subscrever)",
+        "operationId": "key_internal_v1_push_key_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Key Internal V1 Push Key Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/push/subscribe": {
+      "post": {
+        "tags": [
+          "Notificações"
+        ],
+        "summary": "Criar ou atualizar a subscrição deste dispositivo (temas e modalidades)",
+        "operationId": "subscribe_internal_v1_push_subscribe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscribeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Subscribe Internal V1 Push Subscribe Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/push/status": {
+      "post": {
+        "tags": [
+          "Notificações"
+        ],
+        "summary": "Temas e modalidades deste dispositivo",
+        "operationId": "status_internal_v1_push_status_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EndpointIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Status Internal V1 Push Status Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/push/unsubscribe": {
+      "post": {
+        "tags": [
+          "Notificações"
+        ],
+        "summary": "Desligar as notificações deste dispositivo",
+        "operationId": "unsubscribe_internal_v1_push_unsubscribe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EndpointIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/push/stats": {
+      "get": {
+        "tags": [
+          "Notificações"
+        ],
+        "summary": "Dispositivos com notificações, por tema (comunicação)",
+        "operationId": "stats_internal_v1_push_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Stats Internal V1 Push Stats Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/push/broadcast": {
+      "post": {
+        "tags": [
+          "Notificações"
+        ],
+        "summary": "Enviar um aviso a quem segue um tema (comunicação)",
+        "operationId": "broadcast_internal_v1_push_broadcast_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BroadcastIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "type": "object",
+                  "title": "Response Broadcast Internal V1 Push Broadcast Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/events/{slug}/availability": {
+      "get": {
+        "tags": [
+          "Inscrições em eventos"
+        ],
+        "summary": "Vagas e se aceita inscrições (público)",
+        "operationId": "availability_internal_v1_events__slug__availability_get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,120}$",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Availability Internal V1 Events  Slug  Availability Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/events/{slug}/registrations": {
+      "post": {
+        "tags": [
+          "Inscrições em eventos"
+        ],
+        "summary": "Inscrição pública (o middleware junta o IP)",
+        "operationId": "create_internal_v1_events__slug__registrations_post",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,120}$",
+              "title": "Slug"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Create Internal V1 Events  Slug  Registrations Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/event-registrations/events": {
+      "get": {
+        "tags": [
+          "Inscrições em eventos"
+        ],
+        "summary": "Eventos com inscrição, com totais (backoffice)",
+        "operationId": "events_internal_v1_event_registrations_events_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Events Internal V1 Event Registrations Events Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/event-registrations": {
+      "get": {
+        "tags": [
+          "Inscrições em eventos"
+        ],
+        "summary": "Inscrições de um evento (backoffice)",
+        "operationId": "list__internal_v1_event_registrations_get",
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Eventid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response List  Internal V1 Event Registrations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/event-registrations/{id}": {
+      "patch": {
+        "tags": [
+          "Inscrições em eventos"
+        ],
+        "summary": "Estado (inscrito, pago, cancelado) e nota interna",
+        "operationId": "update_internal_v1_event_registrations__id__patch",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Update Internal V1 Event Registrations  Id  Patch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Inscrições em eventos"
+        ],
+        "summary": "Apaga (pedido do próprio, RGPD)",
+        "operationId": "delete_internal_v1_event_registrations__id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/recent-entries": {
+      "get": {
+        "tags": [
+          "Novas entradas"
+        ],
+        "summary": "Entradas dos últimos dias (propostas, pré-inscrições, atletas, eventos, contas)",
+        "operationId": "recent_internal_v1_recent_entries_get",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 365,
+              "minimum": 1,
+              "default": 30,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Recent Internal V1 Recent Entries Get"
                 }
               }
             }
@@ -5561,13 +9195,29 @@
         ],
         "title": "AltText"
       },
+      "ApproversIn": {
+        "properties": {
+          "userIds": {
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Userids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ApproversIn"
+      },
       "AthleteBody": {
         "properties": {
           "form": {
             "$ref": "#/components/schemas/AthleteSignup"
           },
           "client": {
-            "$ref": "#/components/schemas/Client"
+            "$ref": "#/components/schemas/serrado__backend__routes__signup__Client"
           }
         },
         "additionalProperties": false,
@@ -5802,10 +9452,9 @@
             "title": "Imageconsent",
             "default": false
           },
-          "signature": {
-            "type": "string",
-            "maxLength": 600000,
-            "title": "Signature"
+          "declaration": {
+            "type": "boolean",
+            "title": "Declaration"
           },
           "website": {
             "type": "string",
@@ -5845,7 +9494,8 @@
           "idNumber": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 24
               },
               {
                 "type": "null"
@@ -5867,7 +9517,8 @@
           "taxNumber": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 20
               },
               {
                 "type": "null"
@@ -5935,13 +9586,26 @@
             "title": "City"
           },
           "emergencyName": {
-            "type": "string",
-            "maxLength": 120,
-            "minLength": 3,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Emergencyname"
           },
           "emergencyPhone": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Emergencyphone"
           },
           "shirtSize": {
@@ -5971,15 +9635,101 @@
         "type": "object",
         "required": [
           "accept",
-          "signature",
+          "declaration",
           "name",
           "birthDate",
           "gender",
-          "sport",
-          "emergencyName",
-          "emergencyPhone"
+          "sport"
         ],
         "title": "AthleteSignup"
+      },
+      "BlockBody": {
+        "properties": {
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "BlockBody"
+      },
+      "BroadcastIn": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "enum": [
+              "noticias",
+              "eventos",
+              "jogos"
+            ],
+            "title": "Topic"
+          },
+          "sport": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "atletismo",
+                  "futsal",
+                  "rugby"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sport"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 3,
+            "title": "Title"
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 240,
+            "minLength": 3,
+            "title": "Body"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 300,
+            "pattern": "^/[^/\\\\].*$|^/$",
+            "title": "Url",
+            "default": "/"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "topic",
+          "title",
+          "body"
+        ],
+        "title": "BroadcastIn"
+      },
+      "Calendar": {
+        "properties": {
+          "races": {
+            "items": {
+              "$ref": "#/components/schemas/Race"
+            },
+            "type": "array",
+            "maxItems": 40,
+            "title": "Races"
+          }
+        },
+        "type": "object",
+        "required": [
+          "races"
+        ],
+        "title": "Calendar"
       },
       "ChangeRequest": {
         "properties": {
@@ -5993,27 +9743,131 @@
         ],
         "title": "ChangeRequest"
       },
-      "Client": {
+      "ClientIn": {
         "properties": {
-          "ip": {
+          "name": {
             "type": "string",
-            "maxLength": 64,
-            "minLength": 2,
-            "title": "Ip"
+            "maxLength": 80,
+            "minLength": 3,
+            "title": "Name"
           },
-          "userAgent": {
+          "userId": {
             "type": "string",
-            "maxLength": 400,
-            "title": "Useragent",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "title": "Userid"
+          },
+          "nucleos": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "direcao",
+                "atletismo",
+                "futsal",
+                "rugby"
+              ]
+            },
+            "type": "array",
+            "maxItems": 4,
+            "title": "Nucleos"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "userId"
+        ],
+        "title": "ClientIn"
+      },
+      "ConfirmBody": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 20,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Token"
+          },
+          "client": {
+            "$ref": "#/components/schemas/serrado__backend__routes__signup__Client"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "token",
+          "client"
+        ],
+        "title": "ConfirmBody"
+      },
+      "ContactBody": {
+        "properties": {
+          "form": {
+            "$ref": "#/components/schemas/ContactForm"
+          },
+          "client": {
+            "$ref": "#/components/schemas/serrado__backend__routes__interest__Client"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "form",
+          "client"
+        ],
+        "title": "ContactBody"
+      },
+      "ContactForm": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 3,
+            "title": "Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 60,
+            "title": "Subject",
+            "default": "Informações gerais"
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 5,
+            "title": "Message"
+          },
+          "consent": {
+            "type": "boolean",
+            "title": "Consent"
+          },
+          "website": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Website",
             "default": ""
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
-          "ip"
+          "name",
+          "email",
+          "message",
+          "consent"
         ],
-        "title": "Client",
-        "description": "Quem submeteu (posto pelo middleware, não pelo browser)."
+        "title": "ContactForm"
       },
       "Credentials": {
         "properties": {
@@ -6037,6 +9891,44 @@
           "password"
         ],
         "title": "Credentials"
+      },
+      "Decision": {
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Note",
+            "default": ""
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "memberNumber": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{1,8}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Membernumber"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Decision"
       },
       "DocNote": {
         "properties": {
@@ -6129,6 +10021,120 @@
         "type": "object",
         "title": "Editable",
         "description": "Campos que o encarregado/atleta pode alterar diretamente."
+      },
+      "Edition": {
+        "properties": {
+          "season": {
+            "type": "string",
+            "pattern": "^\\d{4}/\\d{4}$",
+            "title": "Season"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 3,
+            "title": "Name"
+          },
+          "eventUrl": {
+            "type": "string",
+            "pattern": "^(https://checkout\\.xistarca\\.pt/evento/[A-Za-z0-9._~%-]{3,200})?$",
+            "title": "Eventurl"
+          },
+          "modalityId": {
+            "type": "string",
+            "pattern": "^\\d{0,10}$",
+            "title": "Modalityid",
+            "default": ""
+          },
+          "teamName": {
+            "type": "string",
+            "maxLength": 30,
+            "minLength": 2,
+            "title": "Teamname",
+            "default": "Serrado FC"
+          },
+          "clubOption": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Cluboption",
+            "default": "Serrado FC / Outdoor Training Camp"
+          },
+          "opensOn": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Openson"
+          },
+          "closesOn": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closeson"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "test",
+              "live"
+            ],
+            "title": "Mode",
+            "default": "test"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active",
+            "default": true
+          },
+          "emergencyName": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Emergencyname",
+            "default": "Serrado FC"
+          },
+          "emergencyPhone": {
+            "type": "string",
+            "maxLength": 20,
+            "title": "Emergencyphone",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "season",
+          "name",
+          "eventUrl"
+        ],
+        "title": "Edition"
+      },
+      "EndpointIn": {
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Endpoint"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "endpoint"
+        ],
+        "title": "EndpointIn"
       },
       "EventsBody": {
         "properties": {
@@ -6247,6 +10253,11 @@
           "askShirtSize": {
             "type": "boolean",
             "title": "Askshirtsize"
+          },
+          "paymentInfo": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Paymentinfo"
           }
         },
         "additionalProperties": false,
@@ -6259,6 +10270,104 @@
           "location"
         ],
         "title": "EventsBody"
+      },
+      "ExpenseIn": {
+        "properties": {
+          "nucleo": {
+            "type": "string",
+            "enum": [
+              "direcao",
+              "atletismo",
+              "futsal",
+              "rugby"
+            ],
+            "title": "Nucleo"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 3,
+            "title": "Title"
+          },
+          "purpose": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Purpose",
+            "default": ""
+          },
+          "supplier": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 2,
+            "title": "Supplier"
+          },
+          "supplierNif": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]{9}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suppliernif"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMaximum": 1000000.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,6}|(?=[\\d.]{1,9}0*$)\\d{0,6}\\.\\d{0,2}0*$)"
+              }
+            ],
+            "title": "Amount"
+          },
+          "dueDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duedate"
+          },
+          "paymentInfo": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Paymentinfo",
+            "default": ""
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/FileIn"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Files"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "nucleo",
+          "category",
+          "title",
+          "supplier",
+          "amount"
+        ],
+        "title": "ExpenseIn"
       },
       "ExternalIdentity": {
         "properties": {
@@ -6319,6 +10428,102 @@
           "amount"
         ],
         "title": "FeePlan"
+      },
+      "FileIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "data": {
+            "type": "string",
+            "maxLength": 14100000,
+            "minLength": 8,
+            "title": "Data"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "data"
+        ],
+        "title": "FileIn"
+      },
+      "FileUpload": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "data": {
+            "type": "string",
+            "maxLength": 14100000,
+            "minLength": 8,
+            "title": "Data"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "fatura",
+              "comprovativo",
+              "recibo",
+              "outro"
+            ],
+            "title": "Kind",
+            "default": "outro"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "data"
+        ],
+        "title": "FileUpload"
+      },
+      "FinalDecision": {
+        "properties": {
+          "approve": {
+            "type": "boolean",
+            "title": "Approve"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Note",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "approve"
+        ],
+        "title": "FinalDecision"
+      },
+      "FlowIn": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "nucleo_direcao",
+              "so_nucleo",
+              "so_direcao"
+            ],
+            "title": "Mode"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mode"
+        ],
+        "title": "FlowIn"
       },
       "Forgot": {
         "properties": {
@@ -6483,6 +10688,161 @@
         ],
         "title": "ImportBody"
       },
+      "InterestBody": {
+        "properties": {
+          "form": {
+            "$ref": "#/components/schemas/InterestForm"
+          },
+          "client": {
+            "$ref": "#/components/schemas/serrado__backend__routes__interest__Client"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "form",
+          "client"
+        ],
+        "title": "InterestBody"
+      },
+      "InterestForm": {
+        "properties": {
+          "sport": {
+            "type": "string",
+            "enum": [
+              "atletismo",
+              "futsal",
+              "rugby",
+              "formacao",
+              "escola-de-desporto"
+            ],
+            "title": "Sport",
+            "default": "futsal"
+          },
+          "childName": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 3,
+            "title": "Childname"
+          },
+          "birthDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birthdate"
+          },
+          "guardianName": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 3,
+            "title": "Guardianname"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Notes",
+            "default": ""
+          },
+          "consent": {
+            "type": "boolean",
+            "title": "Consent"
+          },
+          "website": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Website",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "childName",
+          "guardianName",
+          "email",
+          "phone",
+          "consent"
+        ],
+        "title": "InterestForm"
+      },
+      "InterestUpdate": {
+        "properties": {
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "novo",
+                  "contactado",
+                  "inscrito",
+                  "desistiu"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "staffNote": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Staffnote"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "InterestUpdate"
+      },
+      "InvoiceIn": {
+        "properties": {
+          "received": {
+            "type": "boolean",
+            "title": "Received"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "received"
+        ],
+        "title": "InvoiceIn"
+      },
       "LegalBody": {
         "properties": {
           "title": {
@@ -6505,6 +10865,139 @@
           "body"
         ],
         "title": "LegalBody"
+      },
+      "Link": {
+        "properties": {
+          "athleteName": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 2,
+            "title": "Athletename"
+          },
+          "birthYear": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birthyear"
+          },
+          "athleteId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-fA-F-]{36}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Athleteid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "athleteName"
+        ],
+        "title": "Link",
+        "description": "Liga (ou desliga, sem athleteId) todos os resultados desta pessoa (nome + ano) a um atleta."
+      },
+      "ListImport": {
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ListRow"
+            },
+            "type": "array",
+            "maxItems": 2000,
+            "minItems": 1,
+            "title": "Rows"
+          },
+          "dryRun": {
+            "type": "boolean",
+            "title": "Dryrun",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rows"
+        ],
+        "title": "ListImport"
+      },
+      "ListRow": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 3,
+            "title": "Name"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "idNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idnumber"
+          },
+          "birthDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birthdate"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ListRow"
       },
       "ManualPayment": {
         "properties": {
@@ -6588,7 +11081,7 @@
             "$ref": "#/components/schemas/MemberSignup"
           },
           "client": {
-            "$ref": "#/components/schemas/Client"
+            "$ref": "#/components/schemas/serrado__backend__routes__signup__Client"
           }
         },
         "additionalProperties": false,
@@ -6757,10 +11250,9 @@
             "title": "Imageconsent",
             "default": false
           },
-          "signature": {
-            "type": "string",
-            "maxLength": 600000,
-            "title": "Signature"
+          "declaration": {
+            "type": "boolean",
+            "title": "Declaration"
           },
           "website": {
             "type": "string",
@@ -6785,7 +11277,8 @@
           "taxNumber": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 20
               },
               {
                 "type": "null"
@@ -6844,13 +11337,25 @@
               }
             ],
             "title": "Category"
+          },
+          "proposerNumber": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposernumber"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
           "accept",
-          "signature",
+          "declaration",
           "name",
           "email",
           "phone",
@@ -6907,7 +11412,7 @@
               "maxLength": 40
             },
             "type": "array",
-            "maxItems": 12,
+            "maxItems": 17,
             "title": "Permissions"
           },
           "key": {
@@ -6924,6 +11429,42 @@
           "key"
         ],
         "title": "NewRole"
+      },
+      "NewUser": {
+        "properties": {
+          "roles": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,30}$"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Roles"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 3,
+            "title": "Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "invite": {
+            "type": "boolean",
+            "title": "Invite",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "roles",
+          "name",
+          "email"
+        ],
+        "title": "NewUser"
       },
       "NewsBody": {
         "properties": {
@@ -7006,6 +11547,43 @@
         ],
         "title": "Note"
       },
+      "NucleoDecision": {
+        "properties": {
+          "approve": {
+            "type": "boolean",
+            "title": "Approve"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMaximum": 1000000.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,6}|(?=[\\d.]{1,9}0*$)\\d{0,6}\\.\\d{0,2}0*$)"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Note",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "approve"
+        ],
+        "title": "NucleoDecision"
+      },
       "PagesBody": {
         "properties": {
           "slug": {
@@ -7037,6 +11615,116 @@
           "title"
         ],
         "title": "PagesBody"
+      },
+      "PartnerExpenseIn": {
+        "properties": {
+          "nucleo": {
+            "type": "string",
+            "enum": [
+              "direcao",
+              "atletismo",
+              "futsal",
+              "rugby"
+            ],
+            "title": "Nucleo"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 3,
+            "title": "Title"
+          },
+          "purpose": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Purpose",
+            "default": ""
+          },
+          "supplier": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 2,
+            "title": "Supplier"
+          },
+          "supplierNif": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]{9}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suppliernif"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMaximum": 1000000.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,6}|(?=[\\d.]{1,9}0*$)\\d{0,6}\\.\\d{0,2}0*$)"
+              }
+            ],
+            "title": "Amount"
+          },
+          "dueDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duedate"
+          },
+          "paymentInfo": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Paymentinfo",
+            "default": ""
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/FileIn"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Files"
+          },
+          "externalRef": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._:/-]{1,64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Externalref"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "nucleo",
+          "category",
+          "title",
+          "supplier",
+          "amount"
+        ],
+        "title": "PartnerExpenseIn"
       },
       "PartnersBody": {
         "properties": {
@@ -7145,6 +11833,77 @@
         ],
         "title": "PayItem"
       },
+      "PaymentIn": {
+        "properties": {
+          "paidOn": {
+            "type": "string",
+            "format": "date",
+            "title": "Paidon"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMaximum": 1000000.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,6}|(?=[\\d.]{1,9}0*$)\\d{0,6}\\.\\d{0,2}0*$)"
+              }
+            ],
+            "title": "Amount"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "transferencia",
+              "numerario",
+              "cartao",
+              "mbway",
+              "cheque",
+              "debito"
+            ],
+            "title": "Method"
+          },
+          "accountCode": {
+            "type": "string",
+            "maxLength": 20,
+            "title": "Accountcode",
+            "default": ""
+          },
+          "docNumber": {
+            "type": "string",
+            "maxLength": 60,
+            "title": "Docnumber",
+            "default": ""
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Note",
+            "default": ""
+          },
+          "proof": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FileIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "paidOn",
+          "amount",
+          "method"
+        ],
+        "title": "PaymentIn"
+      },
       "QuotaPlan": {
         "properties": {
           "amount": {
@@ -7174,6 +11933,231 @@
           "amount"
         ],
         "title": "QuotaPlan"
+      },
+      "Race": {
+        "properties": {
+          "round": {
+            "type": "integer",
+            "maximum": 40.0,
+            "minimum": 1.0,
+            "title": "Round"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 3,
+            "title": "Name"
+          },
+          "raceDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Racedate"
+          },
+          "dateLabel": {
+            "type": "string",
+            "maxLength": 40,
+            "title": "Datelabel",
+            "default": ""
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "infoUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^https://[^\\s]{3,300}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Infourl"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "round",
+          "name"
+        ],
+        "title": "Race"
+      },
+      "RegistrationBody": {
+        "properties": {
+          "form": {
+            "$ref": "#/components/schemas/RegistrationForm"
+          },
+          "client": {
+            "$ref": "#/components/schemas/serrado__backend__routes__interest__Client"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "form",
+          "client"
+        ],
+        "title": "RegistrationBody"
+      },
+      "RegistrationForm": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 3,
+            "title": "Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "people": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "People",
+            "default": 1
+          },
+          "isMember": {
+            "type": "boolean",
+            "title": "Ismember",
+            "default": false
+          },
+          "memberNumber": {
+            "type": "string",
+            "maxLength": 20,
+            "title": "Membernumber",
+            "default": ""
+          },
+          "sport": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "atletismo",
+                  "futsal",
+                  "rugby"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sport"
+          },
+          "shirtSize": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shirtsize"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Notes",
+            "default": ""
+          },
+          "consent": {
+            "type": "boolean",
+            "title": "Consent"
+          },
+          "consentImage": {
+            "type": "boolean",
+            "title": "Consentimage",
+            "default": false
+          },
+          "website": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Website",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "email",
+          "phone",
+          "consent"
+        ],
+        "title": "RegistrationForm"
+      },
+      "RegistrationUpdate": {
+        "properties": {
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "inscrito",
+                  "pago",
+                  "cancelado"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "staffNote": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Staffnote"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "RegistrationUpdate"
       },
       "Reset": {
         "properties": {
@@ -7382,7 +12366,7 @@
               "maxLength": 40
             },
             "type": "array",
-            "maxItems": 12,
+            "maxItems": 17,
             "title": "Permissions"
           }
         },
@@ -7412,6 +12396,226 @@
         ],
         "title": "RolesBody"
       },
+      "SignupRequest": {
+        "properties": {
+          "consent": {
+            "type": "boolean",
+            "const": true,
+            "title": "Consent"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Feminino",
+                  "Masculino"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "idNumber": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idnumber"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "emergencyName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emergencyname"
+          },
+          "emergencyPhone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emergencyphone"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "consent"
+        ],
+        "title": "SignupRequest",
+        "description": "Pedido do atleta/encarregado. Só preenche dados que ainda estejam vazios na ficha."
+      },
+      "StaffSignup": {
+        "properties": {
+          "athleteIds": {
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Athleteids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "athleteIds"
+        ],
+        "title": "StaffSignup"
+      },
+      "SubKeys": {
+        "properties": {
+          "p256dh": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 80,
+            "pattern": "^[A-Za-z0-9_-]+=*$",
+            "title": "P256Dh"
+          },
+          "auth": {
+            "type": "string",
+            "maxLength": 30,
+            "minLength": 16,
+            "pattern": "^[A-Za-z0-9_-]+=*$",
+            "title": "Auth"
+          }
+        },
+        "type": "object",
+        "required": [
+          "p256dh",
+          "auth"
+        ],
+        "title": "SubKeys"
+      },
+      "SubscribeIn": {
+        "properties": {
+          "subscription": {
+            "$ref": "#/components/schemas/Subscription"
+          },
+          "topics": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "noticias",
+                "eventos",
+                "jogos",
+                "pagamentos",
+                "gastos"
+              ]
+            },
+            "type": "array",
+            "maxItems": 5,
+            "title": "Topics"
+          },
+          "sports": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "atletismo",
+                "futsal",
+                "rugby"
+              ]
+            },
+            "type": "array",
+            "maxItems": 5,
+            "title": "Sports"
+          },
+          "userAgent": {
+            "type": "string",
+            "maxLength": 400,
+            "title": "Useragent",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "subscription"
+        ],
+        "title": "SubscribeIn"
+      },
+      "Subscription": {
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Endpoint"
+          },
+          "keys": {
+            "$ref": "#/components/schemas/SubKeys"
+          }
+        },
+        "type": "object",
+        "required": [
+          "endpoint",
+          "keys"
+        ],
+        "title": "Subscription"
+      },
+      "TokenIn": {
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "maxLength": 40,
+            "title": "Clientid"
+          },
+          "clientSecret": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Clientsecret"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "clientId",
+          "clientSecret"
+        ],
+        "title": "TokenIn"
+      },
       "Upload": {
         "properties": {
           "name": {
@@ -7422,7 +12626,7 @@
           },
           "data": {
             "type": "string",
-            "maxLength": 7100000,
+            "maxLength": 14100000,
             "minLength": 8,
             "title": "Data"
           },
@@ -7513,6 +12717,20 @@
         ],
         "title": "ValidationError"
       },
+      "Visibility": {
+        "properties": {
+          "hidden": {
+            "type": "boolean",
+            "title": "Hidden"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "hidden"
+        ],
+        "title": "Visibility"
+      },
       "WebhookBody": {
         "properties": {
           "payload": {
@@ -7532,6 +12750,49 @@
           "signature"
         ],
         "title": "WebhookBody"
+      },
+      "serrado__backend__routes__interest__Client": {
+        "properties": {
+          "ip": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 2,
+            "title": "Ip"
+          },
+          "userAgent": {
+            "type": "string",
+            "maxLength": 400,
+            "title": "Useragent",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "ip"
+        ],
+        "title": "Client"
+      },
+      "serrado__backend__routes__signup__Client": {
+        "properties": {
+          "ip": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 2,
+            "title": "Ip"
+          },
+          "userAgent": {
+            "type": "string",
+            "maxLength": 400,
+            "title": "Useragent",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "ip"
+        ],
+        "title": "Client",
+        "description": "Quem submeteu (posto pelo middleware, não pelo browser)."
       }
     }
   }
