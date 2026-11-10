@@ -5,6 +5,7 @@ API para sistemas externos (ERP, plataforma de compras, outra aplicação) regis
 - **Endereço base:** `https://www.serradofc.pt/api/v1/partner`
 - **Formato:** JSON (UTF-8), datas ISO 8601, valores em euros com ponto decimal (`"245.90"`).
 - **Autenticação:** OAuth 2.0 *client credentials*. Troca o `client_id` e o `client_secret` por um token de acesso de 15 minutos.
+- **Especificação OpenAPI 3.1 (Swagger):** [`docs/openapi-parceiros.yaml`](openapi-parceiros.yaml). Pode ser importada no Postman, no Insomnia ou num gerador de clientes. Foi validada e comparada com as respostas reais da API.
 - **Uso:** só entre servidores. Não é para chamar a partir de um browser: o segredo nunca pode estar em código que corre no cliente.
 
 ## 1. Credenciais
