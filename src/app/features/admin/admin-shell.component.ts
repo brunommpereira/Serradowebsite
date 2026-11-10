@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, PLATFORM_ID, signal } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { AppPushService } from '../../core/services/app-push.service';
@@ -46,6 +46,11 @@ const NAV: { title: string; items: NavItem[] }[] = [
       { label: 'Validações', link: '/admin/validacoes', icon: 'check', permissions: ['athletes.manage'] },
       { label: 'Resultados', link: '/admin/resultados', icon: 'trophy', permissions: ['results.import'] },
       { label: 'Inscrições no Troféu', link: '/admin/inscricoes-trofeu', icon: 'run', permissions: ['athletes.manage'] },
+    ],
+  },
+  {
+    title: 'Tesouraria',
+    items: [
       { label: 'Pagamentos', link: '/admin/pagamentos', icon: 'euro', permissions: ['payments.view'] },
       { label: 'Pedidos de gasto', link: '/admin/pedidos-de-gasto', icon: 'card', permissions: ['expenses.request', 'expenses.approve', 'expenses.pay', 'expenses.view'] },
     ],
@@ -62,6 +67,17 @@ const NAV: { title: string; items: NavItem[] }[] = [
   },
 ];
 
+const CLOSED_KEY = 'sfc-admin-menu-fechado';
+
+function readClosed(): ReadonlySet<string> {
+  try {
+    const v: unknown = JSON.parse(localStorage.getItem(CLOSED_KEY) ?? '[]');
+    return new Set(Array.isArray(v) ? v.filter((t): t is string => typeof t === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
 /** Layout do backoffice: barra lateral filtrada pelas permissões da conta. */
 @Component({
   selector: 'sfc-admin-shell',
@@ -76,11 +92,17 @@ const NAV: { title: string; items: NavItem[] }[] = [
         </a>
         <nav>
           @for (g of nav(); track g.title) {
-            <p class="side__group">{{ g.title }}</p>
-            @for (i of g.items; track i.link) {
-              <a [routerLink]="i.link" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: !!i.exact }" (click)="menuOpen.set(false)">
-                <sfc-icon [name]="i.icon" size="18" />{{ i.label }}
-              </a>
+            <button type="button" class="side__group" [attr.aria-expanded]="!closed().has(g.title)" [attr.aria-controls]="'nav-' + g.title" (click)="toggleGroup(g.title)">
+              {{ g.title }}<span class="side__chevron" [class.side__chevron--closed]="closed().has(g.title)"><sfc-icon name="chevron" size="14" /></span>
+            </button>
+            @if (!closed().has(g.title)) {
+              <div [id]="'nav-' + g.title">
+                @for (i of g.items; track i.link) {
+                  <a [routerLink]="i.link" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: !!i.exact }" (click)="menuOpen.set(false)">
+                    <sfc-icon [name]="i.icon" size="18" />{{ i.label }}
+                  </a>
+                }
+              </div>
             }
           }
         </nav>
@@ -216,14 +238,37 @@ const NAV: { title: string; items: NavItem[] }[] = [
         }
       }
     }
+    .side__chevron {
+      display: inline-flex;
+      transition: transform 0.15s;
+    }
+    .side__chevron--closed {
+      transform: rotate(-90deg);
+    }
     .side__group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
       margin: 0.8rem 0 0.2rem;
-      padding: 0 0.7rem;
+      padding: 0.2rem 0.7rem;
+      border: 0;
+      background: none;
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
       font-size: 0.7rem;
       font-weight: 700;
       letter-spacing: 0.1em;
       text-transform: uppercase;
       color: rgba(255, 255, 255, 0.55);
+      &:hover {
+        color: #fff;
+      }
+      &:focus-visible {
+        outline: 3px solid var(--sfc-yellow);
+        outline-offset: 1px;
+      }
     }
     .side__foot {
       margin-top: auto;
@@ -384,9 +429,19 @@ export class AdminShellComponent {
   protected readonly iosHelp = signal(false);
   /** Nome da app instalável: contas só de despesas têm a sua própria */
   protected readonly appName = this.auth.expensesOnly() ? 'SFC Despesas' : 'SFC Admin';
+  /** Secções do menu fechadas (guardado neste browser; a secção da página aberta abre sempre) */
+  protected readonly closed = signal<ReadonlySet<string>>(readClosed());
   protected readonly canInstall = computed(() => !this.push.installed() && (!!this.push.installPrompt() || this.push.ios));
 
   constructor() {
+    // Ao navegar, a secção da página atual abre-se se estiver fechada
+    this.router.events
+      .pipe(
+        filter((e) => e instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => this.openActiveGroup());
+    this.openActiveGroup();
     // No backoffice, o site apresenta-se como a app «SFC Admin» (manifesto, ícone e nome próprios):
     // instalada a partir daqui, abre diretamente em /admin. Ao sair, volta a ser a app do site.
     if (!isPlatformBrowser(inject(PLATFORM_ID))) return;
@@ -416,6 +471,31 @@ export class AdminShellComponent {
       for (const [el, attr, old] of before) if (el && old !== null) el.setAttribute(attr, old);
       if (addedTitle) title.remove();
     });
+  }
+
+  private openActiveGroup() {
+    const url = this.router.url.split(/[?#]/)[0];
+    const g = NAV.find((x) => x.items.some((i) => (i.exact ? url === i.link : url === i.link || url.startsWith(i.link + '/'))));
+    if (g && this.closed().has(g.title)) {
+      const next = new Set(this.closed());
+      next.delete(g.title);
+      this.setClosed(next);
+    }
+  }
+
+  protected toggleGroup(title: string) {
+    const next = new Set(this.closed());
+    if (!next.delete(title)) next.add(title);
+    this.setClosed(next);
+  }
+
+  private setClosed(next: Set<string>) {
+    this.closed.set(next);
+    try {
+      localStorage.setItem(CLOSED_KEY, JSON.stringify([...next]));
+    } catch {
+      /* sem armazenamento: o menu funciona na mesma, só não se lembra */
+    }
   }
 
   protected async install() {
