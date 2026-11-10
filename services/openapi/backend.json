@@ -8297,7 +8297,7 @@
         "tags": [
           "APIs técnicas · credenciais"
         ],
-        "summary": "Clientes das APIs técnicas, responsáveis possíveis, núcleos e permissões",
+        "summary": "Clientes das APIs técnicas, núcleos e permissões",
         "operationId": "list_clients_internal_v1_api_clients_get",
         "responses": {
           "200": {
@@ -9806,11 +9806,6 @@
             "minLength": 3,
             "title": "Name"
           },
-          "userId": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-            "title": "Userid"
-          },
           "nucleos": {
             "items": {
               "type": "string",
@@ -9842,8 +9837,7 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "name",
-          "userId"
+          "name"
         ],
         "title": "ClientIn"
       },

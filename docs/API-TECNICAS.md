@@ -13,7 +13,7 @@ APIs para sistemas externos (ERP, plataforma de compras, outra aplicação). Per
 
 ## 1. Credenciais
 
-As credenciais são criadas no backoffice, em **Gestão → APIs técnicas**, por quem gere os utilizadores. Cada cliente tem:
+As credenciais são criadas no backoffice, em **Gestão → APIs técnicas**, por quem gere os utilizadores. A credencial identifica o **sistema**, não uma pessoa: não fica associada a nenhum utilizador. Cada cliente tem:
 
 | | |
 |---|---|
@@ -21,14 +21,13 @@ As credenciais são criadas no backoffice, em **Gestão → APIs técnicas**, po
 | `client_secret` | Segredo, por exemplo `sfc_sk_…`. É mostrado **uma única vez**; o clube só guarda o hash |
 | Permissões | **Registar pedidos** e/ou **decidir como tesoureiro do núcleo** |
 | Núcleos | Os núcleos com que o cliente pode trabalhar (`direcao`, `atletismo`, `futsal`, `rugby`); vazio = todos |
-| Responsável | A pessoa do clube que é o contacto para esta integração |
 
 - **Novo segredo:** se o segredo for exposto, gera-se um novo no backoffice. O anterior e os tokens emitidos com ele deixam de valer de imediato.
 - **Revogar:** desliga o cliente. Os pedidos já feitos mantêm-se.
 
 ## 2. Pessoas: quem pede e quem decide
 
-Cada pedido indica o **email de quem pede** (`requesterEmail`), e cada decisão o **email de quem decide** (`approverEmail`). As regras são as mesmas do backoffice:
+Cada pedido indica o **email de quem pede** (`requesterEmail`), e cada decisão o **email de quem decide** (`approverEmail`). O **perfil desse email é validado no momento de cada chamada**: conta ativa e papéis e permissões atuais no clube. Uma mudança de perfil no backoffice vale logo. As regras são as mesmas do backoffice:
 
 - **Quem pede:** tem de ter uma conta ativa no clube com permissão para pedir gastos. O pedido fica em nome dessa pessoa, que recebe os emails do processo.
 - **Quem decide:** tem de ser **tesoureiro do núcleo** do pedido, como definido no backoffice. Se o núcleo não tiver outro tesoureiro além de quem pediu, decide a tesouraria da direção.

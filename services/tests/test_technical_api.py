@@ -27,8 +27,8 @@ async def new_client(mw, **extra: object) -> dict:
     admin = await mw.login("admin@serradofc.pt", "admin2026")
     meta = (await admin.get("/api/v1/admin/api-clients")).json()
     assert {s["key"] for s in meta["scopes"]} == set(BOTH)
-    owner = next(u for u in meta["candidates"] if u["email"] == "tesouraria@serradofc.pt")
-    body = {"name": "ERP do clube", "userId": owner["id"], "nucleos": ["rugby"], "scopes": BOTH, **extra}
+    assert "candidates" not in meta  # a credencial não fica associada a nenhum utilizador
+    body = {"name": "ERP do clube", "nucleos": ["rugby"], "scopes": BOTH, **extra}
     r = await admin.post("/api/v1/admin/api-clients", json=body)
     assert r.status_code == 201, r.text
     return r.json()
@@ -53,7 +53,7 @@ async def test_pedido_em_nome_de_quem_pede_decisao_do_nucleo_e_estado(mw):
     client = await new_client(mw)
     cid, secret = client["clientId"], client["clientSecret"]
     assert cid.startswith("sfc_cli_") and secret.startswith("sfc_sk_") and client["secretHint"] == secret[-4:]
-    assert client["scopes"] == BOTH and client["userName"] == "Tesouraria"
+    assert client["scopes"] == BOTH and "userId" not in client
     # Do segredo só fica o hash; a lista não o mostra
     row = await fetch_one(mw.pool, "select secret_hash from api_clients where client_id = %s", [cid])
     assert row and secret not in row["secret_hash"] and len(row["secret_hash"]) == 64
@@ -153,9 +153,10 @@ async def test_permissoes_da_credencial(mw):
     assert r.status_code == 404
     # Sem permissões não se cria
     admin = await mw.login("admin@serradofc.pt", "admin2026")
-    owner = await fetch_one(mw.pool, "select id::text as id from users where email = 'tesouraria@serradofc.pt'")
-    assert owner
-    assert (await admin.post("/api/v1/admin/api-clients", json={"name": "Nada", "userId": owner["id"], "scopes": []})).status_code == 400
+    assert (await admin.post("/api/v1/admin/api-clients", json={"name": "Nada", "scopes": []})).status_code == 400
+    # Associar um utilizador já não é aceite
+    r = await admin.post("/api/v1/admin/api-clients", json={"name": "Com user", "userId": "00000000-0000-0000-0000-000000000000"})
+    assert r.status_code == 400
 
 
 async def test_credenciais_tokens_e_limites(mw):
@@ -212,11 +213,8 @@ async def test_credenciais_tokens_e_limites(mw):
     api.headers["authorization"] = f"Bearer {fresh}"
     assert (await api.get("/api/v1/technical/expenses/1")).status_code == 401
 
-    # Só quem gere utilizadores mexe nas credenciais; o responsável tem de ser da equipa
+    # Só quem gere utilizadores mexe nas credenciais
     tesouraria = await mw.login("tesouraria@serradofc.pt", "tesouraria2026")
     assert (await tesouraria.get("/api/v1/admin/api-clients")).status_code == 403
-    socio = await fetch_one(mw.pool, "select id::text as id from users where email = 'joao@exemplo.pt'")
-    assert socio
-    assert (await admin.post("/api/v1/admin/api-clients", json={"name": "Sem papel", "userId": socio["id"]})).status_code == 400
     audit = await fetch(mw.pool, "select action from audit_log where entity = 'api_client' order by id")
     assert [a["action"] for a in audit][-3:] == ["create", "rotate_secret", "revoke"]

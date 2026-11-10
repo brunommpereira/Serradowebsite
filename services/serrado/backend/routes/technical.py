@@ -80,7 +80,6 @@ def sha(value: str) -> str:
 class ClientIn(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     name: str = Field(min_length=3, max_length=80)
-    userId: str = Field(pattern=UUID)
     nucleos: list[Nucleo] = Field(default_factory=list, max_length=len(NUCLEOS))
     scopes: list[Scope] = Field(default_factory=lambda: list[Scope](["expenses.create"]), min_length=1, max_length=len(SCOPES))
 
@@ -120,23 +119,14 @@ async def person(c: Conn, email: str) -> Actor | None:
     return Actor(id=row["id"], roles=roles, permissions=effective(roles, set(row["permissions"])))
 
 
-async def candidates(c: Conn) -> list[dict[str, Any]]:
-    """Quem pode ser o responsável pela integração: contas ativas da equipa (com algum papel)."""
-    return await fetch(
-        c,
-        """select u.id::text as id, u.name, u.email from users u
-            where not u.disabled and exists (select 1 from user_roles ur where ur.user_id = u.id) order by u.name""",
-    )
-
-
 async def client_view(c: Conn, id: str) -> dict[str, Any]:
     row = await fetch_one(
         c,
-        """select k.id::text as id, k.client_id as "clientId", k.name, k.secret_hint as "secretHint", k.user_id::text as "userId",
-                  u.name as "userName", k.nucleos, k.scopes, k.active, k.created_at as "createdAt", k.secret_rotated_at as "secretRotatedAt",
+        """select k.id::text as id, k.client_id as "clientId", k.name, k.secret_hint as "secretHint",
+                  k.nucleos, k.scopes, k.active, k.created_at as "createdAt", k.secret_rotated_at as "secretRotatedAt",
                   k.last_used_at as "lastUsedAt", k.revoked_at as "revokedAt",
                   (select count(*) from expenses e where e.api_client = k.id)::int as "requests"
-             from api_clients k join users u on u.id = k.user_id where k.id = %s""",
+             from api_clients k where k.id = %s""",
         [id],
     )
     if not row:
@@ -201,14 +191,13 @@ def register(r: APIRouter) -> None:
 
     # ------------------------------------------------------------ credenciais (backoffice)
 
-    @r.get("/api-clients", tags=admin_tags, summary="Clientes das APIs técnicas, responsáveis possíveis, núcleos e permissões")
+    @r.get("/api-clients", tags=admin_tags, summary="Clientes das APIs técnicas, núcleos e permissões")
     async def list_clients(req: Request) -> dict[str, Any]:
         require(req, "users.manage")
         async with tx(pool(req)) as c:
             ids = await fetch(c, "select id::text as id from api_clients order by active desc, created_at desc")
             return {
                 "clients": [await client_view(c, x["id"]) for x in ids],
-                "candidates": await candidates(c),
                 "nucleos": [{"key": k, "label": v} for k, v in NUCLEOS.items()],
                 "scopes": [{"key": k, "label": v} for k, v in SCOPES.items()],
             }
@@ -219,17 +208,14 @@ def register(r: APIRouter) -> None:
         secret = new_secret()
         scopes = [s for s in SCOPES if s in body.scopes]
         async with tx(pool(req)) as c:
-            if body.userId not in {x["id"] for x in await candidates(c)}:
-                raise HttpError(400, "invalid_user", "O responsável tem de ser uma conta ativa da equipa")
             cur = await c.execute(
-                """insert into api_clients (client_id, name, secret_hash, secret_hint, user_id, nucleos, scopes, created_by)
-                   values (%s, %s, %s, %s, %s, %s, %s, %s) returning id::text as id""",
+                """insert into api_clients (client_id, name, secret_hash, secret_hint, nucleos, scopes, created_by)
+                   values (%s, %s, %s, %s, %s, %s, %s) returning id::text as id""",
                 [
                     "sfc_cli_" + secrets.token_hex(8),
                     body.name,
                     sha(secret),
                     secret[-4:],
-                    body.userId,
                     sorted(set(body.nucleos)),
                     scopes,
                     actor(req).id,
@@ -243,7 +229,7 @@ def register(r: APIRouter) -> None:
                 "create",
                 "api_client",
                 row["id"],
-                {"name": body.name, "user": body.userId, "nucleos": sorted(set(body.nucleos)), "scopes": scopes},
+                {"name": body.name, "nucleos": sorted(set(body.nucleos)), "scopes": scopes},
             )
             return {**await client_view(c, row["id"]), "clientSecret": secret}
 

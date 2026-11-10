@@ -9,8 +9,6 @@ interface Client {
   clientId: string;
   name: string;
   secretHint: string;
-  userId: string;
-  userName: string;
   nucleos: string[];
   scopes: string[];
   active: boolean;
@@ -20,14 +18,8 @@ interface Client {
   revokedAt: string | null;
   requests: number;
 }
-interface Option {
-  id: string;
-  name: string;
-  email: string;
-}
 interface Meta {
   clients: Client[];
-  candidates: Option[];
   nucleos: { key: string; label: string }[];
   scopes: { key: string; label: string }[];
 }
@@ -105,16 +97,6 @@ interface Meta {
               placeholder="Ex.: ERP da contabilidade"
             />
           </div>
-          <div class="field">
-            <label for="c-user">Responsável pela integração <span class="req">*</span></label>
-            <select id="c-user" name="user" [(ngModel)]="f.userId" required>
-              <option value="" disabled>Escolher…</option>
-              @for (u of meta()?.candidates ?? []; track u.id) {
-                <option [value]="u.id">{{ u.name }} ({{ u.email }})</option>
-              }
-            </select>
-            <span class="caption">Contacto no clube para este sistema (não é quem pede).</span>
-          </div>
           <fieldset class="wide">
             <legend>O que pode fazer <span class="req">*</span></legend>
             <div class="checks">
@@ -149,7 +131,7 @@ interface Meta {
             <button
               class="btn btn--primary"
               type="submit"
-              [disabled]="busy() || !f.userId || !f.scopes.length || f.name.trim().length < 3"
+              [disabled]="busy() || !f.scopes.length || f.name.trim().length < 3"
             >
               Criar credenciais
             </button>
@@ -162,7 +144,6 @@ interface Meta {
           <thead>
             <tr>
               <th scope="col">Cliente</th>
-              <th scope="col">Responsável</th>
               <th scope="col">Pode</th>
               <th scope="col">Núcleos</th>
               <th scope="col">Pedidos</th>
@@ -184,7 +165,6 @@ interface Meta {
                     >
                   }
                 </td>
-                <td>{{ c.userName }}</td>
                 <td>{{ scopeLabels(c.scopes) }}</td>
                 <td>{{ c.nucleos.length ? labels(c.nucleos) : 'Todos' }}</td>
                 <td>{{ c.requests }}</td>
@@ -212,7 +192,7 @@ interface Meta {
               </tr>
             } @empty {
               <tr>
-                <td colspan="7" class="caption">Ainda não há clientes da API.</td>
+                <td colspan="6" class="caption">Ainda não há clientes da API.</td>
               </tr>
             }
           </tbody>
@@ -293,7 +273,7 @@ export class ApiClientsPage {
   protected readonly secret = signal<(Client & { clientSecret: string }) | null>(null);
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
-  protected f = { name: '', userId: '', nucleos: [] as string[], scopes: ['expenses.create'] };
+  protected f = { name: '', nucleos: [] as string[], scopes: ['expenses.create'] };
 
   constructor() {
     if (this.api.enabled) void this.load();
@@ -338,8 +318,8 @@ export class ApiClientsPage {
       this.secret.set(
         await this.api.post('/admin/api-clients', { ...this.f, name: this.f.name.trim() }),
       );
-      this.f = { name: '', userId: '', nucleos: [], scopes: ['expenses.create'] };
-      form.resetForm({ name: '', user: '' });
+      this.f = { name: '', nucleos: [], scopes: ['expenses.create'] };
+      form.resetForm({ name: '' });
     });
   }
 
