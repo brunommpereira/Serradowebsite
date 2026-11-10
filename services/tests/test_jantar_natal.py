@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from serrado.db.pool import fetch_one
+from serrado.db.pool import execute, fetch_one
 from tests.conftest import XHR
 
 SQL = (Path(__file__).parents[1] / "serrado/db/migrations/032_jantar_de_natal.sql").read_text()
@@ -30,6 +30,9 @@ async def test_jantar_de_natal_publicado_e_aceita_inscricoes_gratuitas(mw):
     page = (await mw.client().get("/api/v1/content/events/jantar-de-natal")).json()
     page = page.get("data", page)
     assert page["date"] == "2026-11-07T20:00" and page["price"] == 0 and page["registrationRequired"] is True
+
+    # As inscrições fecham quando o evento começa: para o teste não depender do dia de hoje, o jantar passa a daqui a 30 dias
+    await execute(mw.pool, "update cms_events set starts_at = now() + interval '30 days' where slug = 'jantar-de-natal'")
 
     # Inscrição gratuita: valor 0, sem dados de pagamento
     c = mw.client()

@@ -3,7 +3,7 @@
 import psycopg
 import pytest
 
-from serrado.db.pool import fetch, fetch_one
+from serrado.db.pool import execute, fetch, fetch_one
 
 EDITOR = {"email": "editor@serradofc.pt", "roles": "editor"}
 SECRETARIA = {"email": "secretaria@serradofc.pt", "roles": "secretaria"}
@@ -208,7 +208,9 @@ async def test_importacao_idempotente_de_resultados(call):
     assert (await call("POST", "/results/import", EDITOR, {"rows": rows})).status_code == 403
 
 
-async def test_quotas_o_proprio_socio_ou_a_secretaria(call):
+async def test_quotas_o_proprio_socio_ou_a_secretaria(call, pool):
+    # O estado «Pendente» ou «Em atraso» depende do dia de hoje: a quota de teste fica com prazo daqui a 30 dias
+    await execute(pool, "update quotas set due_date = current_date + 30 where member_number = '00482' and paid_at is null")
     assert (await call("GET", "/members/00482/quotas", SOCIO)).json()[0]["status"] == "Pendente"
     assert (await call("GET", "/members/00731/quotas", SOCIO)).status_code == 403
     assert (await call("GET", "/members/00731/quotas", SECRETARIA)).status_code == 200
