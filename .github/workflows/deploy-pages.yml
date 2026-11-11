@@ -42,7 +42,7 @@ jobs:
           npx ng build --base-href "/${REPO}/asrosinhas/"
           SITE_URL="https://${GITHUB_REPOSITORY_OWNER}.github.io/${REPO}/asrosinhas" node scripts/postbuild.mjs
           cp -r dist/asrosinhas/browser ../../dist/serrado-fc/browser/asrosinhas
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist/serrado-fc/browser
