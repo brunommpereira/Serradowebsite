@@ -122,7 +122,7 @@ async def send_dorsais(c: Conn, who: Actor, edition_id: int, p: DorsalMail) -> d
     }
     if p.testTo:
         # Exemplo com os dados do primeiro atleta pronto (ou fictícios): vai só para o endereço pedido e não marca nada
-        ex = pl.ready[0] if pl.ready else {"name": "Nome Exemplo", "bib": 123, "birth_date": None}
+        ex: dict[str, Any] = pl.ready[0] if pl.ready else {"name": "Nome Exemplo", "bib": 123, "birth_date": None}
         subject, html = compose(p, name=ex["name"], bib=ex["bib"], birth=ex["birth_date"])
         await enqueue(c, to_email=p.testTo, to_name="Teste", subject=f"[TESTE] {subject}", html_body=html)
         await audit(c, who, "races.dorsal_mail_test", "race_editions", edition_id, {"to": p.testTo})
