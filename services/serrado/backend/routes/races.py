@@ -416,6 +416,7 @@ def register(r: APIRouter) -> None:
             "completed": res.completed,
             "marked": res.marked,
             "already": res.already,
+            "dorsals": res.dorsals,
             "createdNames": res.created_names,
             "skipped": res.skipped,
             "notes": res.notes,

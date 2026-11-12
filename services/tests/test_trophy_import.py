@@ -184,8 +184,12 @@ async def test_a_lista_guarda_o_dorsal(mw):
     sec = await mw.login("secretaria@serradofc.pt", "secretaria2026")
     url = f"/api/v1/admin/races/editions/{ed['id']}/import"
     row = {"name": "Dorsal Importado Exemplo", "gender": "M", "idNumber": "44444444", "birthDate": "1991-02-03", "dorsal": 421}
-    assert (await sec.post(url, json={"rows": [row]})).status_code == 200
+    first = await sec.post(url, json={"rows": [row]})
+    assert first.status_code == 200 and first.json()["dorsals"] == 1
     assert await bib_of(mw) == 421
+    # A pré-visualização conta os dorsais sem os gravar
+    prev = (await sec.post(url, json={"rows": [{**row, "dorsal": 500}], "dryRun": True})).json()
+    assert prev["dorsals"] == 1 and await bib_of(mw) == 421
     # Voltar a importar com outro dorsal corrige-o; sem dorsal, deixa como está
     assert (await sec.post(url, json={"rows": [{**row, "dorsal": 422}]})).status_code == 200
     assert (await sec.post(url, json={"rows": [{k: v for k, v in row.items() if k != "dorsal"}]})).status_code == 200
