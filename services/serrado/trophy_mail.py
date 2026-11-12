@@ -15,6 +15,7 @@ from typing import Annotated, Any
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
 from .backend.core import Actor, audit
+from .config import config
 from .db.pool import Conn
 from .mail import enqueue, layout
 
@@ -77,14 +78,21 @@ def compose(p: DorsalMail, *, name: str, bib: int, birth: date | str | None) -> 
         f"{who} é o seguinte:",
         f"O dorsal é entregue no dia da prova, a partir das {p.meetTime}, {p.meetPlace}. Vamos estar identificados com a bandeira do Serrado.",
         "Lê com atenção o regulamento da prova:",
-        "Contamos com todos para conseguirmos ainda mais do que no ano passado!",
     ]
+    site = config.oauth.site_url or "https://serradofc.pt"
     html = layout(
         p.raceName,
         body,
         ("Ver o regulamento", p.regulationUrl),
         "Este email foi enviado automaticamente pelo Serrado FC aos atletas inscritos no Troféu.",
         highlight=(3, f"Dorsal n.º {bib}"),
+        after=["Contamos com todos para conseguirmos ainda mais do que no ano passado!"],
+        banner=(
+            "Entra no site do Serrado FC",
+            "Convidamos todos os atletas a visitar o site do clube: aqui encontras todas as novidades e informações do Serrado e, na área do "
+            "atleta, os resultados e a comparação dos tempos das provas que realizaste nos últimos anos.",
+            [("Entrar no site do Serrado FC", site), ("Ver os meus tempos e comparações", f"{site}/area-atletas")],
+        ),
     )
     return f"O teu dorsal para o {p.raceName} ({p.raceDate}) — Serrado FC", html
 

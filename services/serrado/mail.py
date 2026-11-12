@@ -109,9 +109,12 @@ def layout(
     button: tuple[str, str] | None = None,
     footer: str = "",
     highlight: tuple[int, str] | None = None,
+    after: list[str] | None = None,
+    banner: tuple[str, str, list[tuple[str, str]]] | None = None,
 ) -> str:
     """HTML simples e legível em qualquer cliente de email. O texto é sempre escapado.
-    highlight = (n, texto): caixa em destaque depois do n-ésimo parágrafo (por exemplo, um número de dorsal)."""
+    highlight = (n, texto): caixa em destaque depois do n-ésimo parágrafo (por exemplo, um número de dorsal).
+    after = parágrafos depois do botão. banner = (título, texto, [(botão, endereço)…]): bloco grande e verde no fim."""
     e = html.escape
     parts = [f'<p style="margin:0 0 16px">{e(p)}</p>' for p in paragraphs]
     if highlight:
@@ -126,6 +129,19 @@ def layout(
             f'<p style="margin:24px 0"><a href="{e(url, quote=True)}" style="background:#0b5d3b;color:#fff;padding:12px 20px;'
             f'border-radius:6px;text-decoration:none;font-weight:600">{e(label)}</a></p>'
             f'<p style="margin:0 0 16px;font-size:13px;color:#555">Se o botão não abrir, copia este endereço: {e(url)}</p>'
+        )
+    body += "".join(f'<p style="margin:0 0 16px">{e(p)}</p>' for p in after or [])
+    if banner:
+        head, text, buttons = banner
+        links = "".join(
+            f'<a href="{e(url, quote=True)}" style="display:inline-block;margin:6px 6px 0 0;background:#fff;color:#0b5d3b;padding:14px 22px;'
+            f'border-radius:6px;text-decoration:none;font-weight:700;font-size:16px">{e(label)}</a>'
+            for label, url in buttons
+        )
+        body += (
+            '<div style="margin:28px 0 8px;padding:26px 22px;background:#0b5d3b;border-radius:8px;color:#fff">'
+            f'<p style="margin:0 0 10px;font-size:24px;line-height:1.25;font-weight:700">{e(head)}</p>'
+            f'<p style="margin:0 0 14px;font-size:16px;line-height:1.5">{e(text)}</p>{links}</div>'
         )
     if footer:
         body += f'<p style="margin:24px 0 0;font-size:13px;color:#555">{e(footer)}</p>'
