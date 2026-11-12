@@ -103,10 +103,23 @@ async def load_signature(pool: Pool) -> str:
     return signature_html(rows[0]["data"] if rows else None, config.oauth.site_url)
 
 
-def layout(title: str, paragraphs: list[str], button: tuple[str, str] | None = None, footer: str = "") -> str:
-    """HTML simples e legível em qualquer cliente de email. O texto é sempre escapado."""
+def layout(
+    title: str,
+    paragraphs: list[str],
+    button: tuple[str, str] | None = None,
+    footer: str = "",
+    highlight: tuple[int, str] | None = None,
+) -> str:
+    """HTML simples e legível em qualquer cliente de email. O texto é sempre escapado.
+    highlight = (n, texto): caixa em destaque depois do n-ésimo parágrafo (por exemplo, um número de dorsal)."""
     e = html.escape
-    body = "".join(f'<p style="margin:0 0 16px">{e(p)}</p>' for p in paragraphs)
+    parts = [f'<p style="margin:0 0 16px">{e(p)}</p>' for p in paragraphs]
+    if highlight:
+        parts.insert(
+            highlight[0],
+            f'<p style="margin:0 0 16px;padding:14px;background:#eef6f1;border-radius:6px;text-align:center;font-size:22px;font-weight:700;color:#0b5d3b">{e(highlight[1])}</p>',
+        )
+    body = "".join(parts)
     if button:
         label, url = button
         body += (

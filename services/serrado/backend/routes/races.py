@@ -16,6 +16,7 @@ from ... import xistarca
 from ...config import config
 from ...db.pool import Pool, fetch, fetch_one, tx
 from ...trophy_import import ListRow, import_list
+from ...trophy_mail import DorsalMail, send_dorsais
 from ...validation import is_valid_id_number, is_valid_phone
 from ..core import HttpError, actor, audit, camel, not_found, pool, require
 from .athletes import DATE, AthleteId, _valid_date, require_access
@@ -418,6 +419,17 @@ def register(r: APIRouter) -> None:
             "notes": res.notes,
             "notInList": res.not_in_list,
         }
+
+    @r.post(
+        "/races/editions/{edition_id}/dorsal-mail",
+        tags=tags,
+        summary="Email individual com o dorsal aos inscritos (dryRun: só contagens; testTo: um exemplo para um endereço)",
+    )
+    async def dorsal_mail(req: Request, edition_id: Id, body: DorsalMail) -> dict[str, Any]:
+        require(req, "athletes.manage")
+        async with tx(pool(req)) as c:
+            await _edition(c, edition_id)
+            return await send_dorsais(c, actor(req), edition_id, body)
 
     @r.post("/races/signups/{signup_id}/{action}", tags=tags, summary="retry · cancel · done (marcar inscrito à mão)")
     async def act(req: Request, signup_id: Id, action: Annotated[str, Path(pattern="^(retry|cancel|done)$")]) -> dict[str, Any]:

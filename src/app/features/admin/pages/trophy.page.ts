@@ -21,6 +21,21 @@ interface ListRow {
   birthDate: string | null;
   email: string | null;
   phone: string | null;
+  dorsal: string | null;
+}
+
+interface MailOut {
+  dryRun: boolean;
+  test?: boolean;
+  sentTo?: string;
+  sent?: number;
+  inscribed: number;
+  ready: number;
+  already: number;
+  noBib: number;
+  noEmail: number;
+  noBibNames: string[];
+  noEmailNames: string[];
 }
 
 interface ImportOut {
@@ -51,6 +66,7 @@ const LIST_COLUMNS: Record<string, keyof ListRow> = {
   email: 'email',
   telemovel: 'phone',
   telefone: 'phone',
+  dorsal: 'dorsal',
 };
 
 interface Race {
@@ -239,6 +255,9 @@ const blank = (): Partial<Edition> => {
               <button type="button" class="btn btn--primary btn--sm" (click)="openImport()">
                 Importar lista da Xistarca
               </button>
+              <button type="button" class="btn btn--outline btn--sm" (click)="openMail()">
+                Email com o dorsal
+              </button>
             </div>
           </div>
         </section>
@@ -418,6 +437,81 @@ const blank = (): Partial<Edition> => {
                 Confirmar e gravar
               </button>
               <button type="button" class="btn btn--ghost" (click)="importOpen.set(false)">Cancelar</button>
+            </div>
+          }
+        }
+      </sfc-dialog>
+
+      <!-- Email com o dorsal -->
+      <sfc-dialog heading="Email com o dorsal aos inscritos" [open]="mailOpen()" (closed)="mailOpen.set(false)">
+        <p class="caption">
+          Um email individual a cada atleta <strong>inscrito</strong> com dorsal e email na ficha (nos menores, o do
+          encarregado). Cada um recebe-o uma só vez. Envia primeiro um teste para ti e confere o resultado.
+        </p>
+        <div class="field">
+          <label for="ml-name">Prova</label>
+          <input id="ml-name" name="mlName" [(ngModel)]="mail.raceName" />
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="ml-date">Data</label>
+            <input id="ml-date" name="mlDate" [(ngModel)]="mail.raceDate" />
+          </div>
+          <div class="field">
+            <label for="ml-time">Entrega dos dorsais a partir das</label>
+            <input id="ml-time" name="mlTime" [(ngModel)]="mail.meetTime" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="ml-place">Local</label>
+          <input id="ml-place" name="mlPlace" [(ngModel)]="mail.meetPlace" />
+        </div>
+        <div class="field">
+          <label for="ml-reg">Endereço do regulamento</label>
+          <input id="ml-reg" name="mlReg" [(ngModel)]="mail.regulationUrl" />
+        </div>
+        @if (mailError(); as m) {
+          <p class="alert alert--warning" role="alert">{{ m }}</p>
+        }
+        <div class="field">
+          <label for="ml-test">Enviar um teste para</label>
+          <input id="ml-test" name="mlTest" type="email" [(ngModel)]="mailTest" placeholder="o-teu-email@exemplo.pt" />
+        </div>
+        <div class="actions">
+          <button type="button" class="btn btn--outline" [disabled]="busy() || !mailTest.trim()" (click)="mailRun('test')">Enviar teste</button>
+          <button type="button" class="btn btn--outline" [disabled]="busy()" (click)="mailRun('preview')">Ver quantos recebem</button>
+        </div>
+        @if (mailOut(); as o) {
+          <div class="imp" role="status">
+            @if (o.test) {
+              <p>Teste enviado para <strong>{{ o.sentTo }}</strong> (chega dentro de um minuto).</p>
+            } @else if (o.dryRun) {
+              <p>
+                <strong>{{ o.inscribed }}</strong> inscritos · <strong>{{ o.ready }}</strong> recebem agora ·
+                {{ o.already }} já receberam · <strong>{{ o.noBib }}</strong> sem dorsal ·
+                <strong>{{ o.noEmail }}</strong> sem email
+              </p>
+            } @else {
+              <p><strong>{{ o.sent }}</strong> emails postos em fila; saem nos próximos minutos.</p>
+            }
+            @if (o.noBibNames.length) {
+              <details>
+                <summary>Sem dorsal ({{ o.noBib }})</summary>
+                <p class="caption">{{ o.noBibNames.join(', ') }}</p>
+              </details>
+            }
+            @if (o.noEmailNames.length) {
+              <details>
+                <summary>Sem email ({{ o.noEmail }})</summary>
+                <p class="caption">{{ o.noEmailNames.join(', ') }}</p>
+              </details>
+            }
+          </div>
+          @if (o.dryRun && !o.test && o.ready) {
+            <div class="actions">
+              <button type="button" class="btn btn--primary" [disabled]="busy()" (click)="mailRun('send')">
+                Enviar a {{ o.ready }} atletas
+              </button>
             </div>
           }
         }
@@ -767,6 +861,45 @@ export class TrophyPage {
     return Object.values(e.counts ?? {}).reduce((a, b) => a + b, 0);
   }
 
+  protected readonly mailOpen = signal(false);
+  protected readonly mailOut = signal<MailOut | null>(null);
+  protected readonly mailError = signal<string | null>(null);
+  protected mailTest = '';
+  protected mail = {
+    raceName: 'Troféu da Caparica',
+    raceDate: '15 de novembro de 2026',
+    meetTime: '09h00',
+    meetPlace: 'em frente à Junta de Freguesia da Caparica',
+    regulationUrl: 'https://tatletismo-almada.pt/wp-content/uploads/2026/10/TAAMPC-2026.2027-TCaparica-Regulamento.pdf',
+  };
+
+  protected openMail() {
+    this.mailOut.set(null);
+    this.mailError.set(null);
+    this.mailOpen.set(true);
+  }
+
+  /** preview: só contagens · test: um exemplo para o endereço indicado · send: envia a todos os que ainda não receberam */
+  protected async mailRun(mode: 'preview' | 'test' | 'send') {
+    const e = this.current();
+    if (!e) return;
+    this.mailError.set(null);
+    const body = {
+      ...this.mail,
+      dryRun: mode === 'preview',
+      testTo: mode === 'test' ? this.mailTest.trim() : undefined,
+    };
+    await this.run(async () => {
+      try {
+        const out = await this.api.post<MailOut>(`/admin/races/editions/${e.id}/dorsal-mail`, body);
+        this.mailOut.set(out);
+        if (mode === 'send') return `${out.sent} emails com o dorsal postos em fila.`;
+      } catch (err) {
+        this.mailError.set((err as Error).message);
+      }
+    });
+  }
+
   protected openImport() {
     this.listRows = [];
     this.importOut.set(null);
@@ -790,7 +923,7 @@ export class TrophyPage {
       this.listRows = table
         .slice(h + 1)
         .map((r) => {
-          const row: ListRow = { name: '', gender: null, idNumber: null, birthDate: null, email: null, phone: null };
+          const row: ListRow = { name: '', gender: null, idNumber: null, birthDate: null, email: null, phone: null, dorsal: null };
           r.forEach((v, i) => {
             const k = cols[i];
             const val = (v ?? '').trim();

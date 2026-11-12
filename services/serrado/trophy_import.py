@@ -6,7 +6,7 @@ email, telemóvel) → atletas marcados como inscritos na edição do Troféu.
   (só se houver um único atleta com esse nome e sem data que o contradiga).
 - Quem não existe é criado (atletismo) com os dados da lista.
 - Nos que existem, a lista só preenche o que está vazio na ficha (nunca substitui).
-- A inscrição na edição fica «inscrito» (a Xistarca já os inscreveu).
+- A inscrição na edição fica «inscrito» (a Xistarca já os inscreveu) e, se a lista trouxer o dorsal, fica guardado.
 """
 
 import re
@@ -32,6 +32,7 @@ class ListRow(BaseModel):
     birthDate: str | None = None
     email: str | None = None
     phone: str | None = None
+    dorsal: int | None = Field(default=None, ge=1, le=99999)
 
 
 @dataclass
@@ -165,6 +166,11 @@ async def import_list(c: Conn, who: Actor, edition_id: int, raw_rows: list[ListR
             res.marked += 1
         else:
             res.already += 1
+        if r.dorsal:
+            await c.execute(
+                "update race_signups set bib = %s where edition_id = %s and athlete_id = %s and bib is distinct from %s",
+                [r.dorsal, edition_id, athlete_id, r.dorsal],
+            )
     await c.execute("select set_config('app.identity_change', 'off', true)")
     # Pediram no site (ou a secretaria pediu) mas a Xistarca não os tem na lista
     for x in await (
