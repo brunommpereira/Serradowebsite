@@ -210,8 +210,15 @@ def register(r: APIRouter) -> None:
             [id],
         )
         season = current_season()
+        trophy = await fetch_one(
+            pool(req),
+            """select e.name as edition, s.status, s.bib from race_signups s join race_editions e on e.id = s.edition_id
+                where s.athlete_id = %s and s.status <> 'cancelado' and e.id = (select id from race_editions where active order by season desc limit 1)""",
+            [id],
+        )
         return {
             **a,
+            "trophy": camel(trophy) if trophy else None,
             "access": access,
             "season": season.label,
             "confirmed": bool(a.get("confirmedAt")) and str(a["confirmedAt"]) >= season.start,

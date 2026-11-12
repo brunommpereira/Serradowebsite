@@ -115,6 +115,15 @@ const SPORTS: Record<string, string> = { atletismo: 'Atletismo', futsal: 'Futsal
             }
           }
         </dl>
+        @if (d.trophy; as t) {
+          <h3 class="h-s">Troféu</h3>
+          <p>
+            {{ t.edition }}: {{ t.status === 'inscrito' ? 'inscrito' : 'pedido por tratar' }}
+            @if (t.bib) {
+              · <strong>dorsal n.º {{ t.bib }}</strong>
+            }
+          </p>
+        }
         <h3 class="h-s">Documentos</h3>
         <ul class="docs">
           @for (doc of d.documents; track doc.id) {

@@ -181,7 +181,9 @@ def register(r: APIRouter) -> None:
             [e["id"]],
         )
         s = await fetch_one(
-            pool(req), "select id, status, message, requested_at, sent_at from race_signups where edition_id = %s and athlete_id = %s", [e["id"], id]
+            pool(req),
+            "select id, status, message, requested_at, sent_at, bib from race_signups where edition_id = %s and athlete_id = %s",
+            [e["id"], id],
         )
         return {
             "edition": {k: v for k, v in _edition_out(e).items() if k in ("id", "season", "name", "opensOn", "closesOn", "open")},

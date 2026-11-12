@@ -39,6 +39,7 @@ interface Trophy {
     message: string;
     requestedAt: string;
     sentAt: string | null;
+    bib: number | null;
   } | null;
   /** birthDate · gender · idNumber · emergency */
   missing: string[];
@@ -87,6 +88,12 @@ const STATUS: Record<string, { label: string; tone: 'ok' | 'warn' | 'info' | 'mu
               <span class="pill pill--muted">Inscrição pelo site indisponível de momento</span>
             }
           </div>
+
+          @if (t.signup?.status === 'inscrito' && t.signup?.bib) {
+            <p class="alert alert--success" role="status">
+              <sfc-icon name="check" size="18" /><span>O teu dorsal é o <strong>n.º {{ t.signup!.bib }}</strong>.</span>
+            </p>
+          }
 
           @if (t.signup?.status === 'erro') {
             <p class="alert alert--warning" role="status">
