@@ -168,3 +168,85 @@ async def test_filtro_de_atletas_por_inscricao_no_trofeu(mw):
     # O pedido cancelado conta como sem inscrição
     assert await codes("nenhum") == {"SFC-9103", "SFC-9104"}
     assert (await sec.get("/api/v1/admin/athletes", params={"trophy": "outro"})).status_code in (400, 422)
+
+
+async def bib_of(mw) -> int | None:
+    row = await fetch_one(
+        mw.pool,
+        "select s.bib from race_signups s join athletes a on a.id = s.athlete_id where a.id_number = '44444444'",
+    )
+    return row["bib"] if row else None
+
+
+async def test_a_lista_guarda_o_dorsal(mw):
+    ed = await fetch_one(mw.pool, "select id from race_editions where active order by season desc limit 1")
+    assert ed
+    sec = await mw.login("secretaria@serradofc.pt", "secretaria2026")
+    url = f"/api/v1/admin/races/editions/{ed['id']}/import"
+    row = {"name": "Dorsal Importado Exemplo", "gender": "M", "idNumber": "44444444", "birthDate": "1991-02-03", "dorsal": 421}
+    assert (await sec.post(url, json={"rows": [row]})).status_code == 200
+    assert await bib_of(mw) == 421
+    # Voltar a importar com outro dorsal corrige-o; sem dorsal, deixa como está
+    assert (await sec.post(url, json={"rows": [{**row, "dorsal": 422}]})).status_code == 200
+    assert (await sec.post(url, json={"rows": [{k: v for k, v in row.items() if k != "dorsal"}]})).status_code == 200
+    assert await bib_of(mw) == 422
+    assert (await sec.post(url, json={"rows": [{**row, "dorsal": 0}]})).status_code in (400, 422)
+
+
+async def test_email_com_o_dorsal_aos_inscritos(mw):
+    ed = await fetch_one(mw.pool, "select id from race_editions where active order by season desc limit 1")
+    assert ed
+    eid = ed["id"]
+    for code, name, birth, email, bib in (
+        ("SFC-9301", "Mail Adulto Exemplo", "1990-01-02", "mail.adulto@exemplo.pt", 421),
+        ("SFC-9302", "Mail Menor Exemplo", "2015-05-06", "pais.menor@exemplo.pt", 422),
+        ("SFC-9303", "Mail SemEmail Exemplo", "1985-03-04", None, 423),
+        ("SFC-9304", "Mail SemDorsal Exemplo", "1980-07-08", "sem.dorsal@exemplo.pt", None),
+    ):
+        a = await fetch_one(
+            mw.pool,
+            "insert into athletes (code, name, birth_date, email, sport_slug) values (%s, %s, %s, %s, 'atletismo') returning id",
+            [code, name, birth, email],
+        )
+        assert a
+        await fetch(
+            mw.pool,
+            "insert into race_signups (edition_id, athlete_id, consent_at, status, bib) values (%s, %s, now(), 'inscrito', %s) returning id",
+            [eid, a["id"], bib],
+        )
+    sec = await mw.login("secretaria@serradofc.pt", "secretaria2026")
+    url = f"/api/v1/admin/races/editions/{eid}/dorsal-mail"
+
+    async def sent(like: str):
+        return await fetch(mw.pool, "select to_email, subject, html from email_outbox where to_email like %s order by id", [like])
+
+    # Pré-visualização: só contagens, nada é enviado
+    prev = (await sec.post(url, json={})).json()
+    assert (prev["ready"], prev["dryRun"]) == (2, True)
+    assert prev["noEmail"] >= 1  # há outros inscritos com dorsal e sem email, de testes anteriores
+    assert "Mail SemDorsal Exemplo" in prev["noBibNames"] and "Mail SemEmail Exemplo" in prev["noEmailNames"]
+    assert not await sent("%@exemplo.pt")
+
+    # Teste: um exemplo para o endereço indicado; não marca ninguém
+    test = (await sec.post(url, json={"testTo": "teste@exemplo.pt"})).json()
+    assert test["test"] is True
+    (t,) = await sent("teste@exemplo.pt")
+    assert t["subject"].startswith("[TESTE] ") and "Dorsal n.º" in t["html"]
+    assert not await fetch(mw.pool, "select 1 from race_signups where bib_email_at is not null")
+
+    # Envio: um email por atleta, com o dorsal; o menor é tratado na terceira pessoa
+    out = (await sec.post(url, json={"dryRun": False})).json()
+    assert out["sent"] == 2
+    (adult,) = await sent("mail.adulto@exemplo.pt")
+    assert "Dorsal n.º 421" in adult["html"] and "Olá Mail," in adult["html"] and "Estás inscrito" in adult["html"]
+    for text in ("a partir das 09h00", "Junta de Freguesia da Caparica", "bandeira do Serrado", "TAAMPC-2026.2027-TCaparica-Regulamento.pdf"):
+        assert text in adult["html"]
+    (minor,) = await sent("pais.menor@exemplo.pt")
+    assert "Dorsal n.º 422" in minor["html"] and "O Mail está inscrito" in minor["html"]
+    assert not await sent("sem.dorsal@exemplo.pt")
+
+    # Cada um só recebe uma vez, a não ser que se peça para reenviar
+    again = (await sec.post(url, json={"dryRun": False})).json()
+    assert (again["sent"], again["already"]) == (0, 2)
+    assert (await sec.post(url, json={"dryRun": False, "resend": True})).json()["sent"] == 2
+    assert len(await sent("mail.adulto@exemplo.pt")) == 2
