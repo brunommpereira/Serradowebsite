@@ -87,7 +87,7 @@ export class HttpAdminSource extends AdminSource {
     return { ...m, url: `${this.api.baseUrl}/media/${m.key}.${EXT[m.mime] ?? 'img'}` };
   }
 
-  athletes(filter: { q?: string; sport?: string; pending?: string }) {
+  athletes(filter: { q?: string; sport?: string; pending?: string; trophy?: string }) {
     return this.api.get<AdminAthlete[]>('/admin/athletes', filter);
   }
   athlete(id: string) {

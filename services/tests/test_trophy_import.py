@@ -133,3 +133,38 @@ async def test_documento_estrangeiro_preenche_a_ficha_que_ficou_sem_ele(mw):
     assert (out["matched"], out["completed"], out["notes"]) == (1, 1, [])
     row = await fetch_one(mw.pool, "select id_number from athletes where code = 'SFC-7701'")
     assert row and row["id_number"] == "123456"
+
+
+async def test_filtro_de_atletas_por_inscricao_no_trofeu(mw):
+    ed = await fetch_one(mw.pool, "select id from race_editions where active order by season desc limit 1")
+    assert ed
+    for code, name, status in (
+        ("SFC-9101", "Filtro Inscrito Exemplo", "inscrito"),
+        ("SFC-9102", "Filtro Pedido Exemplo", "pedido"),
+        ("SFC-9103", "Filtro Cancelado Exemplo", "cancelado"),
+        ("SFC-9104", "Filtro Sem Pedido Exemplo", None),
+    ):
+        a = await fetch_one(
+            mw.pool,
+            "insert into athletes (code, name, birth_date, sport_slug) values (%s, %s, '1990-01-01', 'atletismo') returning id",
+            [code, name],
+        )
+        assert a
+        if status:
+            await fetch(
+                mw.pool,
+                "insert into race_signups (edition_id, athlete_id, consent_at, status) values (%s, %s, now(), %s) returning id",
+                [ed["id"], a["id"], status],
+            )
+    sec = await mw.login("secretaria@serradofc.pt", "secretaria2026")
+
+    async def codes(trophy: str) -> set[str]:
+        r = await sec.get("/api/v1/admin/athletes", params={"trophy": trophy})
+        assert r.status_code == 200, r.text
+        return {a["code"] for a in r.json() if a["code"].startswith("SFC-91")}
+
+    assert await codes("inscrito") == {"SFC-9101"}
+    assert await codes("pedido") == {"SFC-9102"}
+    # O pedido cancelado conta como sem inscrição
+    assert await codes("nenhum") == {"SFC-9103", "SFC-9104"}
+    assert (await sec.get("/api/v1/admin/athletes", params={"trophy": "outro"})).status_code in (400, 422)

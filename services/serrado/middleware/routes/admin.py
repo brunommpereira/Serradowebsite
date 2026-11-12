@@ -144,7 +144,7 @@ def register(r: APIRouter) -> None:
     # ---------------------------------------------------------------- atletas, documentos, pedidos
     a_tags: list[str | Any] = ["Backoffice · Atletas"]
 
-    @r.get("/athletes", tags=a_tags, summary="Todos os atletas (filtros: q, sport, pending)")
+    @r.get("/athletes", tags=a_tags, summary="Todos os atletas (filtros: q, sport, pending, trophy)")
     async def athletes(req: Request) -> Any:
         s = await staff(req)
         return await backend(req).call("GET", "/athletes", actor=s, query={**_query(req), "scope": "all"})

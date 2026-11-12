@@ -195,7 +195,7 @@ export abstract class AdminSource {
   /** Dimensão máxima (px) a que o browser reduz as imagens antes de as enviar. */
   readonly mediaMaxSize: number = 1920;
 
-  abstract athletes(filter: { q?: string; sport?: string; pending?: string }): Promise<AdminAthlete[]>;
+  abstract athletes(filter: { q?: string; sport?: string; pending?: string; trophy?: string }): Promise<AdminAthlete[]>;
   abstract athlete(id: string): Promise<AdminAthleteDetail>;
   abstract changeRequests(): Promise<IdentityRequest[]>;
   abstract resolveChange(id: number | string, approve: boolean, note?: string): Promise<void>;
