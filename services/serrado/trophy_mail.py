@@ -45,14 +45,19 @@ class Plan:
     already: int = 0
 
 
-def _minor(birth: date | None) -> bool:
+def _minor(birth: date | str | None) -> bool:
+    """Menor de 18 anos (a base de dados devolve a data como texto AAAA-MM-DD)."""
     if not birth:
         return False
+    try:
+        b = birth if isinstance(birth, date) else date.fromisoformat(str(birth)[:10])
+    except ValueError:
+        return False
     t = date.today()
-    return (t.year - birth.year - ((t.month, t.day) < (birth.month, birth.day))) < 18
+    return (t.year - b.year - ((t.month, t.day) < (b.month, b.day))) < 18
 
 
-def compose(p: DorsalMail, *, name: str, bib: int, birth: date | None) -> tuple[str, str]:
+def compose(p: DorsalMail, *, name: str, bib: int, birth: date | str | None) -> tuple[str, str]:
     """(assunto, HTML) do email de um atleta."""
     first = name.split()[0] if name.split() else name
     if _minor(birth):
