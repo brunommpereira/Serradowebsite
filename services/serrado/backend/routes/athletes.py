@@ -128,6 +128,7 @@ def register(r: APIRouter) -> None:
         q: Annotated[str | None, Query(max_length=100)] = None,
         sport: Annotated[str | None, Query(max_length=40)] = None,
         pending: Literal["docs", "confirm", "requests", "email", "account", "new"] | None = None,
+        trophy: Literal["inscrito", "pedido", "nenhum"] | None = None,
     ) -> list[dict[str, Any]]:
         season = current_season().start
         where: list[str] = []
@@ -164,6 +165,18 @@ def register(r: APIRouter) -> None:
         if pending == "new":
             # Fichas criadas nos últimos 30 dias (no site, importadas ou pela secretaria), as mais recentes primeiro
             where.append("a.created_at > now() - interval '30 days'")
+        if trophy:
+            # Inscrição na edição ativa do Troféu: inscrito, pedido por tratar (pedido, validado ou com erro) ou sem inscrição
+            states = {
+                "inscrito": "('inscrito')",
+                "pedido": "('pedido', 'validado', 'erro')",
+                "nenhum": "('pedido', 'validado', 'erro', 'inscrito')",
+            }[trophy]
+            negate = "not " if trophy == "nenhum" else ""
+            where.append(
+                f"""{negate}exists (select 1 from race_signups s where s.athlete_id = a.id and s.status in {states}
+                      and s.edition_id = (select id from race_editions where active order by season desc limit 1))"""  # noqa: S608
+            )
         rows = await fetch(
             pool(req),
             f"""select a.id, a.code, a.name, a.birth_date, a.sport_slug, a.category, a.confirmed_at,

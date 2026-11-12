@@ -144,7 +144,7 @@ export class DemoAdminSource extends AdminSource {
   }
 
   // ---------------------------------------------------------------- atletas
-  async athletes(filter: { q?: string; sport?: string; pending?: string }): Promise<AdminAthlete[]> {
+  async athletes(filter: { q?: string; sport?: string; pending?: string; trophy?: string }): Promise<AdminAthlete[]> {
     this.guard('athletes.view', 'athletes.manage');
     const q = (filter.q ?? '').toLowerCase();
     return this.area

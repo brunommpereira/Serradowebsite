@@ -40,6 +40,13 @@ const SPORTS: Record<string, string> = { atletismo: 'Atletismo', futsal: 'Futsal
           <option [value]="s[0]">{{ s[1] }}</option>
         }
       </select>
+      <label class="visually-hidden" for="ath-trophy">Inscrição no Troféu</label>
+      <select id="ath-trophy" class="sel" [ngModel]="trophy()" (ngModelChange)="trophy.set($event)">
+        <option value="">Troféu: todos</option>
+        <option value="inscrito">Inscritos no Troféu</option>
+        <option value="pedido">Pedido por tratar</option>
+        <option value="nenhum">Sem inscrição no Troféu</option>
+      </select>
       <div class="chips" role="group" aria-label="Pendentes">
         <button type="button" class="chip" [attr.aria-pressed]="!pending()" (click)="pending.set('')">Todos</button>
         <button type="button" class="chip" [attr.aria-pressed]="pending() === 'new'" (click)="pending.set('new')" title="Fichas criadas nos últimos 30 dias, as mais recentes primeiro">Novos (30 dias)</button>
@@ -229,6 +236,7 @@ export class AthletesPage implements OnInit {
   }
   protected readonly sport = signal('');
   protected readonly pending = signal('');
+  protected readonly trophy = signal('');
   protected readonly list = signal<AdminAthlete[]>([]);
   protected readonly loading = signal(true);
   protected readonly error = signal('');
@@ -241,7 +249,7 @@ export class AthletesPage implements OnInit {
   constructor() {
     effect(() => {
       this.reloads();
-      const filter = { q: this.q().trim() || undefined, sport: this.sport() || undefined, pending: this.pending() || undefined };
+      const filter = { q: this.q().trim() || undefined, sport: this.sport() || undefined, pending: this.pending() || undefined, trophy: this.trophy() || undefined };
       this.loading.set(true);
       this.source
         .athletes(filter)
