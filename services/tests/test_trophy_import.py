@@ -250,3 +250,23 @@ async def test_email_com_o_dorsal_aos_inscritos(mw):
     assert (again["sent"], again["already"]) == (0, 2)
     assert (await sec.post(url, json={"dryRun": False, "resend": True})).json()["sent"] == 2
     assert len(await sent("mail.adulto@exemplo.pt")) == 2
+
+
+async def test_o_dorsal_aparece_na_ficha_e_na_area_do_atleta(mw):
+    ed = await fetch_one(mw.pool, "select id from race_editions where active order by season desc limit 1")
+    assert ed
+    a = await fetch_one(
+        mw.pool,
+        "insert into athletes (code, name, birth_date, sport_slug) values ('SFC-9401', 'Ficha Dorsal Exemplo', '1992-02-02', 'atletismo') returning id",
+    )
+    assert a
+    await fetch(
+        mw.pool,
+        "insert into race_signups (edition_id, athlete_id, consent_at, status, bib) values (%s, %s, now(), 'inscrito', 777) returning id",
+        [ed["id"], a["id"]],
+    )
+    sec = await mw.login("secretaria@serradofc.pt", "secretaria2026")
+    ficha = (await sec.get(f"/api/v1/admin/athletes/{a['id']}")).json()
+    assert ficha["trophy"]["bib"] == 777 and ficha["trophy"]["status"] == "inscrito"
+    area = (await sec.get(f"/api/v1/athletes/{a['id']}/trophy")).json()
+    assert area["signup"]["bib"] == 777

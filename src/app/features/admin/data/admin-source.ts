@@ -89,6 +89,8 @@ export interface AdminAthleteDetail extends Record<string, unknown> {
   access: string;
   confirmed: boolean;
   missing: string[];
+  /** Inscrição na edição ativa do Troféu (dorsal, quando já o tem) */
+  trophy?: { edition: string; status: string; bib: number | null } | null;
   documents: { id: number | string; kind: string; status: string; note: string | null }[];
   pendingRequests: { id: number | string; changes: Record<string, string>; requestedAt: string }[];
 }
