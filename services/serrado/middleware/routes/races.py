@@ -67,7 +67,9 @@ def register(r: APIRouter) -> None:
         s = await staff(req)
         return await backend(req).call("POST", f"/races/editions/{edition_id}/import", actor=s, body=body)
 
-    @r.post("/admin/races/editions/{edition_id}/dorsal-mail", tags=office, summary="Email com o dorsal aos inscritos (pré-visualizar, testar ou enviar)")
+    @r.post(
+        "/admin/races/editions/{edition_id}/dorsal-mail", tags=office, summary="Email com o dorsal aos inscritos (pré-visualizar, testar ou enviar)"
+    )
     async def dorsal_mail(req: Request, edition_id: Id, body: JsonObject) -> Any:
         s = await staff(req)
         return await backend(req).call("POST", f"/races/editions/{edition_id}/dorsal-mail", actor=s, body=body)

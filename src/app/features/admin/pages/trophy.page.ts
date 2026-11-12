@@ -893,9 +893,10 @@ export class TrophyPage {
       try {
         const out = await this.api.post<MailOut>(`/admin/races/editions/${e.id}/dorsal-mail`, body);
         this.mailOut.set(out);
-        if (mode === 'send') return `${out.sent} emails com o dorsal postos em fila.`;
+        return mode === 'send' ? `${out.sent} emails com o dorsal postos em fila.` : undefined;
       } catch (err) {
         this.mailError.set((err as Error).message);
+        return undefined;
       }
     });
   }
