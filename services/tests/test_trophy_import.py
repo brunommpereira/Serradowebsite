@@ -246,8 +246,7 @@ async def test_email_com_o_dorsal_aos_inscritos(mw):
     for text in ("a partir das 09h00", "Junta de Freguesia da Caparica", "bandeira do Serrado", "TAAMPC-2026.2027-TCaparica-Regulamento.pdf"):
         assert text in adult["html"]
     # Convite para o site e para a área do atleta (tempos e comparações)
-    assert "Entra no site do Serrado FC" in adult["html"] and "/area-atletas" in adult["html"]
-    assert "comparação dos tempos das provas" in adult["html"]
+    assert "Convidamos" not in adult["html"] and "Ver os meus tempos e comparações" in adult["html"] and "/area-atletas" in adult["html"]
     # O regulamento vem antes do fecho
     assert adult["html"].index("Ver o regulamento") < adult["html"].index("Contamos com todos")
     (minor,) = await sent("pais.menor@exemplo.pt")
