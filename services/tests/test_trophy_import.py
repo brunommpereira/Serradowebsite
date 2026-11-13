@@ -275,3 +275,12 @@ async def test_o_dorsal_aparece_na_ficha_e_na_area_do_atleta(mw):
     assert ficha["trophy"]["bib"] == 777 and ficha["trophy"]["status"] == "inscrito"
     area = (await sec.get(f"/api/v1/athletes/{a['id']}/trophy")).json()
     assert area["signup"]["bib"] == 777
+
+
+async def test_a_prova_de_15_de_novembro_tem_o_regulamento(mw):
+    row = await fetch_one(
+        mw.pool,
+        """select c.info_url from race_calendar c join race_editions e on e.id = c.edition_id
+            where e.season = '2026/2027' and c.round = 1""",
+    )
+    assert row and row["info_url"].endswith("TAAMPC-2026.2027-TCaparica-Regulamento.pdf")
