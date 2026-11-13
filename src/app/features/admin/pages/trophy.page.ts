@@ -46,6 +46,7 @@ interface ImportOut {
   completed: number;
   marked: number;
   already: number;
+  dorsals: number;
   createdNames: string[];
   skipped: { row: number; name: string; message: string }[];
   notes: { row: number; name: string; message: string }[];
@@ -391,6 +392,11 @@ const blank = (): Partial<Edition> => {
         @if (importError(); as m) {
           <p class="alert alert--warning" role="alert">{{ m }}</p>
         }
+        @if (importOut() && !hasDorsal()) {
+          <p class="alert alert--warning" role="alert">
+            O ficheiro não tem a coluna <strong>DORSAL</strong>: os dorsais não ficam gravados.
+          </p>
+        }
         @if (importOut(); as o) {
           <div class="imp" role="status">
             <p>
@@ -400,6 +406,7 @@ const blank = (): Partial<Edition> => {
               @if (o.already) {
                 · {{ o.already }} já estavam inscritos
               }
+              · <strong>{{ o.dorsals }}</strong> {{ o.dryRun ? 'dorsais a gravar' : 'dorsais gravados' }}
               @if (o.completed) {
                 · {{ o.completed }} fichas completadas
               }
@@ -835,6 +842,7 @@ export class TrophyPage {
   protected readonly hits = signal<AthleteHit[]>([]);
   protected readonly picked = signal<Set<string>>(new Set());
   protected readonly importOpen = signal(false);
+  protected readonly hasDorsal = signal(true);
   protected readonly importOut = signal<ImportOut | null>(null);
   protected readonly importError = signal<string | null>(null);
   private listRows: ListRow[] = [];
@@ -921,6 +929,7 @@ export class TrophyPage {
       const h = table.findIndex((r) => r.some((c) => headerKey(c) === 'nome'));
       if (h < 0) throw new Error('Não encontrei a coluna «NOME» no ficheiro.');
       const cols = table[h].map((c) => LIST_COLUMNS[headerKey(c)]);
+      this.hasDorsal.set(cols.includes('dorsal'));
       this.listRows = table
         .slice(h + 1)
         .map((r) => {

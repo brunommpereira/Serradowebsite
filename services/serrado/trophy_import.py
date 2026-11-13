@@ -43,6 +43,7 @@ class ImportResult:
     completed: int = 0  # fichas existentes a que a lista acrescentou dados
     marked: int = 0  # inscrições que passaram a «inscrito»
     already: int = 0  # já estavam inscritos
+    dorsals: int = 0  # dorsais gravados ou corrigidos
     skipped: list[dict[str, Any]] = field(default_factory=list)
     notes: list[dict[str, Any]] = field(default_factory=list)
     created_names: list[str] = field(default_factory=list)
@@ -167,10 +168,11 @@ async def import_list(c: Conn, who: Actor, edition_id: int, raw_rows: list[ListR
         else:
             res.already += 1
         if r.dorsal:
-            await c.execute(
+            upd = await c.execute(
                 "update race_signups set bib = %s where edition_id = %s and athlete_id = %s and bib is distinct from %s",
                 [r.dorsal, edition_id, athlete_id, r.dorsal],
             )
+            res.dorsals += upd.rowcount
     await c.execute("select set_config('app.identity_change', 'off', true)")
     # Pediram no site (ou a secretaria pediu) mas a Xistarca não os tem na lista
     for x in await (
