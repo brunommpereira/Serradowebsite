@@ -111,10 +111,11 @@ def layout(
     highlight: tuple[int, str] | None = None,
     after: list[str] | None = None,
     button2: tuple[str, str] | None = None,
+    invite: tuple[str, str] | None = None,
 ) -> str:
     """HTML simples e legível em qualquer cliente de email. O texto é sempre escapado.
     highlight = (n, texto): caixa em destaque depois do n-ésimo parágrafo (por exemplo, um número de dorsal).
-    after = parágrafos depois do botão. button2 = (texto, endereço): segundo botão (amarelo) no fim."""
+    after = parágrafos depois do botão. invite = (título a negrito, texto) antes do segundo botão. button2 = (texto, endereço): segundo botão no fim."""
     e = html.escape
     parts = [f'<p style="margin:0 0 16px">{e(p)}</p>' for p in paragraphs]
     if highlight:
@@ -131,11 +132,13 @@ def layout(
             f'<p style="margin:0 0 16px;font-size:13px;color:#555">Se o botão não abrir, copia este endereço: {e(url)}</p>'
         )
     body += "".join(f'<p style="margin:0 0 16px">{e(p)}</p>' for p in after or [])
+    if invite:
+        body += f'<p style="margin:24px 0 8px;font-size:18px;font-weight:700">{e(invite[0])}</p><p style="margin:0 0 8px">{e(invite[1])}</p>'
     if button2:
         label, url = button2
         body += (
-            f'<p style="margin:24px 0"><a href="{e(url, quote=True)}" style="background:#ffd318;color:#00264f;padding:12px 20px;'
-            f'border-radius:6px;text-decoration:none;font-weight:700">{e(label)}</a></p>'
+            f'<p style="margin:24px 0"><a href="{e(url, quote=True)}" style="background:#004a8e;color:#fff;padding:12px 20px;'
+            f'border-radius:6px;text-decoration:none;font-weight:600">{e(label)}</a></p>'
         )
     if footer:
         body += f'<p style="margin:24px 0 0;font-size:13px;color:#555">{e(footer)}</p>'

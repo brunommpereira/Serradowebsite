@@ -87,6 +87,11 @@ def compose(p: DorsalMail, *, name: str, bib: int, birth: date | str | None) -> 
         "Este email foi enviado automaticamente pelo Serrado FC aos atletas inscritos no Troféu.",
         highlight=(3, f"Dorsal n.º {bib}"),
         after=["Contamos com todos para conseguirmos ainda mais do que no ano passado!"],
+        invite=(
+            "Entra no site do Serrado FC",
+            "Convidamos todos os atletas a visitar o site do clube: aqui encontras todas as novidades e informações do Serrado e, na área do "
+            "atleta, os resultados e a comparação dos tempos das provas que realizaste nos últimos anos.",
+        ),
         button2=("Ver os meus tempos e comparações de provas anteriores", f"{site}/area-atletas"),
     )
     return f"O teu dorsal para o {p.raceName} ({p.raceDate}) — Serrado FC", html
