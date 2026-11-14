@@ -97,6 +97,7 @@ export const CMS_TYPES: Record<CmsType, CmsTypeDef> = {
       { key: 'capacity', label: 'Lotação', kind: 'number' },
       { key: 'price', label: 'Preço (€)', kind: 'number' },
       { key: 'memberPrice', label: 'Preço sócio (€)', kind: 'number' },
+      { key: 'childPrice', label: 'Preço crianças até 14 anos (€)', kind: 'number' },
       { key: 'registrationRequired', label: 'Exige inscrição', kind: 'checkbox' },
       { key: 'askShirtSize', label: 'Pedir tamanho de t-shirt', kind: 'checkbox' },
       { key: 'paymentInfo', label: 'Como se paga (inscrição)', kind: 'text', max: 300, wide: true },
@@ -149,7 +150,7 @@ export function slugify(s: string): string {
 export function emptyEntry(type: CmsType): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const f of CMS_TYPES[type].fields) {
-    out[f.key] = f.kind === 'checkbox' ? false : f.kind === 'number' ? (f.key === 'memberPrice' ? null : 0) : f.kind === 'select' && !f.required ? null : '';
+    out[f.key] = f.kind === 'checkbox' ? false : f.kind === 'number' ? (f.key === 'memberPrice' || f.key === 'childPrice' ? null : 0) : f.kind === 'select' && !f.required ? null : '';
   }
   if (type === 'news') out['author'] = 'Comunicação Serrado FC';
   return out;

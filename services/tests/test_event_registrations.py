@@ -26,14 +26,23 @@ def form(**extra: object) -> dict:
 
 
 async def new_event(
-    pool, slug: str, *, days: int = 20, capacity: int = 0, price: float = 20, member_price: float | None = None, reg: bool = True
+    pool,
+    slug: str,
+    *,
+    days: int = 20,
+    capacity: int = 0,
+    price: float = 20,
+    member_price: float | None = None,
+    child_price: float | None = None,
+    reg: bool = True,
 ) -> int:
     starts = (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d 10:30")
     row = await fetch_one(
         pool,
-        """insert into cms_events (slug, title, kind, starts_at, location, capacity, price, member_price, registration_required, status, published_at)
-           values (%s, %s, 'Convívio', %s, 'Fresh Bar', %s, %s, %s, %s, 'published', now()) returning id""",
-        [slug, f"Evento {slug}", starts, capacity, price, member_price, reg],
+        """insert into cms_events (slug, title, kind, starts_at, location, capacity, price, member_price, child_price, registration_required,
+                                  status, published_at)
+           values (%s, %s, 'Convívio', %s, 'Fresh Bar', %s, %s, %s, %s, %s, 'published', now()) returning id""",
+        [slug, f"Evento {slug}", starts, capacity, price, member_price, child_price, reg],
     )
     assert row
     return int(row["id"])
@@ -103,6 +112,30 @@ async def test_preco_de_socio_validacoes_e_fecho(mw):
     assert (await c2.post("/api/v1/events/livre-teste/registrations", json=form())).status_code == 409
     assert (await c2.get("/api/v1/events/passado-teste/availability")).json()["open"] is False
     assert (await c2.get("/api/v1/events/nao-existe/availability")).status_code == 404
+
+
+async def test_preco_das_criancas(mw, mail_on):
+    await new_event(mw.pool, "criancas-teste", price=20, child_price=7)
+    await new_event(mw.pool, "sem-preco-crianca", price=20)
+    await execute(mw.pool, "delete from email_outbox")
+    c = mw.client("10.9.0.7")
+    c.headers.update(XHR)
+    # 4 pessoas, 2 são crianças: 2 × 20 + 2 × 7
+    r = await c.post("/api/v1/events/criancas-teste/registrations", json=form(people=4, children=2))
+    assert r.status_code == 201, r.text
+    out = r.json()
+    assert out["amount"] == 54.0
+    row = await fetch_one(mw.pool, "select people, children, amount from event_registrations where code = %s", [out["code"]])
+    assert row and (row["people"], row["children"], float(row["amount"])) == (4, 2, 54.0)
+    assert any("2 crianças" in m["subject"] for m in await fetch(mw.pool, "select subject from email_outbox"))
+    # Sem crianças, ou num evento sem preço para elas: o preço normal
+    r = await c.post("/api/v1/events/criancas-teste/registrations", json=form(people=2, name="Outra Pessoa"))
+    assert r.json()["amount"] == 40.0
+    r = await c.post("/api/v1/events/sem-preco-crianca/registrations", json=form(people=3, children=1))
+    assert r.json()["amount"] == 60.0
+    # Mais crianças do que pessoas
+    r = await c.post("/api/v1/events/criancas-teste/registrations", json=form(people=1, children=2, name="Terceira Pessoa"))
+    assert r.status_code == 400
 
 
 async def test_lotacao(mw):

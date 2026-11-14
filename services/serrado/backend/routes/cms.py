@@ -79,6 +79,7 @@ CMS_TYPES: dict[str, CmsType] = {
             "capacity": F(type="integer", minimum=0),
             "price": F(type="number", minimum=0),
             "memberPrice": F(type="number", nullable=True, minimum=0),
+            "childPrice": F(type="number", nullable=True, minimum=0),
             "registrationRequired": F(type="boolean"),
             "askShirtSize": F(type="boolean"),
             "paymentInfo": F(max_length=300),
