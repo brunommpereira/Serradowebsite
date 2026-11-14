@@ -143,6 +143,8 @@ export interface ClubEvent {
   /** Preço em euros. 0 = gratuito */
   price: number;
   memberPrice?: number;
+  /** Preço por criança até 14 anos (se o evento o tiver) */
+  childPrice?: number;
   registrationRequired: boolean;
   askShirtSize: boolean;
   /** Como se paga a inscrição (ex.: «no dia, no local») */

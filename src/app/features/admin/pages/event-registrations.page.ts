@@ -30,6 +30,7 @@ interface Registration {
   email: string;
   phone: string;
   people: number;
+  children: number;
   isMember: boolean;
   memberNumber: string;
   sport: string | null;
@@ -141,7 +142,7 @@ const SPORT_LABEL: Record<string, string> = { atletismo: 'Atletismo', futsal: 'F
               <div>
                 <strong class="item__name">{{ r.name }}</strong>
                 <span class="caption"
-                  >{{ r.people === 1 ? '1 pessoa' : r.people + ' pessoas' }} ·
+                  >{{ r.people === 1 ? '1 pessoa' : r.people + ' pessoas' }}{{ r.children ? ' (' + r.children + (r.children === 1 ? ' criança' : ' crianças') + ')' : '' }} ·
                   {{ r.amount | currency: 'EUR' }} · {{ r.code }}
                   @if (r.isMember) {
                     · sócio{{ r.memberNumber ? ' n.º ' + r.memberNumber : '' }}
@@ -383,7 +384,7 @@ export class EventRegistrationsPage {
   }
 
   exportCsv() {
-    const head = ['Data', 'N.º', 'Nome', 'Telemóvel', 'Email', 'Pessoas', 'Valor', 'Sócio', 'N.º sócio', 'Modalidade', 'T-shirt', 'Autoriza imagem', 'Observações', 'Estado', 'Nota interna'];
+    const head = ['Data', 'N.º', 'Nome', 'Telemóvel', 'Email', 'Pessoas', 'Crianças', 'Valor', 'Sócio', 'N.º sócio', 'Modalidade', 'T-shirt', 'Autoriza imagem', 'Observações', 'Estado', 'Nota interna'];
     const lines = this.rows().map((r) => [
       r.createdAt.slice(0, 10),
       r.code,
@@ -391,6 +392,7 @@ export class EventRegistrationsPage {
       r.phone,
       r.email,
       r.people,
+      r.children,
       r.amount.toFixed(2).replace('.', ','),
       r.isMember ? 'Sim' : 'Não',
       r.memberNumber,

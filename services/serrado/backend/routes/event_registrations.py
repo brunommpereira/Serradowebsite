@@ -2,7 +2,8 @@
 Inscrições nos eventos do site (eventos do CMS publicados com «Exige inscrição»).
 
 - Uma inscrição pode ser para várias pessoas (a família); conta para a lotação (capacity, 0 = sem limite).
-- O valor é o preço do evento × pessoas (o preço de sócio, se o evento o tiver e a pessoa indicar que é sócia).
+- O valor é o preço do evento × adultos (o preço de sócio, se o evento o tiver e a pessoa indicar que é sócia)
+  + o preço das crianças (até 14 anos, se o evento o tiver) × crianças.
   O pagamento não é feito no site: a tesouraria ou a secretaria marcam «pago» no backoffice.
 - Quem se inscreve recebe um email com o n.º de inscrição; o clube recebe um aviso.
 """
@@ -36,6 +37,7 @@ class RegistrationForm(BaseModel):
     email: Email
     phone: Phone
     people: int = Field(default=1, ge=1, le=20)
+    children: int = Field(default=0, ge=0, le=20)  # das «people», quantas são crianças (até 14 anos)
     isMember: bool = False
     memberNumber: str = Field(default="", max_length=20)
     sport: Literal["atletismo", "futsal", "rugby"] | None = None
@@ -117,7 +119,7 @@ def register(r: APIRouter) -> None:
         async with tx(pool(req)) as c:
             e = await (
                 await c.execute(
-                    """select id, title, location, capacity, price, member_price, registration_required, ask_shirt_size, payment_info,
+                    """select id, title, location, capacity, price, member_price, child_price, registration_required, ask_shirt_size, payment_info,
                               to_char(starts_at, 'DD/MM/YYYY "às" HH24"h"MI') as starts, starts_at > (now() at time zone 'Europe/Lisbon') as future
                          from cms_events where slug = %s and status = 'published' for update""",
                     [slug],
@@ -142,13 +144,16 @@ def register(r: APIRouter) -> None:
             if e["capacity"] and await taken(c, e["id"]) + f.people > e["capacity"]:
                 left = max(0, e["capacity"] - await taken(c, e["id"]))
                 raise HttpError(409, "full", f"Já não há vagas para {f.people} pessoas (restam {left})")
+            if f.children > f.people:
+                raise HttpError(400, "validation", "children: não pode haver mais crianças do que pessoas")
             unit = e["member_price"] if f.isMember and e["member_price"] is not None else e["price"]
-            amount = Decimal(unit) * f.people
+            child_unit = e["child_price"] if e["child_price"] is not None else unit
+            amount = Decimal(unit) * (f.people - f.children) + Decimal(child_unit) * f.children
             code = f"EV{e['id']}-" + "".join(secrets.choice(CODE_CHARS) for _ in range(6))
             await c.execute(
-                """insert into event_registrations (event_id, code, name, email, phone, people, is_member, member_number, sport,
-                          shirt_size, notes, amount, consent_at, consent_image, ip, user_agent)
-                   values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now(), %s, %s, %s)""",
+                """insert into event_registrations (event_id, code, name, email, phone, people, children, is_member, member_number,
+                          sport, shirt_size, notes, amount, consent_at, consent_image, ip, user_agent)
+                   values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now(), %s, %s, %s)""",
                 [
                     e["id"],
                     code,
@@ -156,6 +161,7 @@ def register(r: APIRouter) -> None:
                     f.email,
                     f.phone,
                     f.people,
+                    f.children,
                     f.isMember,
                     f.memberNumber if f.isMember else "",
                     f.sport,
@@ -169,6 +175,8 @@ def register(r: APIRouter) -> None:
             )
             when = e["starts"]
             who = "1 pessoa" if f.people == 1 else f"{f.people} pessoas"
+            if f.children:
+                who += f" ({f.children} {'criança' if f.children == 1 else 'crianças'})"
             total = euros(amount) if amount else "gratuito"
             if config.mail.enabled:
                 await enqueue(
@@ -228,7 +236,7 @@ def register(r: APIRouter) -> None:
         require(req, *STAFF)
         rows = await fetch(
             pool(req),
-            """select r.id, r.code, r.name, r.email, r.phone, r.people, r.is_member, r.member_number, r.sport, r.shirt_size, r.notes,
+            """select r.id, r.code, r.name, r.email, r.phone, r.people, r.children, r.is_member, r.member_number, r.sport, r.shirt_size, r.notes,
                       r.amount, r.consent_image, r.status, r.staff_note, r.created_at, r.updated_at, u.name as updated_by
                  from event_registrations r left join users u on u.id = r.updated_by
                 where r.event_id = %s order by r.created_at desc""",

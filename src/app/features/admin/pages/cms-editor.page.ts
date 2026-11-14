@@ -195,7 +195,7 @@ export class CmsEditorPage implements HasUnsavedChanges {
     const out: Record<string, unknown> = {};
     for (const f of this.def().fields) {
       const v = this.model[f.key];
-      if (f.kind === 'number') out[f.key] = v === '' || v === null || v === undefined ? (f.key === 'memberPrice' ? null : 0) : Number(v);
+      if (f.kind === 'number') out[f.key] = v === '' || v === null || v === undefined ? (f.key === 'memberPrice' || f.key === 'childPrice' ? null : 0) : Number(v);
       else if (f.kind === 'checkbox') out[f.key] = !!v;
       else if ((f.kind === 'select' && !f.required) || f.kind === 'url' || f.kind === 'time' || f.kind === 'image') out[f.key] = v ? String(v) : null;
       else out[f.key] = String(v ?? '');

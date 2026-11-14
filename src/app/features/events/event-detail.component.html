@@ -21,7 +21,7 @@
               @if (e.price === 0) {
                 Gratuito
               } @else {
-                {{ e.price | currency: 'EUR' }} por pessoa@if (e.memberPrice !== undefined) { · Sócios {{ e.memberPrice | currency: 'EUR' }}}
+                {{ e.price | currency: 'EUR' }} por pessoa@if (e.memberPrice !== undefined) { · Sócios {{ e.memberPrice | currency: 'EUR' }}}@if (e.childPrice !== undefined) { · Crianças até 14 anos {{ e.childPrice | currency: 'EUR' }}}
                 @if (e.paymentInfo) {
                   <small class="pay">{{ e.paymentInfo }}</small>
                 }
@@ -52,7 +52,7 @@
             <h2 id="h-reg" class="reg__title">Inscrição feita!</h2>
             <p>
               N.º de inscrição <strong>{{ r.code }}</strong><br />
-              {{ r.people === 1 ? '1 pessoa' : r.people + ' pessoas' }}@if (r.amount) { · total <strong>{{ r.amount | currency: 'EUR' }}</strong>}
+              {{ r.people === 1 ? '1 pessoa' : r.people + ' pessoas' }}@if (r.children) { ({{ r.children }} {{ r.children === 1 ? 'criança' : 'crianças' }})}@if (r.amount) { · total <strong>{{ r.amount | currency: 'EUR' }}</strong>}
             </p>
             <sfc-qr-code class="done__qr" [data]="'SFC|EVENTO|' + e.id + '|' + r.code" label="QR Code da inscrição" />
             @if (apiMode) {
@@ -110,6 +110,16 @@
                   }
                 </select>
               </div>
+              @if (e.childPrice !== undefined) {
+                <div class="field">
+                  <label for="ev-children">Destas, quantas são crianças até 14 anos? ({{ e.childPrice | currency: 'EUR' }} cada)</label>
+                  <select id="ev-children" formControlName="children">
+                    @for (n of childOptions(); track n) {
+                      <option [ngValue]="n">{{ n === 0 ? 'Nenhuma' : n }}</option>
+                    }
+                  </select>
+                </div>
+              }
               <div class="field">
                 <label for="ev-sport">Modalidade</label>
                 <select id="ev-sport" formControlName="sport">
@@ -159,7 +169,14 @@
               <span>Autorizo a captação e divulgação de imagens no âmbito do evento.</span>
             </label>
             <div class="reg__total">
-              <span>Total @if (people() > 1) {<small class="caption">({{ people() }} × {{ unitPrice() | currency: 'EUR' }})</small>}</span>
+              <span>Total
+                @if (childCount() > 0) {
+                  <small class="caption"
+                    >({{ people() - childCount() }} × {{ unitPrice() | currency: 'EUR' }} + {{ childCount() }} × {{ childUnitPrice() | currency: 'EUR' }})</small
+                  >
+                } @else if (people() > 1) {
+                  <small class="caption">({{ people() }} × {{ unitPrice() | currency: 'EUR' }})</small>
+                }</span>
               <strong>{{ total() === 0 ? 'Gratuito' : (total() | currency: 'EUR') }}</strong>
             </div>
             @if (total() > 0 && e.paymentInfo) {

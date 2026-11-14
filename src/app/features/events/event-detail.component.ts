@@ -21,6 +21,7 @@ interface Availability {
 interface Registration {
   code: string;
   people: number;
+  children?: number;
   amount: number;
   email: string;
 }
@@ -78,6 +79,7 @@ export class EventDetailComponent {
     email: ['', [Validators.required, Validators.email]],
     phone: ['', [Validators.required, Validators.pattern(PHONE_PATTERN)]],
     people: [1],
+    children: [0],
     isMember: [false],
     memberNumber: [''],
     sport: [''],
@@ -95,7 +97,12 @@ export class EventDetailComponent {
     if (!e) return 0;
     return this.isMember() && e.memberPrice != null ? e.memberPrice : e.price;
   });
-  protected readonly total = computed(() => this.unitPrice() * this.people());
+  protected readonly children = signal(0);
+  /** Crianças até 14 anos: preço próprio, se o evento o tiver; nunca mais do que as pessoas inscritas */
+  protected readonly childCount = computed(() => (this.event()?.childPrice == null ? 0 : Math.min(this.children(), this.people())));
+  protected readonly childUnitPrice = computed(() => this.event()?.childPrice ?? this.unitPrice());
+  protected readonly total = computed(() => this.unitPrice() * (this.people() - this.childCount()) + this.childUnitPrice() * this.childCount());
+  protected readonly childOptions = computed(() => Array.from({ length: this.people() + 1 }, (_, i) => i));
 
   constructor() {
     effect(() => {
@@ -107,7 +114,11 @@ export class EventDetailComponent {
       if (this.apiMode && this.event()?.registrationRequired) void this.loadAvailability(slug);
     });
     this.form.controls.isMember.valueChanges.subscribe((v) => this.isMember.set(v));
-    this.form.controls.people.valueChanges.subscribe((v) => this.people.set(Number(v) || 1));
+    this.form.controls.people.valueChanges.subscribe((v) => {
+      this.people.set(Number(v) || 1);
+      if (this.children() > this.people()) this.form.controls.children.setValue(this.people());
+    });
+    this.form.controls.children.valueChanges.subscribe((v) => this.children.set(Number(v) || 0));
     this.form.valueChanges.subscribe(() => this.error() && this.error.set(null));
   }
 
@@ -148,7 +159,7 @@ export class EventDetailComponent {
     const email = v.email.trim().toLowerCase();
     if (!this.apiMode) {
       // Site de demonstração: não grava
-      this.registration.set({ code: `EV${e.id}-DEMO`, people: v.people, amount: this.total(), email });
+      this.registration.set({ code: `EV${e.id}-DEMO`, people: v.people, children: this.childCount(), amount: this.total(), email });
       scrollToForm();
       return;
     }
@@ -159,6 +170,7 @@ export class EventDetailComponent {
         email,
         phone: v.phone,
         people: Number(v.people),
+        children: this.childCount(),
         isMember: v.isMember,
         memberNumber: v.isMember ? v.memberNumber.trim() : '',
         sport: v.sport || null,
