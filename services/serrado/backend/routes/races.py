@@ -13,6 +13,7 @@ from fastapi import APIRouter, Path, Query, Request
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 from ... import xistarca
+from ...athlete_mail import AthleteMail, send_athletes
 from ...config import config
 from ...db.pool import Pool, fetch, fetch_one, tx
 from ...trophy_import import ListRow, import_list
@@ -433,6 +434,16 @@ def register(r: APIRouter) -> None:
         async with tx(pool(req)) as c:
             await _edition(c, edition_id)
             return await send_dorsais(c, actor(req), edition_id, body)
+
+    @r.post(
+        "/athletes-mail",
+        tags=tags,
+        summary="Email a todos os atletas com o texto indicado (dryRun: só contagens; testTo: um exemplo para um endereço)",
+    )
+    async def athletes_mail(req: Request, body: AthleteMail) -> dict[str, Any]:
+        require(req, "athletes.manage")
+        async with tx(pool(req)) as c:
+            return await send_athletes(c, actor(req), body)
 
     @r.post("/races/signups/{signup_id}/{action}", tags=tags, summary="retry · cancel · done (marcar inscrito à mão)")
     async def act(req: Request, signup_id: Id, action: Annotated[str, Path(pattern="^(retry|cancel|done)$")]) -> dict[str, Any]:
