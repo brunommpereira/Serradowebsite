@@ -46,6 +46,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
       { label: 'Validações', link: '/admin/validacoes', icon: 'check', permissions: ['athletes.manage'] },
       { label: 'Resultados', link: '/admin/resultados', icon: 'trophy', permissions: ['results.import'] },
       { label: 'Inscrições no Troféu', link: '/admin/inscricoes-trofeu', icon: 'run', permissions: ['athletes.manage'] },
+      { label: 'Email aos atletas', link: '/admin/email-atletas', icon: 'mail', permissions: ['athletes.manage'] },
     ],
   },
   {

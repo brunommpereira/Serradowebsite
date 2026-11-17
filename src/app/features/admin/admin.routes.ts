@@ -138,6 +138,13 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./pages/trophy.page').then((m) => m.TrophyPage),
       },
       {
+        path: 'email-atletas',
+        title: 'Email aos atletas',
+        canActivate: [staffGuard],
+        data: { permissions: ['athletes.manage'] },
+        loadComponent: () => import('./pages/athlete-mail.page').then((m) => m.AthleteMailPage),
+      },
+      {
         path: 'notificacoes',
         title: 'Notificações da app',
         canActivate: [staffGuard],
