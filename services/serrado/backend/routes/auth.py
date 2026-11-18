@@ -158,9 +158,11 @@ def register(r: APIRouter) -> None:
         number = login.zfill(5) if login.isdigit() else None
         row = await fetch_one(
             pool(req),
+            # O mesmo email que a entrada com Google reconhece (no Gmail, sem pontos nem «+etiqueta»); o igual exato primeiro
             """select u.id, u.password_hash from users u left join members m on m.user_id = u.id
-                where not u.disabled and (u.email = %s or m.member_number = %s) limit 1""",
-            [login, number],
+                where not u.disabled and (norm_email(u.email) = norm_email(%s) or m.member_number = %s)
+                order by (u.email = %s) desc, (m.member_number = %s) desc, u.created_at limit 1""",
+            [login, number, login, number],
         )
         # Mesmo trabalho com ou sem conta: não revela se o email existe
         ok = await verify_password(body.password, row["password_hash"] if row else DUMMY_HASH)
@@ -180,7 +182,11 @@ def register(r: APIRouter) -> None:
         mail_required()
         email = body.email.strip().lower()
         async with tx(pool(req)) as c:
-            cur = await c.execute("select id, name, email from users where email = %s and not disabled", [email])
+            # Mesma regra da entrada com Google: no Gmail, o email com ou sem pontos é a mesma caixa; a ligação vai para o email da conta
+            cur = await c.execute(
+                "select id, name, email from users where norm_email(email) = norm_email(%s) and not disabled order by (email = %s) desc, created_at limit 1",
+                [email, email],
+            )
             row = await cur.fetchone()
             # No máximo um email de reposição a cada 2 minutos por conta (não enche a caixa de ninguém)
             recent = (
