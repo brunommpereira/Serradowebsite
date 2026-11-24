@@ -1,19 +1,19 @@
 -- Mais patrocinadores e parceiros: os do rugby (Proeonn, PUBL Outdoors, The Inventors) e os de todo o clube
--- (Alberto Chaiça, Gabinete de Fisioterapia; Câmara Municipal de Almada). Sem logótipo por agora: o cartão mostra
--- as iniciais até a Direção carregar a imagem no backoffice (Parceiros → Logótipo).
+-- (Alberto Chaiça, Gabinete de Fisioterapia; Câmara Municipal de Almada). Estes dois ainda sem logótipo: o cartão
+-- mostra as iniciais até a Direção carregar a imagem no backoffice (Parceiros → Logótipo).
 -- As notícias ficam em rascunho, para publicar no backoffice.
 
-insert into cms_partners (slug, name, category, website, description, status, published_at)
+insert into cms_partners (slug, name, category, website, logo_url, description, status, published_at)
 values
-  ('proeonn', 'Proeonn', 'Patrocinador', null,
+  ('proeonn', 'Proeonn', 'Patrocinador', null, 'https://www.serradofc.pt/media/parceiros/proeonn.webp',
    'Patrocinador da secção de rugby do Serrado FC.', 'published', now()),
-  ('publ-outdoors', 'PUBL Outdoors', 'Patrocinador', 'https://publioutdoors.pt/',
+  ('publ-outdoors', 'PUBL Outdoors', 'Patrocinador', 'https://publioutdoors.pt/', 'https://www.serradofc.pt/media/parceiros/publ-outdoors.webp',
    'Patrocinador da secção de rugby do Serrado FC.', 'published', now()),
-  ('the-inventors', 'The Inventors', 'Patrocinador', 'https://theinventors.io/',
+  ('the-inventors', 'The Inventors', 'Patrocinador', 'https://theinventors.io/', 'https://www.serradofc.pt/media/parceiros/the-inventors.webp',
    'Empresa da Caparica que cria experiências educativas de engenharia, arte e criatividade. Patrocinador da secção de rugby.', 'published', now()),
-  ('alberto-chaica-fisioterapia', 'Alberto Chaiça, Gabinete de Fisioterapia', 'Parceiro', 'https://fisioterapia-alberto-chaica.pt/',
+  ('alberto-chaica-fisioterapia', 'Alberto Chaiça, Gabinete de Fisioterapia', 'Parceiro', 'https://fisioterapia-alberto-chaica.pt/', null,
    'Gabinete de fisioterapia, parceiro de todo o Serrado FC.', 'published', now()),
-  ('camara-municipal-de-almada', 'Câmara Municipal de Almada', 'Parceiro Institucional', 'https://www.cm-almada.pt/',
+  ('camara-municipal-de-almada', 'Câmara Municipal de Almada', 'Parceiro Institucional', 'https://www.cm-almada.pt/', null,
    'Parceiro institucional do Serrado FC, no apoio ao desporto e à comunidade do concelho.', 'published', now())
 on conflict (slug) do nothing;
 
@@ -30,6 +30,9 @@ values
 <li><strong>PUBL Outdoors</strong> (<a href="https://publioutdoors.pt/" rel="noopener noreferrer">publioutdoors.pt</a>)</li>
 <li><strong>The Inventors</strong>, empresa da Caparica que desde 2016 cria experiências educativas de engenharia, arte e criatividade para escolas, campos de férias e ateliers (<a href="https://theinventors.io/" rel="noopener noreferrer">theinventors.io</a>)</li>
 </ul>
+<img src="https://www.serradofc.pt/media/parceiros/proeonn.webp" alt="Logótipo Proeonn">
+<img src="https://www.serradofc.pt/media/parceiros/publ-outdoors.webp" alt="Logótipo PUBL Outdoors">
+<img src="https://www.serradofc.pt/media/parceiros/the-inventors.webp" alt="Logótipo The Inventors">
 <h2>Porque este apoio é importante</h2>
 <p>Com o vosso apoio, os nossos atletas treinam e competem com melhores condições, e o rugby chega a mais crianças, jovens e adultos de Almada. Obrigado por fazerem parte da nossa equipa! 🏉💙💛</p>$body$,
     'Comunicação Serrado FC',
