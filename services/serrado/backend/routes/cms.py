@@ -102,6 +102,7 @@ CMS_TYPES: dict[str, CmsType] = {
             "name": F(required=True, max_length=200),
             "category": F(required=True, enum=("Patrocinador Principal", "Patrocinador", "Parceiro", "Parceiro Institucional")),
             "website": F(nullable=True, max_length=300, pattern=r"^(https?://.+)?$"),
+            "logoUrl": COVER,
             "description": F(max_length=2000),
         },
     ),

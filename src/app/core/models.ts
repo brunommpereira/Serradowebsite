@@ -199,6 +199,8 @@ export interface Sponsor {
   name: string;
   category: 'Patrocinador Principal' | 'Patrocinador' | 'Parceiro' | 'Parceiro Institucional';
   website: string;
+  /** Logótipo (URL da imagem); vazio mostra as iniciais. */
+  logoUrl?: string;
   description: string;
   active: boolean;
 }

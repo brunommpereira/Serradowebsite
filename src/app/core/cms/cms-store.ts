@@ -235,6 +235,7 @@ export const toPartner = (e: CmsEntry): Sponsor => ({
   name: String(e['name']),
   category: e['category'] as Sponsor['category'],
   website: String(e['website'] ?? ''),
+  logoUrl: String(e['logoUrl'] ?? ''),
   description: String(e['description'] ?? ''),
   active: e.status === 'published',
 });
@@ -270,7 +271,7 @@ function fromEvent(e: DATA.EventSeed): CmsEntry {
 }
 
 function fromPartner(s: Sponsor): CmsEntry {
-  return { id: s.id, slug: s.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), name: s.name, category: s.category, website: s.website, description: s.description, ...published('2026-09-01T09:00:00Z'), status: s.active ? 'published' : 'archived' };
+  return { id: s.id, slug: s.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), name: s.name, category: s.category, website: s.website, logoUrl: s.logoUrl || null, description: s.description, ...published('2026-09-01T09:00:00Z'), status: s.active ? 'published' : 'archived' };
 }
 
 const DEMO_PAGES: CmsEntry[] = [
