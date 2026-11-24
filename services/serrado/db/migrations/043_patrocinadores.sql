@@ -1,5 +1,5 @@
--- Patrocinadores do clube: logótipo nos parceiros, os três patrocinadores publicados
--- e uma notícia de agradecimento para cada um (em rascunho, para publicar no backoffice ao longo da semana).
+-- Patrocinadores do clube: logótipo nos parceiros, os patrocinadores publicados
+-- (e a parceria com a associação As Rosinhas), com uma notícia para cada um (em rascunho, para publicar no backoffice ao longo da semana).
 
 alter table cms_partners add column if not exists logo_url text;
 
@@ -31,12 +31,22 @@ values
     now()
   ),
   (
-    'frsh-the-run-club',
-    'FRSH The Run Club',
+    'frsh-coffee-bar',
+    'FRSH Coffee Bar',
     'Patrocinador',
-    null,
-    'https://www.serradofc.pt/media/parceiros/frsh-the-run-club.webp',
-    'Clube de corrida nascido em 2025 no Fresh, a casa das nossas corridas, convívios e festas do clube.',
+    'https://www.facebook.com/freshcoffeebar/',
+    'https://www.serradofc.pt/media/parceiros/frsh-coffee-bar.webp',
+    'O Fresh, no Parque Urbano de Santo António da Caparica: a casa das nossas corridas, convívios e festas do clube.',
+    'published',
+    now()
+  ),
+  (
+    'as-rosinhas',
+    'As Rosinhas',
+    'Parceiro',
+    'https://www.asrosinhas.org/',
+    'https://www.serradofc.pt/media/parceiros/as-rosinhas.webp',
+    'Associação sem fins lucrativos que faz e oferece próteses mamárias artesanais a mulheres mastectomizadas. Uma causa que o Serrado FC tem orgulho em apoiar.',
     'published',
     now()
   )
@@ -99,14 +109,14 @@ values
     'draft'
   ),
   (
-    'obrigado-frsh-the-run-club',
-    'Obrigado, FRSH The Run Club, por apoiar o Serrado FC',
+    'obrigado-frsh-coffee-bar',
+    'Obrigado, FRSH Coffee Bar, por apoiar o Serrado FC',
     'Clube',
-    'A FRSH The Run Club, a nossa casa no Fresh, é patrocinadora do Serrado FC. Obrigado por receberem as nossas corridas, convívios e festas.',
-    $body$<p>Há parceiros que se tornam casa. A <strong>FRSH The Run Club</strong> é patrocinadora do <strong>Serrado FC</strong> e queremos agradecer-lhes publicamente por tudo o que têm feito pelo clube.</p>
-<img src="https://www.serradofc.pt/media/parceiros/frsh-the-run-club.webp" alt="Logótipo FRSH The Run Club, Est. 2025">
-<h2>Quem é a FRSH The Run Club</h2>
-<p>Nascida em <strong>2025</strong>, a FRSH The Run Club é um clube de corrida que junta pessoas à volta do desporto e do convívio, a partir do <strong>Fresh</strong>. É o ponto de partida dos nossos treinos e corridas e o lugar onde a família Serrado se encontra.</p>
+    'O FRSH Coffee Bar, a nossa casa no Parque Urbano de Santo António da Caparica, é patrocinador do Serrado FC. Obrigado por receberem as nossas corridas, convívios e festas.',
+    $body$<p>Há parceiros que se tornam casa. O <strong>FRSH Coffee Bar</strong> é patrocinador do <strong>Serrado FC</strong> e queremos agradecer-lhes publicamente por tudo o que têm feito pelo clube.</p>
+<img src="https://www.serradofc.pt/media/parceiros/frsh-coffee-bar.webp" alt="Logótipo FRSH, Est. 2025">
+<h2>Quem é o FRSH Coffee Bar</h2>
+<p>O Fresh fica no <strong>Parque Urbano de Santo António da Caparica</strong>, na Alameda Cidade da Costa da Caparica. É um espaço descontraído, cheio de famílias, desportistas e grupos de amigos, onde se junta boa música, bom ambiente e convívio sem pressas. É também o ponto de partida dos nossos treinos e corridas e o lugar onde a família Serrado se encontra.</p>
 <h2>O que já fizemos juntos</h2>
 <ul>
 <li>O <strong>Jantar de Natal</strong> do clube, no Fresh;</li>
@@ -114,8 +124,31 @@ values
 <li>Os encontros de atletas, sócios e famílias depois dos treinos e das provas.</li>
 </ul>
 <h2>Porque este apoio é importante</h2>
-<p>Ter um espaço onde atletas de todas as modalidades se juntam faz do Serrado FC mais do que um clube: faz dele uma comunidade. Obrigado, FRSH, por correrem ao nosso lado! 💙💛</p>$body$,
-    'https://www.serradofc.pt/media/parceiros/frsh-the-run-club.webp',
+<p>Ter um espaço onde atletas de todas as modalidades se juntam faz do Serrado FC mais do que um clube: faz dele uma comunidade. Passa pelo Fresh, de terça a domingo, e diz que vens da parte do Serrado! 💙💛</p>
+<p><a href="https://www.facebook.com/freshcoffeebar/" rel="noopener noreferrer">FRSH Coffee Bar no Facebook</a></p>$body$,
+    'https://www.serradofc.pt/media/parceiros/frsh-coffee-bar.webp',
+    'Comunicação Serrado FC',
+    'draft'
+  ),
+  (
+    'parceria-serrado-fc-as-rosinhas',
+    'Serrado FC e As Rosinhas: uma parceria com coração',
+    'Clube',
+    'O Serrado FC é parceiro da associação As Rosinhas, que faz e oferece próteses mamárias artesanais a mulheres mastectomizadas. Conhece a causa e descobre como ajudar.',
+    $body$<p>O desporto é saúde, comunidade e solidariedade. É por isso que o <strong>Serrado FC</strong> tem muito orgulho em anunciar a parceria com a associação <strong>As Rosinhas</strong>.</p>
+<img src="https://www.serradofc.pt/media/parceiros/as-rosinhas.webp" alt="Logótipo da associação As Rosinhas">
+<h2>Quem são As Rosinhas</h2>
+<p>As Rosinhas nasceram no final de <strong>2020</strong>, como um projeto familiar e <strong>sem fins lucrativos</strong>, apoiado por voluntários. Fazem à mão <strong>próteses mamárias artesanais</strong>, confortáveis, discretas e adaptáveis, e oferecem-nas às <strong>mulheres mastectomizadas</strong> que as procuram. A missão é simples e enorme: devolver autoestima e qualidade de vida.</p>
+<h2>Como podes ajudar</h2>
+<ul>
+<li><strong>Torna-te sócio(a)</strong> d'As Rosinhas: a quota anual ajuda a enviar mais Rosinhas, de forma gratuita;</li>
+<li><strong>Faz um donativo</strong> ou apoia a campanha de angariação de fundos;</li>
+<li><strong>Compra merchandising</strong> solidário (t-shirts, camisolas, bonés e mais);</li>
+<li><strong>Partilha</strong> esta causa com quem possa precisar.</li>
+</ul>
+<p>Sabe mais em <a href="https://www.asrosinhas.org/" rel="noopener noreferrer">asrosinhas.org</a> ou pelo email info@asrosinhas.org.</p>
+<p>Juntos somos mais fortes. Obrigado, As Rosinhas, por tudo o que fazem! 💙💛🌹</p>$body$,
+    'https://www.serradofc.pt/media/parceiros/as-rosinhas.webp',
     'Comunicação Serrado FC',
     'draft'
   )
