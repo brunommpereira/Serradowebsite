@@ -12,7 +12,7 @@ values
   ('the-inventors', 'The Inventors', 'Patrocinador', 'https://theinventors.io/', 'https://www.serradofc.pt/media/parceiros/the-inventors.webp',
    'Empresa da Caparica que cria experiências educativas de engenharia, arte e criatividade. Patrocinador da secção de rugby.', 'published', now()),
   ('alberto-chaica-fisioterapia', 'Alberto Chaiça, Gabinete de Fisioterapia', 'Parceiro', 'https://fisioterapia-alberto-chaica.pt/', null,
-   'Gabinete de fisioterapia, parceiro de todo o Serrado FC.', 'published', now()),
+   'Fisioterapia, osteopatia e pilates clínico na Charneca da Caparica. Parceiro de todo o Serrado FC.', 'published', now()),
   ('camara-municipal-de-almada', 'Câmara Municipal de Almada', 'Parceiro Institucional', 'https://www.cm-almada.pt/', null,
    'Parceiro institucional do Serrado FC, no apoio ao desporto e à comunidade do concelho.', 'published', now())
 on conflict (slug) do nothing;
@@ -42,11 +42,24 @@ values
     'obrigado-alberto-chaica-fisioterapia',
     'Obrigado, Alberto Chaiça, Gabinete de Fisioterapia',
     'Clube',
-    'O Gabinete de Fisioterapia Alberto Chaiça é parceiro do Serrado FC. Um agradecimento especial de todos os atletas do clube.',
-    $body$<p>No desporto, cuidar do corpo é tão importante como treinar. É por isso que o <strong>Serrado FC</strong> tem muito orgulho na parceria com o <strong>Gabinete de Fisioterapia Alberto Chaiça</strong>, parceiro de todo o clube.</p>
+    'A Fisioterapia Alberto Chaiça, na Charneca da Caparica (fisioterapia, osteopatia e pilates clínico), é parceira de todo o Serrado FC. Um agradecimento especial dos nossos atletas.',
+    $body$<p>No desporto, cuidar do corpo é tão importante como treinar. É por isso que o <strong>Serrado FC</strong> tem muito orgulho na parceria com a <strong>Fisioterapia Alberto Chaiça</strong>, parceira de todo o clube.</p>
+<h2>Quem é a Fisioterapia Alberto Chaiça</h2>
+<p>Um gabinete na <strong>Charneca da Caparica</strong>, com uma equipa de fisioterapeutas, osteopatas e massagistas, liderada pelo diretor clínico Dr. Paulo Borrego. Os serviços:</p>
+<ul>
+<li><strong>Fisioterapia</strong>;</li>
+<li><strong>Osteopatia</strong>, para várias patologias e todas as idades;</li>
+<li><strong>Pilates clínico</strong>, para reabilitação e prevenção de lesões.</li>
+</ul>
 <h2>Porque este apoio é importante</h2>
-<p>Ter um parceiro na área da fisioterapia ajuda os nossos atletas, de todas as modalidades, a prevenir lesões, a recuperar melhor e a voltar mais depressa ao que mais gostam de fazer.</p>
-<p>Conhece o gabinete em <a href="https://fisioterapia-alberto-chaica.pt/" rel="noopener noreferrer">fisioterapia-alberto-chaica.pt</a>.</p>
+<p>Ter um parceiro na área da saúde ajuda os nossos atletas, de todas as modalidades, a prevenir lesões, a recuperar melhor e a voltar mais depressa ao que mais gostam de fazer.</p>
+<h2>Contactos</h2>
+<ul>
+<li><strong>Morada:</strong> Rua das Quintinhas, 31, 2820-514 Charneca da Caparica</li>
+<li><strong>Telefone:</strong> 212 976 222 · <strong>Telemóvel:</strong> 914 030 994</li>
+<li><strong>Email:</strong> geral@fisioterapia-alberto-chaica.pt</li>
+<li><strong>Site:</strong> <a href="https://fisioterapia-alberto-chaica.pt/" rel="noopener noreferrer">fisioterapia-alberto-chaica.pt</a></li>
+</ul>
 <p>Obrigado, Alberto Chaiça! 💙💛</p>$body$,
     'Comunicação Serrado FC',
     'draft'
