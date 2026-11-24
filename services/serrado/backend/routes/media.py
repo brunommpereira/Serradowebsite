@@ -47,8 +47,9 @@ async def usage(db: Pool, key: str) -> list[dict[str, Any]]:
         """select 'news' as type, id::text, title from cms_news where body like %s or cover_url like %s
            union all select 'events', id::text, title from cms_events where body like %s or cover_url like %s
            union all select 'pages', id::text, title from cms_pages where body like %s
+           union all select 'partners', id::text, name from cms_partners where logo_url like %s
            union all select 'site', key, key from site_blocks where data::text like %s""",
-        [like, like, like, like, like, like],
+        [like, like, like, like, like, like, like],
     )
 
 

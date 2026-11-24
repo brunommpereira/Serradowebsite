@@ -309,8 +309,12 @@ export class SportCardComponent {
   selector: 'sfc-sponsor-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="sp" [class.sp--main]="sponsor().category === 'Patrocinador Principal'">
-      <span class="sp__logo" aria-hidden="true">{{ initials() }}</span>
+    <div class="sp" [class.sp--main]="sponsor().category === 'Patrocinador Principal'" [class.sp--img]="!!sponsor().logoUrl">
+      @if (sponsor().logoUrl) {
+        <img class="sp__img" [src]="sponsor().logoUrl" [alt]="'Logótipo ' + sponsor().name" loading="lazy" decoding="async" />
+      } @else {
+        <span class="sp__logo" aria-hidden="true">{{ initials() }}</span>
+      }
       <span class="sp__name">{{ sponsor().name }}</span>
       <span class="sp__cat">{{ sponsor().category }}</span>
     </div>
@@ -344,6 +348,16 @@ export class SportCardComponent {
     .sp__name { font-weight: 700; font-size: 0.95rem; }
     .sp__cat { font-size: 0.75rem; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.06em; }
     .sp--main .sp__logo { background: var(--sfc-yellow); color: var(--color-on-accent); }
+    .sp--img { border-style: solid; border-color: var(--color-border, #e3e7ef); }
+    .sp__img {
+      width: 100%;
+      max-width: 220px;
+      height: 96px;
+      object-fit: contain;
+      background: #fff;
+      border-radius: calc(var(--radius) / 2);
+      padding: 0.4rem;
+    }
   `,
 })
 export class SponsorCardComponent {

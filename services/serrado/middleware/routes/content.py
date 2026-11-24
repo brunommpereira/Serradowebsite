@@ -74,6 +74,7 @@ def to_partner(p: Row) -> Row:
         "name": p.get("name"),
         "category": p.get("category"),
         "website": p.get("website") or "",
+        "logoUrl": p.get("logoUrl") or "",
         "description": p.get("description"),
         "active": True,
     }

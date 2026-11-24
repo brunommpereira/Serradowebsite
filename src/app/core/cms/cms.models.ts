@@ -129,6 +129,7 @@ export const CMS_TYPES: Record<CmsType, CmsTypeDef> = {
       SLUG,
       { key: 'category', label: 'Categoria', kind: 'select', required: true, options: PARTNER_CATEGORIES },
       { key: 'website', label: 'Site', kind: 'url', max: 300 },
+      { key: 'logoUrl', label: 'Logótipo', kind: 'image', wide: true, hint: 'Fundo branco ou transparente. Aparece na página de parceiros e na página inicial.' },
       { key: 'description', label: 'Descrição', kind: 'textarea', max: 2000, wide: true },
     ],
   },
