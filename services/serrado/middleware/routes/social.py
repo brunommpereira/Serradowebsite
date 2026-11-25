@@ -42,3 +42,24 @@ def register(r: APIRouter) -> None:
         out = await backend(req).call("PATCH", f"/social/{id}", actor=s, body=body)
         cache(req).invalidate("content:social:")
         return out
+
+    # Publicar no Facebook e no Instagram (agora ou agendado)
+    @r.get("/admin/social-posts/status", tags=tags, summary="Página de Facebook e conta de Instagram ligadas")
+    async def publish_status(req: Request) -> Any:
+        s = await staff(req)
+        return await backend(req).call("GET", "/social-posts/status", actor=s)
+
+    @r.get("/admin/social-posts", tags=tags, summary="Publicações nas redes")
+    async def publish_list(req: Request, limit: Annotated[int, Query(ge=1, le=200)] = 60) -> Any:
+        s = await staff(req)
+        return await backend(req).call("GET", "/social-posts", actor=s, query={"limit": limit})
+
+    @r.post("/admin/social-posts", tags=tags, summary="Publica agora ou agenda no Facebook e/ou Instagram")
+    async def publish_create(req: Request, body: JsonObject) -> Any:
+        s = await staff(req)
+        return await backend(req).call("POST", "/social-posts", actor=s, body=body)
+
+    @r.post("/admin/social-posts/{id}/{action}", tags=tags, summary="Cancela uma agendada ou volta a tentar uma que falhou")
+    async def publish_action(req: Request, id: Id, action: Literal["cancel", "retry"]) -> Any:
+        s = await staff(req)
+        return await backend(req).call("POST", f"/social-posts/{id}/{action}", actor=s)
