@@ -14,6 +14,9 @@
         @if (en.publishedAt) {
           · publicado {{ en.publishedAt | date: 'dd/MM/y' }}
         }
+        @if (d.type === 'news' && en.status === 'published') {
+          · <a [routerLink]="['/admin/publicar-redes']" [queryParams]="{ news: en.id }">Publicar nas redes</a>
+        }
       </p>
     } @else {
       <p>Fica em rascunho até carregares em «Publicar».</p>

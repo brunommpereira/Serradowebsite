@@ -47,6 +47,8 @@ LISBON = ZoneInfo("Europe/Lisbon")
 SOURCE = "facebook"
 SYSTEM = Actor()  # escritas feitas pela sincronização (sem utilizador)
 LOCK_ID = 7_301_978  # pg_advisory_lock: uma sincronização de cada vez
+# cms_external.remote_updated_at das publicações feitas a partir do backoffice: a sincronização não as reimporta
+ORIGIN_SITE = "site"
 
 CATEGORY_TAGS = {
     "futsal": "Futsal",
@@ -92,6 +94,19 @@ class GraphClient:
             err = data.get("error", {}) if isinstance(data, dict) else {}
             raise FacebookError(f"{err.get('type', 'erro')} {err.get('code', res.status_code)}: {err.get('message', 'pedido recusado')}")
         return data  # type: ignore[no-any-return]
+
+    async def post(self, path: str, data: dict[str, str]) -> dict[str, Any]:
+        """Escrita (publicar): o token vai no corpo do pedido, nunca no endereço."""
+        url = f"https://graph.facebook.com/{self.cfg.graph_version}/{path.lstrip('/')}"
+        try:
+            res = await self.http.post(url, data={**data, "access_token": self.cfg.page_token})
+        except httpx.HTTPError as e:
+            raise FacebookError(f"sem ligação à Graph API ({type(e).__name__})") from None
+        out = res.json() if res.content else {}
+        if res.status_code != 200 or "error" in out:
+            err = out.get("error", {}) if isinstance(out, dict) else {}
+            raise FacebookError(f"{err.get('type', 'erro')} {err.get('code', res.status_code)}: {err.get('message', 'pedido recusado')}")
+        return out  # type: ignore[no-any-return]
 
     async def items(self, path: str, params: dict[str, str], max_pages: int = 3) -> list[dict[str, Any]]:
         out: list[dict[str, Any]] = []
@@ -282,6 +297,8 @@ async def sync_posts(c: Conn, client: GraphClient, cfg: FacebookConfig, summary:
             "author": "Serrado FC (Facebook)",
         }
         ext = await _external(c, pid)
+        if ext is not None and ext["remote_updated_at"] == ORIGIN_SITE:
+            continue  # publicada a partir do site (serrado.social_publish): a notícia já existe e é a do site que conta
         if ext is None:
             created = _parse_time(p.get("created_time"))
             cover = await _store_image(c, client, p.get("full_picture"), f"facebook-{pid}.jpg", title)
@@ -556,17 +573,21 @@ async def _main(command: str, log: Callable[[str], None] = print) -> int:
         except FacebookError as e:
             log(f"✘ {e}")
             return 1
+    from .social_publish import dispatch  # aqui: o social_publish importa este módulo
+
     pool = create_pool(max_size=2)
     await pool.open()
     try:
+        # Primeiro as publicações agendadas no backoffice (site → Facebook/Instagram), depois a importação
+        published = await dispatch(pool)
         s = await sync(pool)
     except FacebookError as e:
         log(f"✘ {e}")
         return 1
     finally:
         await pool.close()
-    log(json.dumps(s.__dict__, ensure_ascii=False))
-    return 1 if s.errors else 0
+    log(json.dumps({**s.__dict__, "social": published.__dict__}, ensure_ascii=False))
+    return 1 if s.errors or published.failed else 0
 
 
 if __name__ == "__main__":

@@ -199,7 +199,7 @@ O site vai buscar à página de Facebook do clube, de 15 em 15 minutos:
 ### Obter o token da página (uma vez, com a conta de um administrador da página)
 
 1. **Criar a app:** em **developers.facebook.com → As minhas apps → Criar app**, escolhe o caso de uso **«Gerir tudo na tua Página»**. A app pode ficar em modo de desenvolvimento: quem a usa é o próprio administrador.
-2. **Gerar o token:** no **Graph API Explorer**, escolhe a app e carrega em **Get Token → Get Page Access Token**. Autoriza a página do clube com as permissões `pages_show_list` e `pages_read_engagement`.
+2. **Gerar o token:** no **Graph API Explorer**, escolhe a app e carrega em **Get Token → Get Page Access Token**. Autoriza a página do clube com as permissões `pages_show_list` e `pages_read_engagement` (para publicar a partir do backoffice, acrescenta também as da secção seguinte).
 3. **Tornar o token de longa duração:** em **Access Token Tool**, carrega em **Extend Access Token** no token de *utilizador*. Depois, no Explorer, pede `GET /me/accounts` com esse token. A resposta traz o **ID da página** e um **token da página que não expira**.
 4. **Na VPS:** corre `sudo serrado facebook` e cola o ID e o token.
    - **Publicar logo no site:** responde **S** (é a opção por omissão). Com **n**, tudo entra em rascunho para a equipa rever no backoffice.
@@ -217,6 +217,24 @@ O token deixa de valer se o administrador mudar a password ou deixar de gerir a 
 > **Eventos:** a Meta tem restringido o acesso aos eventos das páginas. Se a leitura de eventos for recusada, a sincronização continua a importar as publicações e os registos mostram `eventos: OAuthException …`.
 
 > **Imagens e RGPD:** as fotos publicadas no Facebook passam também para o site. Se alguma não puder estar no site (por exemplo, por falta de consentimento de imagem de um menor), basta despublicá-la ou trocar a capa no backoffice. Para mais controlo, usa o modo rascunho ou a hashtag.
+
+### Publicar no Facebook e no Instagram a partir do backoffice
+
+Em **Backoffice → Publicar nas redes**, a equipa escreve o texto, escolhe a imagem e publica **agora** ou **à hora marcada** no Facebook e/ou no Instagram do clube. Também se pode partir de uma notícia: o texto, o link e a capa vêm preenchidos (no editor da notícia publicada há a ligação «Publicar nas redes»).
+
+**Como funciona:**
+- **Agora:** sai em segundos. **Agendada:** sai na sincronização seguinte com o Facebook, até 15 minutos depois da hora marcada.
+- **Imagem:** passa sempre a JPEG e fica na biblioteca de imagens (é de lá que a Meta a vai buscar). Se for muito larga ou muito alta, ganha margens brancas para caber no Instagram. O Instagram exige imagem; o Facebook não.
+- **Sem duplicados:** a publicação feita no Facebook a partir de uma notícia fica ligada a essa notícia, e a sincronização não a importa outra vez.
+- **Erros:** até 3 tentativas, de 5 em 5 minutos. O erro aparece na lista, com o botão «Tentar de novo». Uma publicação interrompida a meio não se repete sozinha, para não sair duas vezes.
+
+**O que é preciso (uma vez):**
+1. **Instagram profissional:** na app do Instagram, em **Definições → Tipo de conta e ferramentas**, muda a conta do clube para **Profissional** (Empresa). Depois, em **Centro de Contas**, liga-a à página de Facebook do clube.
+2. **Token com permissões de publicação:** repete os passos do token (acima), mas no Graph API Explorer acrescenta as permissões `pages_manage_posts`, `instagram_basic` e `instagram_content_publish` (além de `pages_show_list` e `pages_read_engagement`). Na app da Meta, adiciona o produto **Instagram** se o Explorer não mostrar as permissões do Instagram.
+3. **Na VPS:** corre `sudo serrado facebook` e cola o ID da página e o **novo** token. Se não quiseres que as publicações feitas diretamente no Facebook passem a notícias no site, indica uma hashtag (por exemplo `site`): só essas são importadas.
+4. **Confirmar:** em **Backoffice → Publicar nas redes** aparece o nome da página e a conta de Instagram. Faz um primeiro post de teste.
+
+> **Cloudflare:** a Meta vai buscar a imagem a `https://…/api/v1/media/…jpg`. Se o Cloudflare tiver o «Bot Fight Mode» ligado e a Meta não conseguir ler a imagem, o erro aparece na lista. Nesse caso, permite o `facebookexternalhit` numa regra do Cloudflare.
 
 ## 5d. Pagamentos online e faturas-recibo (Stripe + Moloni ON)
 
