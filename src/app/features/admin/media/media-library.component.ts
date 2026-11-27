@@ -132,8 +132,9 @@ interface Upload {
     }
     .drop--over { border-color: var(--sfc-blue); background: #eef4fb; }
     .drop__pick {
-      color: var(--sfc-blue); font-weight: 700; text-decoration: underline; cursor: pointer;
-      input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+      position: relative; color: var(--sfc-blue); font-weight: 700; text-decoration: underline; cursor: pointer;
+      /* Dentro de um formulário (.field input) não pode herdar largura, altura mínima nem margens */
+      input { position: absolute; left: 0; top: 0; width: 1px; height: 1px; min-height: 0; padding: 0; border: 0; opacity: 0; }
       &:focus-within { outline: 3px solid rgba(0, 74, 142, 0.35); outline-offset: 2px; }
     }
     .uploads {
